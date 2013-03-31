@@ -17,10 +17,6 @@
 #ifndef TERMINAL_H_
 #define TERMINAL_H_
 
-
-
-#include "SDL_syswm.h"
-
 #define DEBUGMSGS 0
 #if DEBUGMSGS
 #define PRINT(args...) fprintf(args)

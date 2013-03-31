@@ -18,6 +18,7 @@
 #include <unix.h>
 #include <termios.h>
 
+#include <bps/screen.h>
 #include <bps/virtualkeyboard.h>
 #include <unicode/utf.h>
 

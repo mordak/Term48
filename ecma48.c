@@ -18,6 +18,7 @@
 #include <unicode/utf.h>
 #include <stdio.h>
 #include <strings.h>
+#include <stdlib.h>
 
 #include "SDL_ttf.h"
 
