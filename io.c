@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <unicode/utf.h>
 #include <unicode/ucnv.h>

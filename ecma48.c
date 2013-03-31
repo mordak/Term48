@@ -16,6 +16,8 @@
 
 #include <sys/keycodes.h>
 #include <unicode/utf.h>
+#include <stdio.h>
+#include <strings.h>
 
 #include "SDL_ttf.h"
 

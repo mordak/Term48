@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <strings.h>
+
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "terminal.h"
