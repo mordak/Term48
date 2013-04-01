@@ -23,7 +23,7 @@ Once these have been downloaded and compiled with the BlackBerry dev tools, you 
         * libconfig/lib
     * Under the QCC Linker Libraries, add the following Libraries:
         * bps
-        * icui18n
+        * icui18n (BB10 users may also need icuuc)
         * SDL12
         * screen
         * m
