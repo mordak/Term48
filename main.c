@@ -76,14 +76,15 @@ static char virtualkeyboard_visible = 0;
 
 void first_run(){
 	struct stat statbuf;
+	fprintf(stderr, "Updating README\n");
 	int rc = stat(README_FILE_PATH, &statbuf);
 	if(rc == 0){
-		// success!
-		char cpycmd[60] = "/base/bin/cp ";
+		// stat success!
+		char cpycmd[60] = "/base/bin/ln -sf ";
 		strncat(cpycmd, README_FILE_PATH, 21);
 		strncat(cpycmd, " .", 3);
 		if(system(cpycmd) == -1){
-			fprintf(stderr, "Error copying README from app to PWD\n");
+			fprintf(stderr, "Error linking README from app to PWD\n");
 		}
 	}
 }
@@ -821,6 +822,12 @@ int main(int argc, char **argv) {
 
   PRINT(stderr, "App init\n");
 
+	/* and show the keyboard if the user wants it */
+  if(preferences_get_bool(preference_keys.auto_show_vkb)){
+  	virtualkeyboard_show();
+  }
+
+
   UChar lbuf[READ_BUFFER_SIZE];
   ssize_t num_chars = 0;
   while (!exit_application) {
@@ -871,7 +878,7 @@ int main(int argc, char **argv) {
   }
 
   PRINT(stderr, "Exiting run loop\n");
-
+  virtualkeyboard_hide();
   uninit();
 
   return 0;

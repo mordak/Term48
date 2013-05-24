@@ -72,6 +72,22 @@ config_setting_t* preferences_init_group(config_setting_t* root, char* key){
 }
 
 
+int preferences_check_version(config_setting_t* root, char* key){
+  int type = CONFIG_TYPE_INT;
+  config_setting_t* setting = config_setting_get_member(root, key);
+  if(!setting /* not found */
+  		|| (config_setting_type(setting) != type) /* has been messed with */
+  		|| (config_setting_get_int(setting) != PREFS_VERSION)){ /* old */
+  	/* we need to update */
+  	config_setting_remove(root, key);
+		setting = config_setting_add(root, key, type);
+		config_setting_set_int(setting, PREFS_VERSION);
+		return 1;
+  }
+  return 0;
+}
+
+
 void preferences_init(){
 
   preferences = calloc(1, sizeof(config_t));
@@ -98,6 +114,7 @@ void preferences_init(){
   preferences_init_string(root, preference_keys.font_path, preference_defaults.font_path);
   preferences_init_int(root, preference_keys.font_size, preference_defaults.font_size);
   preferences_init_bool(root, preference_keys.screen_idle_awake, preference_defaults.screen_idle_awake);
+  preferences_init_bool(root, preference_keys.auto_show_vkb, preference_defaults.auto_show_vkb);
   preferences_init_int(root, preference_keys.metamode_doubletap_key, preference_defaults.metamode_doubletap_key);
   preferences_init_int(root, preference_keys.metamode_doubletap_delay, preference_defaults.metamode_doubletap_delay);
   preferences_init_string(root, preference_keys.tty_encoding, preference_defaults.tty_encoding);
@@ -150,8 +167,9 @@ void preferences_init(){
 		}
 	}
 
-  /* write an example prefs file if there was no local one found */
-  if(!prefs_found){
+  /* write the prefs file if there was no local one found or we have updated */
+  if(preferences_check_version(root, preference_keys.prefs_version) || !prefs_found){
+  	fprintf(stderr, "Writing prefs file\n");
     config_write_file(preferences, preferences_filename);
     /* This is probably a first run */
     first_run();

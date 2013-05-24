@@ -21,10 +21,13 @@
 #include <libconfig.h>
 
 
+static int PREFS_VERSION = 2;
+
 static struct preferences_keys_t {
 	char* font_path;
 	char* font_size;
 	char* screen_idle_awake;
+	char* auto_show_vkb;
 	char* metamode_doubletap_key;
 	char* metamode_doubletap_delay;
 	char* metamode_hitbox_s;
@@ -38,10 +41,12 @@ static struct preferences_keys_t {
 			char* h;
 	} metamode_hitbox;
 	char* tty_encoding;
+	char* prefs_version;
 } preference_keys = {
 		.font_path = "font_path",
 		.font_size = "font_size",
 		.screen_idle_awake = "screen_idle_awake",
+		.auto_show_vkb = "auto_show_vkb",
 		.metamode_doubletap_key = "metamode_doubletap_key",
 		.metamode_doubletap_delay = "metamode_doubletap_delay",
 		.metamode_hitbox_s = "metamode_hitbox",
@@ -54,13 +59,15 @@ static struct preferences_keys_t {
 				.w = "metamode_hitbox.w",
 				.h = "metamode_hitbox.h"
 		},
-		.tty_encoding = "tty_encoding"
+		.tty_encoding = "tty_encoding",
+		.prefs_version = "prefs_version"
 };
 
 static struct preference_defaults_t {
 	char* font_path;
 	int font_size;
 	int screen_idle_awake;
+	int auto_show_vkb;
 	int metamode_doubletap_key;
 	int metamode_doubletap_delay;
 	struct hitbox_t {
@@ -77,6 +84,7 @@ static struct preference_defaults_t {
 		.font_path = "/usr/fonts/font_repository/monotype/cour.ttf",
 		.font_size = 16,
 		.screen_idle_awake = 0,
+		.auto_show_vkb = 1,
 		.metamode_doubletap_key = KEYCODE_RIGHT_SHIFT,
 		.metamode_doubletap_delay = 500000000,
 		.hitbox = {0,0,100,100},
