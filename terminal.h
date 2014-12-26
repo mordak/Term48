@@ -17,8 +17,8 @@
 #ifndef TERMINAL_H_
 #define TERMINAL_H_
 
-#define DEBUGMSGS 0
-#if DEBUGMSGS
+/* #define DEBUGMSGS 0 */
+#ifdef DEBUGMSGS
 #define PRINT(args...) fprintf(args)
 #else
 #define PRINT(args...)

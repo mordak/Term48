@@ -20,6 +20,7 @@
 
 #include <bps/screen.h>
 #include <bps/virtualkeyboard.h>
+#include <bps/deviceinfo.h>
 #include <unicode/utf.h>
 
 #include "SDL.h"
@@ -70,9 +71,60 @@ static SDL_Surface* screen;
 static pid_t child_pid = -1;
 
 static char virtualkeyboard_visible = 0;
+static int virtualkeyboard_last_height = 0;
+static char isPassport = 0;
 
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
+
+int get_virtualkeyboard_height(){
+	int rc, vkb_h;
+  rc = virtualkeyboard_get_height(&vkb_h);
+	if(rc != BPS_SUCCESS){
+		fprintf(stderr, "Could not get virtual keyboard height\n");
+		vkb_h = 0; // assume zero?
+	}
+	return vkb_h;
+}
+
+void check_showing_virtual_keyboard(){
+  int resolution[2] = {screen->w, screen->h};
+  int vkb_h = 0;
+  vkb_h = get_virtualkeyboard_height();
+  if(vkb_h != virtualkeyboard_last_height){
+  	if(vkb_h == 0){
+  		PRINT(stderr, "Revealing virtual keyboard");
+  		virtualkeyboard_show();
+  	}
+    vkb_h = get_virtualkeyboard_height();
+    virtualkeyboard_last_height = vkb_h;
+  	setup_screen_size(resolution[0], resolution[1] - vkb_h);
+  	virtualkeyboard_visible = 1;
+  }
+}
+
+void init_virtualkeyboard(){
+	/* and show the keyboard if the user wants it */
+  if(preferences_get_bool(preference_keys.auto_show_vkb) || isPassport){
+  	virtualkeyboard_show();
+  	check_showing_virtual_keyboard();
+  }
+}
+
+void check_device(){
+	deviceinfo_details_t *di_t;
+	int rc;
+	char * model;
+	rc = deviceinfo_get_details(&di_t);
+	if(rc != BPS_SUCCESS){
+		fprintf(stderr, "Could not get device info");
+		return;
+	}
+	if(strncmp("Passport", deviceinfo_details_get_model_name(di_t), 8) == 0){
+		isPassport = 1;
+	}
+	deviceinfo_free_details(&di_t);
+}
 
 void first_run(){
 	struct stat statbuf;
@@ -107,6 +159,13 @@ void metamode_toggle(){
 	}
 }
 
+void handle_activeevent(gain, state){
+	if(gain){
+		PRINT(stderr, "Got ActiveEvent - initializing keyboard");
+		init_virtualkeyboard();
+	}
+}
+
 void handle_mousedown(Uint16 x, Uint16 y){
 	/* check for hits in the metamode_hitbox */
 	if(x >= metamode_hitbox[0]
@@ -116,18 +175,20 @@ void handle_mousedown(Uint16 x, Uint16 y){
 		/* hit in the box */
 		metamode_toggle();
 	}
+	/* and always show the keyboard if this is a passport.. */
+	if(isPassport){
+		virtualkeyboard_show();
+		check_showing_virtual_keyboard();
+	}
 }
 
 void handle_virtualkeyboard_event(bps_event_t *event){
   PRINT(stderr, "Virtual Keyboard event\n");
   int event_code = bps_event_get_code(event);
-  int vkb_h, rc;
+  int vkb_h;
   int resolution[2] = {screen->w, screen->h};
-  rc = virtualkeyboard_get_height(&vkb_h);
-	if(rc != BPS_SUCCESS){
-		fprintf(stderr, "Could not get virtual keyboard height\n");
-		vkb_h = 0; // assume zero?
-	}
+
+  vkb_h = get_virtualkeyboard_height();
 
   switch (event_code){
     case VIRTUALKEYBOARD_EVENT_VISIBLE:
@@ -198,21 +259,26 @@ int send_metamode_keystrokes(const char* keystrokes){
 
 void handleKeyboardEvent(screen_event_t screen_event)
 {
-  int screen_val;
+  int screen_val, screen_flags;
   int modifiers;
   int cap;
   int num_chars;
+  int vkbd_h;
   UChar c[CHARACTER_BUFFER];
   struct timespec now;
   uint64_t now_t, diff_t, metamode_last_t;
   const char* keys = NULL;
 
-  screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_FLAGS, &screen_val);
+	if(isPassport){
+		check_showing_virtual_keyboard();
+	}
 
-  if (screen_val & KEY_DOWN) {
-    screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_SYM, &screen_val);
-    screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_MODIFIERS, &modifiers);
-    screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_CAP, &cap);
+  screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_FLAGS, &screen_flags);
+  screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_SYM, &screen_val);
+	screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_MODIFIERS, &modifiers);
+	screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_CAP, &cap);
+
+  if (screen_flags & KEY_DOWN) {
     PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d)\n", (int)screen_val, modifiers, (char)screen_val, cap);
     fflush(stdout);
 
@@ -386,6 +452,8 @@ int init() {
     PRINT(stderr, "Couldn't initialize SDL: %s\n",SDL_GetError());
     return TERM_FAILURE;
   }
+
+  check_device();
 
   SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
   // We get keyboard events from the SysWMEvents
@@ -742,7 +810,12 @@ int init_pty() {
 
     ecma48_setenv();
 
-    execl("/bin/sh", "sh", "-l", (char*)0);
+    // execl("/bin/sh", "sh", "-l", (char*)0);
+    /* Set LC_CTYPE=en_US.UTF-8
+     * Which can be overridden in .profile
+     * */
+    setenv("LC_CTYPE", "en_US.UTF-8", 0);
+    execl("../app/native/lib/mksh", "mksh", "-l", (char*)0);
   }
   if (child_pid == -1){
     PRINT(stderr, "fork returned: %s\n", strerror(errno));
@@ -774,7 +847,8 @@ void sig_child(int signo){
 
 int main(int argc, char **argv) {
   int rc;
-
+  /* FIXME: This is to let the video settle, or else the resolution is effed */
+  sleep(2);
   /* Switch to our home directory */
   char* home = getenv("HOME");
   if(home != NULL){
@@ -822,11 +896,7 @@ int main(int argc, char **argv) {
 
   PRINT(stderr, "App init\n");
 
-	/* and show the keyboard if the user wants it */
-  if(preferences_get_bool(preference_keys.auto_show_vkb)){
-  	virtualkeyboard_show();
-  }
-
+  init_virtualkeyboard();
 
   UChar lbuf[READ_BUFFER_SIZE];
   ssize_t num_chars = 0;
@@ -868,6 +938,9 @@ int main(int argc, char **argv) {
         	break;
         case SDL_MOUSEBUTTONDOWN:
         	handle_mousedown(event.button.x, event.button.y);
+        	break;
+        case SDL_ACTIVEEVENT:
+        	handle_activeevent(event.active.gain, event.active.state);
         	break;
         default:
           PRINT(stderr, "Unknown Event: %d\n", event.type);

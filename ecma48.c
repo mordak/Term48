@@ -282,6 +282,40 @@ int ecma48_parse_control_codes(int sym, int mod, int cap, UChar* tbuf){
     case KEYCODE_F12        : return ecma48_ESC_O_KEY(tbuf, 0101); break;
 
   }
+
+  /* handle the shift key being down */
+	if((mod & KEYMOD_SHIFT) || (mod & KEYMOD_SHIFT_LOCK) || (mod & KEYMOD_CAPS_LOCK)){
+		switch(cap){
+			case 'a': tbuf[0] = 0101; break;
+			case 'b': tbuf[0] = 0102; break;
+			case 'c': tbuf[0] = 0103; break;
+			case 'd': tbuf[0] = 0104; break;
+			case 'e': tbuf[0] = 0105; break;
+			case 'f': tbuf[0] = 0106; break;
+			case 'g': tbuf[0] = 0107; break;
+			case 'h': tbuf[0] = 0110; break;
+			case 'i': tbuf[0] = 0111; break;
+			case 'j': tbuf[0] = 0112; break;
+			case 'k': tbuf[0] = 0113; break;
+			case 'l': tbuf[0] = 0114; break;
+			case 'm': tbuf[0] = 0115; break;
+			case 'n': tbuf[0] = 0116; break;
+			case 'o': tbuf[0] = 0117; break;
+			case 'p': tbuf[0] = 0120; break;
+			case 'q': tbuf[0] = 0121; break;
+			case 'r': tbuf[0] = 0122; break;
+			case 's': tbuf[0] = 0123; break;
+			case 't': tbuf[0] = 0124; break;
+			case 'u': tbuf[0] = 0125; break;
+			case 'v': tbuf[0] = 0126; break;
+			case 'w': tbuf[0] = 0127; break;
+			case 'x': tbuf[0] = 0130; break;
+			case 'y': tbuf[0] = 0131; break;
+			case 'z': tbuf[0] = 0132; break;
+		}
+		num_chars = 1;
+	}
+
   // now look for control down
   if(mod & KEYMOD_CTRL){
     switch (cap) {
@@ -321,7 +355,6 @@ int ecma48_parse_control_codes(int sym, int mod, int cap, UChar* tbuf){
     num_chars = 1;
   }
   return num_chars;
-
 }
 
 /* PRINT_CONTROL_SEQUENCE
