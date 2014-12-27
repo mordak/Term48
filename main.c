@@ -71,7 +71,6 @@ static SDL_Surface* screen;
 static pid_t child_pid = -1;
 
 static char virtualkeyboard_visible = 0;
-static int virtualkeyboard_last_height = 0;
 static char isPassport = 0;
 
 #define PB_D_PIXELS 32
@@ -87,27 +86,10 @@ int get_virtualkeyboard_height(){
 	return vkb_h;
 }
 
-void check_showing_virtual_keyboard(){
-  int resolution[2] = {screen->w, screen->h};
-  int vkb_h = 0;
-  vkb_h = get_virtualkeyboard_height();
-  if(vkb_h != virtualkeyboard_last_height){
-  	if(vkb_h == 0){
-  		PRINT(stderr, "Revealing virtual keyboard");
-  		virtualkeyboard_show();
-  	}
-    vkb_h = get_virtualkeyboard_height();
-    virtualkeyboard_last_height = vkb_h;
-  	setup_screen_size(resolution[0], resolution[1] - vkb_h);
-  	virtualkeyboard_visible = 1;
-  }
-}
-
 void init_virtualkeyboard(){
 	/* and show the keyboard if the user wants it */
   if(preferences_get_bool(preference_keys.auto_show_vkb) || isPassport){
   	virtualkeyboard_show();
-  	check_showing_virtual_keyboard();
   }
 }
 
@@ -175,10 +157,10 @@ void handle_mousedown(Uint16 x, Uint16 y){
 		/* hit in the box */
 		metamode_toggle();
 	}
-	/* and always show the keyboard if this is a passport.. */
+	/* touching the screen will reveal the keyboard on a Passport,
+	 * since the system wide gesture doesn't work to reveal. */
 	if(isPassport){
 		virtualkeyboard_show();
-		check_showing_virtual_keyboard();
 	}
 }
 
@@ -268,10 +250,6 @@ void handleKeyboardEvent(screen_event_t screen_event)
   struct timespec now;
   uint64_t now_t, diff_t, metamode_last_t;
   const char* keys = NULL;
-
-	if(isPassport){
-		check_showing_virtual_keyboard();
-	}
 
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_FLAGS, &screen_flags);
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_SYM, &screen_val);
@@ -478,6 +456,7 @@ int init() {
     fprintf(stderr, "Cannot get resolution: %s", strerror(errno));
     return TERM_FAILURE;
   }
+  PRINT(stderr, "wm size returned: w:%d, h:%d\n", wm_size[0], wm_size[1]);
 
   /* Initialize the TTF library */
   if ( TTF_Init() < 0 ) {
@@ -847,8 +826,7 @@ void sig_child(int signo){
 
 int main(int argc, char **argv) {
   int rc;
-  /* FIXME: This is to let the video settle, or else the resolution is effed */
-  sleep(2);
+
   /* Switch to our home directory */
   char* home = getenv("HOME");
   if(home != NULL){
@@ -930,10 +908,9 @@ int main(int argc, char **argv) {
         case SDL_SYSWMEVENT:
 					{
 						bps_event_t* bps_event = event.syswm.msg->event;
+						int screene_type;
 						int domain = bps_event_get_domain(bps_event);
-						if (domain == virtualkeyboard_get_domain()){
-							handle_virtualkeyboard_event(bps_event);
-						}
+						PRINT(stderr, "Unhandled SYSWMEVENT: %d\n", domain);
 					}
         	break;
         case SDL_MOUSEBUTTONDOWN:

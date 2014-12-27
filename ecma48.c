@@ -2967,6 +2967,7 @@ void ansi_CNORM(){
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
   switch(Pn){
     case 7:  autowrap = 0; break;
+    case 12: break; // comes after \E?25h for CNORM
     case 25: draw_cursor = 1; break;
     default: fprintf(stderr, "-- Unhandled code in ansi_CNORM: %d\n", Pn); break;
   };
