@@ -115,6 +115,8 @@ void preferences_init(){
   preferences_init_int(root, preference_keys.font_size, preference_defaults.font_size);
   preferences_init_bool(root, preference_keys.screen_idle_awake, preference_defaults.screen_idle_awake);
   preferences_init_bool(root, preference_keys.auto_show_vkb, preference_defaults.auto_show_vkb);
+  preferences_init_bool(root, preference_keys.keyhold_actions, preference_defaults.keyhold_actions);
+  preferences_init_int(root, preference_keys.metamode_hold_key, preference_defaults.metamode_hold_key);
   preferences_init_int(root, preference_keys.metamode_doubletap_key, preference_defaults.metamode_doubletap_key);
   preferences_init_int(root, preference_keys.metamode_doubletap_delay, preference_defaults.metamode_doubletap_delay);
   preferences_init_string(root, preference_keys.tty_encoding, preference_defaults.tty_encoding);

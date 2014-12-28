@@ -72,6 +72,7 @@ static pid_t child_pid = -1;
 
 static char virtualkeyboard_visible = 0;
 static char isPassport = 0;
+static char key_repeat_done = 0;
 
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
@@ -247,9 +248,14 @@ void handleKeyboardEvent(screen_event_t screen_event)
   int num_chars;
   int vkbd_h;
   UChar c[CHARACTER_BUFFER];
+  UChar *target = c;
   struct timespec now;
   uint64_t now_t, diff_t, metamode_last_t;
   const char* keys = NULL;
+  int32_t last_len = 0;
+  int32_t bs_i = 0;
+  size_t upcase_len = 0;
+  UChar backspace = 0x8;
 
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_FLAGS, &screen_flags);
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_SYM, &screen_val);
@@ -259,6 +265,40 @@ void handleKeyboardEvent(screen_event_t screen_event)
   if (screen_flags & KEY_DOWN) {
     PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d)\n", (int)screen_val, modifiers, (char)screen_val, cap);
     fflush(stdout);
+
+    /* handle key repeat to upcase / metamode */
+    if ((screen_flags & KEY_REPEAT) && preferences_get_bool(preference_keys.keyhold_actions)){
+    	if(!key_repeat_done){
+    		/* Check for a metamode toggle key first */
+    		if(screen_val == preferences_get_int(preference_keys.metamode_hold_key)){
+    			io_write_master(&backspace, 1);
+    			metamode_toggle();
+    			key_repeat_done = 1;
+    			return;
+    		}
+    		/* Now try to upcase */
+    		last_len = io_upcase_last_write(&target, CHARACTER_BUFFER);
+    		if(last_len > 0){
+    			/* We can upcase, send last_len backspaces and then the upcase char.
+    			 * Note that this really only works if the program on the other
+    			 * end of the line understands unicode, and can marry up backspaces
+    			 * with codepoints, instead of just blindly deleting one byte at a time. */
+    			upcase_len = (size_t)(target - c);
+    			PRINT(stderr, "Writing %d backspace and %d upcase chars\n", last_len, upcase_len);
+    			for(bs_i = 1; bs_i <= last_len; ++bs_i){
+    				io_write_master(&backspace, 1);
+    			}
+    			io_write_master(c, upcase_len);
+    			key_repeat_done = 1;
+    			return;
+    		} // fall through to usual behaviour if we can't upcase the last write.
+    	} else {
+    		// We have already handled this key repeat
+    		return;
+    	}
+    } else {
+    	key_repeat_done = 0;
+    }
 
     if(metamode){
     	keys = preferences_get_metamode_keys((char)screen_val);
@@ -496,6 +536,15 @@ int init() {
   /* set screen idle mode */
   if(!preferences_get_bool(preference_keys.screen_idle_awake)){
     setenv("SCREEN_IDLE_NORMAL", "1", 0);
+  }
+
+  /* check to verify if the wm returned the native resolution */
+  if (getenv("WIDTH") != NULL && getenv("HEIGHT") != NULL) {
+  	if(wm_size[0] != atoi(getenv("WIDTH")) || wm_size[1] != atoi(getenv("HEIGHT"))){
+  		fprintf(stderr, "SDL_WMInfo returned non-native screen resolution - forcing\n");
+  		wm_size[0] = atoi(getenv("WIDTH"));
+  		wm_size[1] = atoi(getenv("HEIGHT"));
+  	}
   }
 
   screen = SDL_SetVideoMode(wm_size[0], wm_size[1], PB_D_PIXELS, SDL_HWSURFACE | SDL_DOUBLEBUF);

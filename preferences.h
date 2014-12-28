@@ -21,7 +21,7 @@
 #include <libconfig.h>
 
 
-static int PREFS_VERSION = 2;
+static int PREFS_VERSION = 3;
 
 static struct preferences_keys_t {
 	char* font_path;
@@ -30,6 +30,8 @@ static struct preferences_keys_t {
 	char* auto_show_vkb;
 	char* metamode_doubletap_key;
 	char* metamode_doubletap_delay;
+	char* keyhold_actions;
+	char* metamode_hold_key;
 	char* metamode_hitbox_s;
 	char* metamode_keys;
 	char* metamode_sticky_keys;
@@ -49,6 +51,8 @@ static struct preferences_keys_t {
 		.auto_show_vkb = "auto_show_vkb",
 		.metamode_doubletap_key = "metamode_doubletap_key",
 		.metamode_doubletap_delay = "metamode_doubletap_delay",
+		.keyhold_actions = "keyhold_actions",
+		.metamode_hold_key = "metamode_hold_key",
 		.metamode_hitbox_s = "metamode_hitbox",
 		.metamode_keys = "metamode_keys",
 		.metamode_sticky_keys = "metamode_sticky_keys",
@@ -70,6 +74,8 @@ static struct preference_defaults_t {
 	int auto_show_vkb;
 	int metamode_doubletap_key;
 	int metamode_doubletap_delay;
+	int keyhold_actions;
+	int metamode_hold_key;
 	struct hitbox_t {
 		int x;
 		int y;
@@ -87,6 +93,8 @@ static struct preference_defaults_t {
 		.auto_show_vkb = 1,
 		.metamode_doubletap_key = KEYCODE_RIGHT_SHIFT,
 		.metamode_doubletap_delay = 500000000,
+		.keyhold_actions = 1,
+		.metamode_hold_key = KEYCODE_SPACE,
 		.hitbox = {0,0,100,100},
 		.tty_encoding = "UTF-8",
 		/* remember to update array size above when changing */
