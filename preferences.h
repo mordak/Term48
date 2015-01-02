@@ -31,6 +31,7 @@ static struct preferences_keys_t {
 	char* metamode_doubletap_key;
 	char* metamode_doubletap_delay;
 	char* keyhold_actions;
+	char* keyhold_actions_exempt;
 	char* metamode_hold_key;
 	char* metamode_hitbox_s;
 	char* metamode_keys;
@@ -52,6 +53,7 @@ static struct preferences_keys_t {
 		.metamode_doubletap_key = "metamode_doubletap_key",
 		.metamode_doubletap_delay = "metamode_doubletap_delay",
 		.keyhold_actions = "keyhold_actions",
+		.keyhold_actions_exempt = "keyhold_actions_exempt",
 		.metamode_hold_key = "metamode_hold_key",
 		.metamode_hitbox_s = "metamode_hitbox",
 		.metamode_keys = "metamode_keys",
@@ -86,9 +88,10 @@ static struct preference_defaults_t {
 	char* metamode_keys[4];
 	char* metamode_sticky_keys[8];
 	char* metamode_func_keys[8];
+	int keyhold_actions_exempt[2];
 } preference_defaults = {
 		.font_path = "/usr/fonts/font_repository/monotype/cour.ttf",
-		.font_size = 16,
+		.font_size = 40,
 		.screen_idle_awake = 0,
 		.auto_show_vkb = 1,
 		.metamode_doubletap_key = KEYCODE_RIGHT_SHIFT,
@@ -109,7 +112,10 @@ static struct preference_defaults_t {
 		.metamode_func_keys = {"a", "alt_down",
 													 "c", "ctrl_down",
 													 "s", "rescreen",
-													 "v", "paste_clipboard"}
+													 "v", "paste_clipboard"},
+		/* remember to update array size above when changing */
+		.keyhold_actions_exempt = {KEYCODE_BACKSPACE,
+				                       KEYCODE_RETURN}
 };
 
 config_t* preferences_get();
@@ -123,6 +129,7 @@ const char* preferences_get_metamode_keystrokes(char keystroke, char* pref_key);
 const char* preferences_get_metamode_keys(char keystroke);
 const char* preferences_get_metamode_sticky_keys(char keystroke);
 const char* preferences_get_metamode_func_keys(char keystroke);
+int preferences_is_keyhold_exempt(int keystroke);
 int preferences_get_int(char* pref);
 int preferences_get_bool(char* pref);
 

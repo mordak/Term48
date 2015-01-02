@@ -266,8 +266,19 @@ void handleKeyboardEvent(screen_event_t screen_event)
     PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d)\n", (int)screen_val, modifiers, (char)screen_val, cap);
     fflush(stdout);
 
+    /* metamode sticky keys don't trigger repreat */
+    if(metamode){
+    	keys = preferences_get_metamode_sticky_keys((char)screen_val);
+    	if(keys != NULL){
+				send_metamode_keystrokes(keys);
+				return;
+			}
+    }
+
     /* handle key repeat to upcase / metamode */
-    if ((screen_flags & KEY_REPEAT) && preferences_get_bool(preference_keys.keyhold_actions)){
+    if ((screen_flags & KEY_REPEAT)
+    		&& preferences_get_bool(preference_keys.keyhold_actions)
+    		&& !preferences_is_keyhold_exempt(screen_val)){
     	if(!key_repeat_done){
     		/* Check for a metamode toggle key first */
     		if(screen_val == preferences_get_int(preference_keys.metamode_hold_key)){
@@ -307,12 +318,6 @@ void handleKeyboardEvent(screen_event_t screen_event)
       	metamode_toggle();
       	return;
     	}
-    	// else
-    	keys = preferences_get_metamode_sticky_keys((char)screen_val);
-    	if(keys != NULL){
-				send_metamode_keystrokes(keys);
-				return;
-			}
     	// else
     	keys = preferences_get_metamode_func_keys((char)screen_val);
     	if(keys != NULL){

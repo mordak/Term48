@@ -71,6 +71,15 @@ config_setting_t* preferences_init_group(config_setting_t* root, char* key){
   return setting;
 }
 
+config_setting_t* preferences_init_array(config_setting_t* root, char* key){
+  int type = CONFIG_TYPE_ARRAY;
+  config_setting_t* setting = config_setting_get_member(root, key);
+  if(!setting || config_setting_type(setting) != type){
+    config_setting_remove(root, key);
+    setting = config_setting_add(root, key, type);
+  }
+  return setting;
+}
 
 int preferences_check_version(config_setting_t* root, char* key){
   int type = CONFIG_TYPE_INT;
@@ -127,6 +136,17 @@ void preferences_init(){
   preferences_init_int(setting, "w", preference_defaults.hitbox.w);
   preferences_init_int(setting, "h", preference_defaults.hitbox.h);
 
+  /* init the keyhold_exempt keys */
+  setting = config_setting_get_member(root, preference_keys.keyhold_actions_exempt);
+  if(!setting || config_setting_type(setting) != CONFIG_TYPE_ARRAY){
+  	setting = preferences_init_array(root, preference_keys.keyhold_actions_exempt);
+  	int num_key_defaults = sizeof(preference_defaults.keyhold_actions_exempt) / sizeof(int);
+  	int i = 0;
+  	for(i = 0; i < num_key_defaults; ++i){
+  		config_setting_set_int_elem(setting, -1, preference_defaults.keyhold_actions_exempt[i]);
+  	}
+  }
+
   /* initialize the metamode keys */
   setting = config_setting_get_member(root, preference_keys.metamode_keys);
   if(!setting || config_setting_type(setting) != CONFIG_TYPE_GROUP){
@@ -150,8 +170,8 @@ void preferences_init(){
 		int i = 0;
 		for(i = 0; i < num_key_defaults; ++i){
 			preferences_init_string(setting,
-					preference_defaults.metamode_sticky_keys[i*2],
-					preference_defaults.metamode_sticky_keys[(i*2)+1]);
+				                      preference_defaults.metamode_sticky_keys[i*2],
+				                      preference_defaults.metamode_sticky_keys[(i*2)+1]);
 		}
 	}
 
@@ -248,5 +268,22 @@ const char* preferences_get_metamode_sticky_keys(char keystroke){
 
 const char* preferences_get_metamode_func_keys(char keystroke){
 	return preferences_get_metamode_keystrokes(keystroke, preference_keys.metamode_func_keys);
+}
+
+int preferences_is_keyhold_exempt(int keystroke){
+	config_setting_t *exempt, *root;
+	root = config_root_setting(preferences);
+	exempt = config_setting_get_member(root, preference_keys.keyhold_actions_exempt);
+	if(exempt){
+		int num_elements = config_setting_length(exempt);
+		int i = 0;
+		for(i = 0; i < num_elements; ++i){
+			if(keystroke == config_setting_get_int_elem(exempt, i)){
+				return 1;
+			}
+		}
+	}
+	// else
+	return NULL;
 }
 
