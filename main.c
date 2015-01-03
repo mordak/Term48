@@ -79,50 +79,50 @@ static char key_repeat_done = 0;
 #define README_FILE_PATH "../app/native/README"
 
 int get_virtualkeyboard_height(){
-	int rc, vkb_h;
+  int rc, vkb_h;
   rc = virtualkeyboard_get_height(&vkb_h);
-	if(rc != BPS_SUCCESS){
-		fprintf(stderr, "Could not get virtual keyboard height\n");
-		vkb_h = 0; // assume zero?
-	}
-	return vkb_h;
+  if(rc != BPS_SUCCESS){
+    fprintf(stderr, "Could not get virtual keyboard height\n");
+    vkb_h = 0; // assume zero?
+  }
+  return vkb_h;
 }
 
 void init_virtualkeyboard(){
-	/* and show the keyboard if the user wants it */
+  /* and show the keyboard if the user wants it */
   if(preferences_get_bool(preference_keys.auto_show_vkb) || isPassport){
-  	virtualkeyboard_show();
+    virtualkeyboard_show();
   }
 }
 
 void check_device(){
-	deviceinfo_details_t *di_t;
-	int rc;
-	char * model;
-	rc = deviceinfo_get_details(&di_t);
-	if(rc != BPS_SUCCESS){
-		fprintf(stderr, "Could not get device info");
-		return;
-	}
-	if(strncmp("Passport", deviceinfo_details_get_model_name(di_t), 8) == 0){
-		isPassport = 1;
-	}
-	deviceinfo_free_details(&di_t);
+  deviceinfo_details_t *di_t;
+  int rc;
+  char * model;
+  rc = deviceinfo_get_details(&di_t);
+  if(rc != BPS_SUCCESS){
+    fprintf(stderr, "Could not get device info");
+    return;
+  }
+  if(strncmp("Passport", deviceinfo_details_get_model_name(di_t), 8) == 0){
+    isPassport = 1;
+  }
+  deviceinfo_free_details(&di_t);
 }
 
 void first_run(){
-	struct stat statbuf;
-	fprintf(stderr, "Updating README\n");
-	int rc = stat(README_FILE_PATH, &statbuf);
-	if(rc == 0){
-		// stat success!
-		char cpycmd[60] = "/base/bin/ln -sf ";
-		strncat(cpycmd, README_FILE_PATH, 21);
-		strncat(cpycmd, " .", 3);
-		if(system(cpycmd) == -1){
-			fprintf(stderr, "Error linking README from app to PWD\n");
-		}
-	}
+  struct stat statbuf;
+  fprintf(stderr, "Updating README\n");
+  int rc = stat(README_FILE_PATH, &statbuf);
+  if(rc == 0){
+    // stat success!
+    char cpycmd[60] = "/base/bin/ln -sf ";
+    strncat(cpycmd, README_FILE_PATH, 21);
+    strncat(cpycmd, " .", 3);
+    if(system(cpycmd) == -1){
+      fprintf(stderr, "Error linking README from app to PWD\n");
+    }
+  }
 }
 
 int get_wm_info(SDL_SysWMinfo* info){
@@ -133,37 +133,37 @@ int get_wm_info(SDL_SysWMinfo* info){
 }
 
 void metamode_toggle(){
-	metamode = metamode ? 0 : 1;
-	UChar metasym[2] = {'M', NULL};
-	/* free the last one */
-	SDL_FreeSurface(metamode_cursor);
-	metamode_cursor = NULL;
-	if(metamode){
-		metamode_cursor = TTF_RenderUNICODE_Shaded(font, metasym, metamode_cursor_fg, metamode_cursor_bg);
-	}
+  metamode = metamode ? 0 : 1;
+  UChar metasym[2] = {'M', NULL};
+  /* free the last one */
+  SDL_FreeSurface(metamode_cursor);
+  metamode_cursor = NULL;
+  if(metamode){
+    metamode_cursor = TTF_RenderUNICODE_Shaded(font, metasym, metamode_cursor_fg, metamode_cursor_bg);
+  }
 }
 
 void handle_activeevent(gain, state){
-	if(gain){
-		PRINT(stderr, "Got ActiveEvent - initializing keyboard");
-		init_virtualkeyboard();
-	}
+  if(gain){
+    PRINT(stderr, "Got ActiveEvent - initializing keyboard");
+    init_virtualkeyboard();
+  }
 }
 
 void handle_mousedown(Uint16 x, Uint16 y){
-	/* check for hits in the metamode_hitbox */
-	if(x >= metamode_hitbox[0]
-			&& x <= (metamode_hitbox[0] + metamode_hitbox[2])
-			&& y >= metamode_hitbox[1]
-			&& y <= metamode_hitbox[1] + metamode_hitbox[3]){
-		/* hit in the box */
-		metamode_toggle();
-	}
-	/* touching the screen will reveal the keyboard on a Passport,
-	 * since the system wide gesture doesn't work to reveal. */
-	if(isPassport){
-		virtualkeyboard_show();
-	}
+  /* check for hits in the metamode_hitbox */
+  if(x >= metamode_hitbox[0]
+     && x <= (metamode_hitbox[0] + metamode_hitbox[2])
+     && y >= metamode_hitbox[1]
+     && y <= metamode_hitbox[1] + metamode_hitbox[3]){
+    /* hit in the box */
+    metamode_toggle();
+  }
+  /* touching the screen will reveal the keyboard on a Passport,
+   * since the system wide gesture doesn't work to reveal. */
+  if(isPassport){
+    virtualkeyboard_show();
+  }
 }
 
 void handle_virtualkeyboard_event(bps_event_t *event){
@@ -176,17 +176,17 @@ void handle_virtualkeyboard_event(bps_event_t *event){
 
   switch (event_code){
     case VIRTUALKEYBOARD_EVENT_VISIBLE:
-    	setup_screen_size(resolution[0], resolution[1] - vkb_h);
-    	virtualkeyboard_visible = 1;
-    	break;
+      setup_screen_size(resolution[0], resolution[1] - vkb_h);
+      virtualkeyboard_visible = 1;
+      break;
     case VIRTUALKEYBOARD_EVENT_HIDDEN:
-    	setup_screen_size(resolution[0], resolution[1]);
-    	virtualkeyboard_visible = 0;
+      setup_screen_size(resolution[0], resolution[1]);
+      virtualkeyboard_visible = 0;
       break;
     case VIRTUALKEYBOARD_EVENT_INFO:
-    	vkb_h = virtualkeyboard_visible ? virtualkeyboard_event_get_height(event) : 0;
-    	setup_screen_size(resolution[0], resolution[1] - vkb_h);
-    	break;
+      vkb_h = virtualkeyboard_visible ? virtualkeyboard_event_get_height(event) : 0;
+      setup_screen_size(resolution[0], resolution[1] - vkb_h);
+      break;
     default:
       fprintf(stderr, "Unknown keyboard event code %d\n", event_code);
       break;
@@ -195,50 +195,50 @@ void handle_virtualkeyboard_event(bps_event_t *event){
 
 void rescreen(int w, int h){
 
-	int width  = w == -1 ? screen->w : w;
-	int height = h == -1 ? screen->h : h;
-	screen = SDL_SetVideoMode(width, height, PB_D_PIXELS, SDL_HWSURFACE | SDL_DOUBLEBUF);
+  int width  = w == -1 ? screen->w : w;
+  int height = h == -1 ? screen->h : h;
+  screen = SDL_SetVideoMode(width, height, PB_D_PIXELS, SDL_HWSURFACE | SDL_DOUBLEBUF);
   setup_screen_size(width, height);
 }
 
 void send_key(int keycode, int modifiers, int keycap){
-	int num_chars;
+  int num_chars;
   UChar c[CHARACTER_BUFFER];
-	num_chars = ecma48_parse_control_codes(keycode, modifiers, keycap, c);
-	int nc;
-	for(nc = 0; nc < num_chars; ++nc){
-		PRINT(stderr, "Writing 0x%x\n", (int)c[nc]);
-	}
-	io_write_master((const UChar*)&c, num_chars);
+  num_chars = ecma48_parse_control_codes(keycode, modifiers, keycap, c);
+  int nc;
+  for(nc = 0; nc < num_chars; ++nc){
+    PRINT(stderr, "Writing 0x%x\n", (int)c[nc]);
+  }
+  io_write_master((const UChar*)&c, num_chars);
 }
 
 void toggle_vkeymod(int mod){
-	if(vmodifiers & mod){
-		vmodifiers &= ~mod;
-	}
-	else {
-		vmodifiers |= mod;
-	}
+  if(vmodifiers & mod){
+    vmodifiers &= ~mod;
+  }
+  else {
+    vmodifiers |= mod;
+  }
 }
 
 int send_metamode_keystrokes(const char* keystrokes){
 
-	UChar* ukeystrokes;
-	size_t ukeystrokes_len;
-	size_t keystrokes_len;
+  UChar* ukeystrokes;
+  size_t ukeystrokes_len;
+  size_t keystrokes_len;
 
-	if(keystrokes){
-		keystrokes_len = strlen(keystrokes);
-		/* libconfig will return ascii strings, but we can put utf8 in there too */
-		ukeystrokes = (UChar*)calloc(keystrokes_len, sizeof(UChar));
-		ukeystrokes_len = io_read_utf8_string(keystrokes, keystrokes_len, ukeystrokes);
-		/* and write out to the tty whatever the keys were */
-		io_write_master(ukeystrokes, ukeystrokes_len);
-		free(ukeystrokes);
-		return 1;
-	}
-	/* no keystrokes saved for this key */
-	return 0;
+  if(keystrokes){
+    keystrokes_len = strlen(keystrokes);
+    /* libconfig will return ascii strings, but we can put utf8 in there too */
+    ukeystrokes = (UChar*)calloc(keystrokes_len, sizeof(UChar));
+    ukeystrokes_len = io_read_utf8_string(keystrokes, keystrokes_len, ukeystrokes);
+    /* and write out to the tty whatever the keys were */
+    io_write_master(ukeystrokes, ukeystrokes_len);
+    free(ukeystrokes);
+    return 1;
+  }
+  /* no keystrokes saved for this key */
+  return 0;
 }
 
 void handleKeyboardEvent(screen_event_t screen_event)
@@ -260,8 +260,8 @@ void handleKeyboardEvent(screen_event_t screen_event)
 
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_FLAGS, &screen_flags);
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_SYM, &screen_val);
-	screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_MODIFIERS, &modifiers);
-	screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_CAP, &cap);
+  screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_MODIFIERS, &modifiers);
+  screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_CAP, &cap);
 
   if (screen_flags & KEY_DOWN) {
     PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d)\n", (int)screen_val, modifiers, (char)screen_val, cap);
@@ -269,66 +269,66 @@ void handleKeyboardEvent(screen_event_t screen_event)
 
     /* metamode sticky keys don't trigger repreat */
     if(metamode){
-    	keys = preferences_get_metamode_sticky_keys((char)screen_val);
-    	if(keys != NULL){
-				send_metamode_keystrokes(keys);
-				return;
-			}
+      keys = preferences_get_metamode_sticky_keys((char)screen_val);
+      if(keys != NULL){
+        send_metamode_keystrokes(keys);
+        return;
+      }
     }
 
     /* handle key repeat to upcase / metamode */
     if ((screen_flags & KEY_REPEAT)
-    		&& preferences_get_bool(preference_keys.keyhold_actions)
-    		&& !preferences_is_keyhold_exempt(screen_val)){
-    	if(!key_repeat_done){
-    		/* Check for a metamode toggle key first */
-    		if(screen_val == preferences_get_int(preference_keys.metamode_hold_key)){
-    			io_write_master(&backspace, 1);
-    			metamode_toggle();
-    			key_repeat_done = 1;
-    			return;
-    		}
-    		/* Now try to upcase */
-    		last_len = io_upcase_last_write(&target, CHARACTER_BUFFER);
-    		if(last_len > 0){
-    			/* We can upcase, send last_len backspaces and then the upcase char.
-    			 * Note that this really only works if the program on the other
-    			 * end of the line understands unicode, and can marry up backspaces
-    			 * with codepoints, instead of just blindly deleting one byte at a time. */
-    			upcase_len = (size_t)(target - c);
-    			PRINT(stderr, "Writing %d backspace and %d upcase chars\n", last_len, upcase_len);
-    			for(bs_i = 1; bs_i <= last_len; ++bs_i){
-    				io_write_master(&backspace, 1);
-    			}
-    			io_write_master(c, upcase_len);
-    			key_repeat_done = 1;
-    			return;
-    		} // fall through to usual behaviour if we can't upcase the last write.
-    	} else {
-    		// We have already handled this key repeat
-    		return;
-    	}
+        && preferences_get_bool(preference_keys.keyhold_actions)
+        && !preferences_is_keyhold_exempt(screen_val)){
+      if(!key_repeat_done){
+        /* Check for a metamode toggle key first */
+        if(screen_val == preferences_get_int(preference_keys.metamode_hold_key)){
+          io_write_master(&backspace, 1);
+          metamode_toggle();
+          key_repeat_done = 1;
+          return;
+        }
+        /* Now try to upcase */
+        last_len = io_upcase_last_write(&target, CHARACTER_BUFFER);
+        if(last_len > 0){
+          /* We can upcase, send last_len backspaces and then the upcase char.
+           * Note that this really only works if the program on the other
+           * end of the line understands unicode, and can marry up backspaces
+           * with codepoints, instead of just blindly deleting one byte at a time. */
+          upcase_len = (size_t)(target - c);
+          PRINT(stderr, "Writing %d backspace and %d upcase chars\n", last_len, upcase_len);
+          for(bs_i = 1; bs_i <= last_len; ++bs_i){
+            io_write_master(&backspace, 1);
+          }
+          io_write_master(c, upcase_len);
+          key_repeat_done = 1;
+          return;
+        } // fall through to usual behaviour if we can't upcase the last write.
+      } else {
+        // We have already handled this key repeat
+        return;
+      }
     } else {
-    	key_repeat_done = 0;
+      key_repeat_done = 0;
     }
 
     if(metamode){
-    	keys = preferences_get_metamode_keys((char)screen_val);
-    	if(keys != NULL){
-    		send_metamode_keystrokes(keys);
-      	metamode_toggle();
-      	return;
-    	}
-    	// else
-    	keys = preferences_get_metamode_func_keys((char)screen_val);
-    	if(keys != NULL){
-    		int f = 0;
-    		if(!f && (0 == strncmp(keys, "alt_down", 8)))					{ toggle_vkeymod(KEYMOD_ALT);f=1;}
-    		if(!f && (0 == strncmp(keys, "ctrl_down", 9)))				{ toggle_vkeymod(KEYMOD_CTRL);f=1;}
-    		if(!f && (0 == strncmp(keys, "rescreen", 8)))					{ rescreen(-1, -1);f=1;}
-    		if(!f && (0 == strncmp(keys, "paste_clipboard", 15)))	{ io_paste_from_clipboard();f=1;}
-    	}
-    	metamode_toggle();
+      keys = preferences_get_metamode_keys((char)screen_val);
+      if(keys != NULL){
+        send_metamode_keystrokes(keys);
+        metamode_toggle();
+        return;
+      }
+      // else
+      keys = preferences_get_metamode_func_keys((char)screen_val);
+      if(keys != NULL){
+        int f = 0;
+        if(!f && (0 == strncmp(keys, "alt_down", 8)))          { toggle_vkeymod(KEYMOD_ALT);f=1;}
+        if(!f && (0 == strncmp(keys, "ctrl_down", 9)))         { toggle_vkeymod(KEYMOD_CTRL);f=1;}
+        if(!f && (0 == strncmp(keys, "rescreen", 8)))          { rescreen(-1, -1);f=1;}
+        if(!f && (0 == strncmp(keys, "paste_clipboard", 15)))  { io_paste_from_clipboard();f=1;}
+      }
+      metamode_toggle();
       return;
     }
 
@@ -337,20 +337,19 @@ void handleKeyboardEvent(screen_event_t screen_event)
     vmodifiers = 0;
 
     if(screen_val == metamode_doubletap_key){
-    	clock_gettime(CLOCK_MONOTONIC, &now);
-    	now_t = timespec2nsec(&now);
-    	metamode_last_t = timespec2nsec(&metamode_last);
-    	diff_t = now_t > metamode_last_t ? now_t - metamode_last_t : now_t;
-    	if(diff_t <= metamode_doubletap){
-    		metamode_toggle();
-    	}
-    	metamode_last = now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      now_t = timespec2nsec(&now);
+      metamode_last_t = timespec2nsec(&metamode_last);
+      diff_t = now_t > metamode_last_t ? now_t - metamode_last_t : now_t;
+      if(diff_t <= metamode_doubletap){
+        metamode_toggle();
+      }
+      metamode_last = now;
     }
 
 
     /* otherwise */
     switch (screen_val) {
-
       case KEYCODE_PAUSE      :
       case KEYCODE_SCROLL_LOCK:
       case KEYCODE_PRINT      :
@@ -360,7 +359,6 @@ void handleKeyboardEvent(screen_event_t screen_event)
         //case KEYCODE_BACKSPACE  :
         //case KEYCODE_TAB        :
         //case KEYCODE_BACK_TAB   :
-        //     :
       case KEYCODE_CAPS_LOCK  :
       case KEYCODE_LEFT_SHIFT :
       case KEYCODE_RIGHT_SHIFT:
@@ -372,7 +370,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
       case KEYCODE_LEFT_HYPER :
       case KEYCODE_RIGHT_HYPER:
         //case KEYCODE_INSERT     :
-          //case KEYCODE_HOME       :
+        //case KEYCODE_HOME       :
         //case KEYCODE_PG_UP      :
         //case KEYCODE_DELETE     :
         //case KEYCODE_END        :
@@ -402,11 +400,9 @@ void handleKeyboardEvent(screen_event_t screen_event)
         break;
     }
   }
-
 }
 
 void set_tty_window_size(){
-
   if(tcsetsize(io_get_master(), rows, cols) < 0){
     PRINT(stderr, "ERROR: tcsetsize() returned <0 (%s). Did not set child pty window size. \n", strerror(errno));
   }
@@ -431,20 +427,20 @@ void setup_screen_size(int s_w, int s_h){
   if(buf.line && old_rows > rows){ // new size smaller
     buf.top_line = buf.line - buf.top_line + 1 > rows ? buf.line - rows + 1 : buf.top_line;
     // clear covered up lines that are below the cursor
-		int toclear = old_bottom_line - buf_bottom_line();
-  	PRINT(stderr, "new rows: %d, new bottom: %d, old rows: %d, old_bottom: %d, clearing %d lines (SIZE: %d)\n",
-  			rows, buf_bottom_line(), old_rows, old_bottom_line, toclear, TEXT_BUFFER_SIZE);
-		buf_erase_lines(buf_bottom_line() + 1, toclear);
+    int toclear = old_bottom_line - buf_bottom_line();
+    PRINT(stderr, "new rows: %d, new bottom: %d, old rows: %d, old_bottom: %d, clearing %d lines (SIZE: %d)\n",
+        rows, buf_bottom_line(), old_rows, old_bottom_line, toclear, TEXT_BUFFER_SIZE);
+    buf_erase_lines(buf_bottom_line() + 1, toclear);
   } else if (buf.line && old_rows < rows){ // new size bigger
     //buf.top_line = buf.line - rows + 1 < 0 ? 0 : buf.line - rows + 1;
-  	buf.top_line = buf.top_line - diff_rows < 0 ? 0 : buf.top_line - diff_rows;
+    buf.top_line = buf.top_line - diff_rows < 0 ? 0 : buf.top_line - diff_rows;
     // clear newly revealed lines of artifacts
     int toclear = buf_bottom_line() < TEXT_BUFFER_SIZE ?
-    		buf_bottom_line() - old_bottom_line :
-    		TEXT_BUFFER_SIZE - 1 - old_bottom_line;
-  	PRINT(stderr, "new rows: %d, new bottom: %d, old rows: %d, old_bottom: %d, clearing %d lines\n",
-  			rows, buf_bottom_line(), old_rows, old_bottom_line, toclear);
-  	buf_erase_lines(old_bottom_line + 1, toclear);
+        buf_bottom_line() - old_bottom_line :
+        TEXT_BUFFER_SIZE - 1 - old_bottom_line;
+    PRINT(stderr, "new rows: %d, new bottom: %d, old rows: %d, old_bottom: %d, clearing %d lines\n",
+        rows, buf_bottom_line(), old_rows, old_bottom_line, toclear);
+    buf_erase_lines(old_bottom_line + 1, toclear);
   }
 
   /* and reset the scroll region */
@@ -463,7 +459,6 @@ void setup_screen_size(int s_w, int s_h){
     /* and assume the pgrp is our own, because we're not allowed to set pgrp.. */
     killpg(getpid(), SIGWINCH);
   }
-
 }
 
 
@@ -546,11 +541,11 @@ int init() {
 
   /* check to verify if the wm returned the native resolution */
   if (getenv("WIDTH") != NULL && getenv("HEIGHT") != NULL) {
-  	if(wm_size[0] != atoi(getenv("WIDTH")) || wm_size[1] != atoi(getenv("HEIGHT"))){
-  		fprintf(stderr, "SDL_WMInfo returned non-native screen resolution - forcing\n");
-  		wm_size[0] = atoi(getenv("WIDTH"));
-  		wm_size[1] = atoi(getenv("HEIGHT"));
-  	}
+    if(wm_size[0] != atoi(getenv("WIDTH")) || wm_size[1] != atoi(getenv("HEIGHT"))){
+      fprintf(stderr, "SDL_WMInfo returned non-native screen resolution - forcing\n");
+      wm_size[0] = atoi(getenv("WIDTH"));
+      wm_size[1] = atoi(getenv("HEIGHT"));
+    }
   }
 
   screen = SDL_SetVideoMode(wm_size[0], wm_size[1], PB_D_PIXELS, SDL_HWSURFACE | SDL_DOUBLEBUF);
@@ -654,9 +649,9 @@ int init() {
   hb_val = preferences_get_int(preference_keys.metamode_hitbox.y);
   metamode_hitbox[1] = hb_val ? hb_val : preference_defaults.hitbox.y;
   hb_val = preferences_get_int(preference_keys.metamode_hitbox.w);
-	metamode_hitbox[2] = hb_val ? hb_val : preference_defaults.hitbox.w;
+  metamode_hitbox[2] = hb_val ? hb_val : preference_defaults.hitbox.w;
   hb_val = preferences_get_int(preference_keys.metamode_hitbox.h);
-	metamode_hitbox[3] = hb_val ? hb_val : preference_defaults.hitbox.h;
+  metamode_hitbox[3] = hb_val ? hb_val : preference_defaults.hitbox.h;
 
   ecma48_init();
 
@@ -706,7 +701,6 @@ void render() {
   /* Set the background */
   SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, default_bg_color.r, default_bg_color.g, default_bg_color.b));
 
-
   for(i=0; i < rows; ++i){
     y = text_height * (i);
     x = 0.0;
@@ -742,19 +736,19 @@ void render() {
 
   if (draw_cursor){
     // draw the cursor
-  	/* Free the old cursor if we have one */
-  	SDL_FreeSurface(inv_cursor);
-  	inv_cursor = NULL;
-  	/* Get the character under the cursor */
-  	sc = &buf.text[buf.line][buf.col];
-  	if(sc->c){
-  		str[0] = sc->c;
-			TTF_SetFontStyle(font, sc->style.style);
-			inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
-			if(inv_cursor == NULL){
-				PRINT(stderr, "Rendering failed for char %d\n", (int)sc->c);
-			}
-  	}
+    /* Free the old cursor if we have one */
+    SDL_FreeSurface(inv_cursor);
+    inv_cursor = NULL;
+    /* Get the character under the cursor */
+    sc = &buf.text[buf.line][buf.col];
+    if(sc->c){
+      str[0] = sc->c;
+      TTF_SetFontStyle(font, sc->style.style);
+      inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
+      if(inv_cursor == NULL){
+        PRINT(stderr, "Rendering failed for char %d\n", (int)sc->c);
+      }
+    }
     cursor_x = buf.col;
     cursor_y = buf.line - buf.top_line;
     destrect.x = cursor_x * advance;
@@ -762,18 +756,18 @@ void render() {
     destrect.w = cursor->w;
     destrect.h = cursor->h;
     if(inv_cursor != NULL){
-    	SDL_BlitSurface(inv_cursor, NULL, screen, &destrect);
+      SDL_BlitSurface(inv_cursor, NULL, screen, &destrect);
     } else {
-    	SDL_BlitSurface(cursor, NULL, screen, &destrect);
+      SDL_BlitSurface(cursor, NULL, screen, &destrect);
     }
   }
 
   if(metamode && metamode_cursor != NULL){
-  	/* draw the metamode cursor */
-  	destrect.x = (cols-1) * advance;
-		destrect.y = 0;
-		destrect.w = metamode_cursor->w;
-		destrect.h = metamode_cursor->h;
+    /* draw the metamode cursor */
+    destrect.x = (cols-1) * advance;
+    destrect.y = 0;
+    destrect.w = metamode_cursor->w;
+    destrect.h = metamode_cursor->h;
     SDL_BlitSurface(metamode_cursor, NULL, screen, &destrect);
   }
 
@@ -829,13 +823,13 @@ int init_pty() {
   if (child_pid == 0) {
     // Child
     /*
-    	struct termios tios;
-    	if (tcgetattr(STDIN_FILENO, &tios) >= 0)
-    	{
-    		tios.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
-    		tios.c_oflag &= ~(ONLCR);
-    		(void) tcsetattr(STDIN_FILENO, TCSANOW, &tios);
-    	}
+      struct termios tios;
+      if (tcgetattr(STDIN_FILENO, &tios) >= 0)
+      {
+        tios.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
+        tios.c_oflag &= ~(ONLCR);
+        (void) tcsetattr(STDIN_FILENO, TCSANOW, &tios);
+      }
      */
 
     PRINT(stderr, "fork returned in child\n");
@@ -905,10 +899,10 @@ int main(int argc, char **argv) {
 
   // Initialize IO
   if (TERM_SUCCESS != io_init()) {
-		PRINT(stderr, "Unable to initialize IO\n");
-		uninit();
-		return TERM_FAILURE;
-	}
+    PRINT(stderr, "Unable to initialize IO\n");
+    uninit();
+    return TERM_FAILURE;
+  }
 
   // Initialize pty
   if (TERM_SUCCESS != init_pty()) {
@@ -964,28 +958,28 @@ int main(int argc, char **argv) {
           rescreen(event.resize.w, event.resize.h);
           break;
         case SDL_KEYDOWN:
-					{
-						fprintf(stderr, "SDL_KEYDOWN\n");
-						UChar uc;
-						char sdlkey = event.key.keysym.sym;
-						uc = (UChar)sdlkey;
-            io_write_master(&uc, 1);
-					}
-          break;
+        {
+          fprintf(stderr, "SDL_KEYDOWN\n");
+          UChar uc;
+          char sdlkey = event.key.keysym.sym;
+          uc = (UChar)sdlkey;
+          io_write_master(&uc, 1);
+        }
+        break;
         case SDL_SYSWMEVENT:
-					{
-						bps_event_t* bps_event = event.syswm.msg->event;
-						int screene_type;
-						int domain = bps_event_get_domain(bps_event);
-						PRINT(stderr, "Unhandled SYSWMEVENT: %d\n", domain);
-					}
-        	break;
+        {
+          bps_event_t* bps_event = event.syswm.msg->event;
+          int screene_type;
+          int domain = bps_event_get_domain(bps_event);
+          PRINT(stderr, "Unhandled SYSWMEVENT: %d\n", domain);
+        }
+        break;
         case SDL_MOUSEBUTTONDOWN:
-        	handle_mousedown(event.button.x, event.button.y);
-        	break;
+          handle_mousedown(event.button.x, event.button.y);
+          break;
         case SDL_ACTIVEEVENT:
-        	handle_activeevent(event.active.gain, event.active.state);
-        	break;
+          handle_activeevent(event.active.gain, event.active.state);
+          break;
         default:
           PRINT(stderr, "Unknown Event: %d\n", event.type);
           break;
