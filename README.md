@@ -1,8 +1,10 @@
-Term48 is a terminal emulator for BlackBerry (PlayBook). It implements (relevant parts of) the [ECMA-48 standard][ecma], but also includes some other control sequences to make it compliant with the qansi terminfo specification. It is a work in progress, but is good enough to be used regularly by the author.
+Term48 is a terminal emulator for BlackBerry. It implements (relevant parts of) the [ECMA-48 standard][ecma], but also includes some other control sequences to make it compliant with the qansi terminfo specification. It is a work in progress, but is good enough to be used regularly by the author.
 
-If you have a PlayBook, you can get Term48 from BB World:
+You can get Term48 from BB World.
 
 [http://appworld.blackberry.com/webstore/content/26272878/](http://appworld.blackberry.com/webstore/content/26272878/)
+
+The current version runs on the Passport. An older version is available for the Playbook.
 
 To compile Term48, you will need some additional libraries:
 
@@ -27,7 +29,8 @@ Once these have been downloaded and compiled with the BlackBerry dev tools, you 
         * libconfig/lib
     * Under the QCC Linker Libraries, add the following Libraries:
         * bps
-        * icui18n (BB10 users may also need icuuc)
+        * icui18n
+        * icuuc
         * SDL12
         * screen
         * m
