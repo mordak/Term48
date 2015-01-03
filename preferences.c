@@ -96,6 +96,38 @@ int preferences_check_version(config_setting_t* root, char* key){
   return 0;
 }
 
+int preferences_guess_best_font_size(){
+	/* font widths in pixels for sizes 0-64, indexed by font size */
+	int num_sizes = 65;
+	int font_widths[65] = {0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6,
+			                   7, 7, 8, 8, 9, 10, 10, 11, 11, 12,
+			                   13, 13, 14, 14, 15, 16, 16, 17, 17,
+			                   18, 19, 19, 20, 20, 21, 22, 22, 23,
+			                   23, 24, 25, 25, 26, 26, 27, 28, 28,
+			                   29, 29, 30, 31, 31, 32, 32, 33, 34,
+			                   34, 35, 35, 36, 37, 37, 38, 38};
+	int target_cols = 60;
+	int screen_width, screen_height, target_width;
+	if((getenv("WIDTH") == NULL) || (getenv("HEIGHT") == NULL)){
+		/* no width or height in env, just return the default */
+		return preference_defaults.font_size;
+	}
+	screen_width = atoi(getenv("WIDTH"));
+	screen_height = atoi(getenv("HEIGHT"));
+	target_width = screen_width < screen_height ? screen_width : screen_height;
+	int i = 0;
+	int num_px = 0;
+	for(i = 0; i < num_sizes; ++i){
+		num_px = target_cols * font_widths[i];
+		if(num_px > target_width){
+			/* if we are too big, return the last one. */
+			PRINT(stderr, "Autodetected font size %d for screen width %d\n", (i - 1), target_width);
+			return (i - 1);
+		}
+	}
+	/* if we get here, then just return the largest font */
+	return (num_sizes - 1);
+}
 
 void preferences_init(){
 
@@ -121,7 +153,7 @@ void preferences_init(){
 
   /* check for values from the conf file, and set them if not found or wrong type */
   preferences_init_string(root, preference_keys.font_path, preference_defaults.font_path);
-  preferences_init_int(root, preference_keys.font_size, preference_defaults.font_size);
+  preferences_init_int(root, preference_keys.font_size, preferences_guess_best_font_size());
   preferences_init_bool(root, preference_keys.screen_idle_awake, preference_defaults.screen_idle_awake);
   preferences_init_bool(root, preference_keys.auto_show_vkb, preference_defaults.auto_show_vkb);
   preferences_init_bool(root, preference_keys.keyhold_actions, preference_defaults.keyhold_actions);
