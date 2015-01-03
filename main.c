@@ -66,6 +66,7 @@ extern SDL_Surface* blank_surface;
 struct screenchar blank_sc;
 static SDL_Surface* flash_surface;
 static SDL_Surface* cursor;
+static SDL_Surface* inv_cursor;
 static SDL_Surface* screen;
 
 static pid_t child_pid = -1;
@@ -134,11 +135,11 @@ int get_wm_info(SDL_SysWMinfo* info){
 void metamode_toggle(){
 	metamode = metamode ? 0 : 1;
 	UChar metasym[2] = {'M', NULL};
+	/* free the last one */
+	SDL_FreeSurface(metamode_cursor);
+	metamode_cursor = NULL;
 	if(metamode){
 		metamode_cursor = TTF_RenderUNICODE_Shaded(font, metasym, metamode_cursor_fg, metamode_cursor_bg);
-	} else if(metamode_cursor != NULL){
-		/* free the last one */
-		SDL_FreeSurface(metamode_cursor);
 	}
 }
 
@@ -676,13 +677,8 @@ void uninit(){
     free(buf.text);
   }
 
-  if(blank_surface != NULL){
-    SDL_FreeSurface(blank_surface);
-  }
-
-  if(screen != NULL){
-    SDL_FreeSurface(screen);
-  }
+  SDL_FreeSurface(blank_surface);
+  SDL_FreeSurface(screen);
 
   ecma48_uninit();
 
@@ -746,13 +742,30 @@ void render() {
 
   if (draw_cursor){
     // draw the cursor
+  	/* Free the old cursor if we have one */
+  	SDL_FreeSurface(inv_cursor);
+  	inv_cursor = NULL;
+  	/* Get the character under the cursor */
+  	sc = &buf.text[buf.line][buf.col];
+  	if(sc->c){
+  		str[0] = sc->c;
+			TTF_SetFontStyle(font, sc->style.style);
+			inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
+			if(inv_cursor == NULL){
+				PRINT(stderr, "Rendering failed for char %d\n", (int)sc->c);
+			}
+  	}
     cursor_x = buf.col;
     cursor_y = buf.line - buf.top_line;
     destrect.x = cursor_x * advance;
     destrect.y = cursor_y * text_height;
     destrect.w = cursor->w;
     destrect.h = cursor->h;
-    SDL_BlitSurface(cursor, NULL, screen, &destrect);
+    if(inv_cursor != NULL){
+    	SDL_BlitSurface(inv_cursor, NULL, screen, &destrect);
+    } else {
+    	SDL_BlitSurface(cursor, NULL, screen, &destrect);
+    }
   }
 
   if(metamode && metamode_cursor != NULL){
