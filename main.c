@@ -850,12 +850,12 @@ int init_pty() {
 
     ecma48_setenv();
 
-    // execl("/bin/sh", "sh", "-l", (char*)0);
     /* Set LC_CTYPE=en_US.UTF-8
      * Which can be overridden in .profile
      * */
     setenv("LC_CTYPE", "en_US.UTF-8", 0);
     execl("../app/native/lib/mksh", "mksh", "-l", (char*)0);
+    //execl("/bin/sh", "sh", "-l", (char*)0);
   }
   if (child_pid == -1){
     PRINT(stderr, "fork returned: %s\n", strerror(errno));
