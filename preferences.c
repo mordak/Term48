@@ -81,6 +81,14 @@ config_setting_t* preferences_init_array(config_setting_t* root, char* key){
   return setting;
 }
 
+void preferences_pad_array_int(config_setting_t* setting, int size, int padding){
+	/* we assume that setting is actually a CONFIG_TYPE_ARRAY */
+	int num = config_setting_length(setting);
+	for(; num < size; ++num){
+		config_setting_set_int_elem(setting, -1, padding);
+	}
+}
+
 int preferences_check_version(config_setting_t* root, char* key){
   int type = CONFIG_TYPE_INT;
   config_setting_t* setting = config_setting_get_member(root, key);
@@ -179,6 +187,28 @@ void preferences_init(){
   	}
   }
 
+  /* initialize the text and background colours */
+  setting = config_setting_get_member(root, preference_keys.text_color);
+  if(!setting || config_setting_type(setting) != CONFIG_TYPE_ARRAY){
+  	setting = preferences_init_array(root, preference_keys.text_color);
+  	int i = 0;
+  	for(i = 0; i < PREFS_COLOR_NUM_ELEMENTS; ++i){
+  		config_setting_set_int_elem(setting, -1, preference_defaults.text_color[i]);
+  	}
+  }
+  /* ensure array length is long enough */
+  preferences_pad_array_int(setting, PREFS_COLOR_NUM_ELEMENTS, 0);
+
+  setting = config_setting_get_member(root, preference_keys.background_color);
+  if(!setting || config_setting_type(setting) != CONFIG_TYPE_ARRAY){
+  	setting = preferences_init_array(root, preference_keys.background_color);
+  	int i = 0;
+  	for(i = 0; i < PREFS_COLOR_NUM_ELEMENTS; ++i){
+  		config_setting_set_int_elem(setting, -1, preference_defaults.background_color[i]);
+  	}
+  }
+  preferences_pad_array_int(setting, PREFS_COLOR_NUM_ELEMENTS, 0);
+
   /* initialize the metamode keys */
   setting = config_setting_get_member(root, preference_keys.metamode_keys);
   if(!setting || config_setting_type(setting) != CONFIG_TYPE_GROUP){
@@ -273,6 +303,28 @@ int preferences_get_bool(char* pref){
 	int value;
 	config_lookup_bool(preferences, pref, &value);
 	return value;
+}
+
+int preferences_get_int_array(char* pref, int* fillme, int length){
+	config_setting_t *root, *setting;
+	if(!preferences){
+		preferences_init();
+	}
+	int num_copied = 0;
+	root = config_root_setting(preferences);
+  setting = config_setting_get_member(root, pref);
+  if(setting && config_setting_is_array(setting)){
+  	int i = 0;
+  	int num_eles = config_setting_length(setting);
+  	num_copied = length;
+  	if(num_eles < length){
+  		num_copied = num_eles;
+  	}
+  	for(i = 0; i < num_copied; ++i){
+  		fillme[i] = config_setting_get_int_elem(setting, i);
+  	}
+  }
+  return num_copied;
 }
 
 const char* preferences_get_metamode_keystrokes(char keystroke, char* pref_key){

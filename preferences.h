@@ -20,12 +20,15 @@
 #include <sys/keycodes.h>
 #include <libconfig.h>
 
+#define PREFS_COLOR_NUM_ELEMENTS 3
 
-static int PREFS_VERSION = 3;
+static int PREFS_VERSION = 4;
 
 static struct preferences_keys_t {
 	char* font_path;
 	char* font_size;
+	char* text_color;
+	char* background_color;
 	char* screen_idle_awake;
 	char* auto_show_vkb;
 	char* metamode_doubletap_key;
@@ -48,6 +51,8 @@ static struct preferences_keys_t {
 } preference_keys = {
 		.font_path = "font_path",
 		.font_size = "font_size",
+		.text_color = "text_color",
+		.background_color = "background_color",
 		.screen_idle_awake = "screen_idle_awake",
 		.auto_show_vkb = "auto_show_vkb",
 		.metamode_doubletap_key = "metamode_doubletap_key",
@@ -72,6 +77,8 @@ static struct preferences_keys_t {
 static struct preference_defaults_t {
 	char* font_path;
 	int font_size;
+	int text_color[PREFS_COLOR_NUM_ELEMENTS];
+	int background_color[PREFS_COLOR_NUM_ELEMENTS];
 	int screen_idle_awake;
 	int auto_show_vkb;
 	int metamode_doubletap_key;
@@ -92,6 +99,9 @@ static struct preference_defaults_t {
 } preference_defaults = {
 		.font_path = "/usr/fonts/font_repository/monotype/cour.ttf",
 		.font_size = 40,
+		/* must be of length == PREFS_COLOR_NUM_ELEMENTS */
+		.text_color = {255, 255, 255},
+		.background_color = {0, 0, 0},
 		.screen_idle_awake = 0,
 		.auto_show_vkb = 1,
 		.metamode_doubletap_key = KEYCODE_RIGHT_SHIFT,
@@ -132,5 +142,6 @@ const char* preferences_get_metamode_func_keys(char keystroke);
 int preferences_is_keyhold_exempt(int keystroke);
 int preferences_get_int(char* pref);
 int preferences_get_bool(char* pref);
+int preferences_get_int_array(char* pref, int* fillme, int length);
 
 #endif /* PREFERENCES_H_ */

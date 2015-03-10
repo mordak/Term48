@@ -58,6 +58,8 @@ static int text_width;
 static int text_height;
 static int text_height_padding;
 static int advance;
+static int default_text_color_arr[PREFS_COLOR_NUM_ELEMENTS];
+static int default_bg_color_arr[PREFS_COLOR_NUM_ELEMENTS];
 static SDL_Color default_text_color = (SDL_Color)WHITE;
 static SDL_Color default_bg_color = (SDL_Color)BLACK;
 struct font_style default_text_style;
@@ -529,6 +531,22 @@ int init() {
   TTF_SetFontOutline(font, 0);
   TTF_SetFontKerning(font, 0);
   TTF_SetFontHinting(font, TTF_HINTING_NORMAL);
+
+  /* get default colour settings */
+  int pref_color_len = preferences_get_int_array(preference_keys.text_color, default_text_color_arr, PREFS_COLOR_NUM_ELEMENTS);
+  if(pref_color_len == PREFS_COLOR_NUM_ELEMENTS){
+    default_text_color.r = (Uint8)default_text_color_arr[0];
+    default_text_color.g = (Uint8)default_text_color_arr[1];
+    default_text_color.b = (Uint8)default_text_color_arr[2];
+    default_text_color.unused = 0;
+  }
+  pref_color_len = preferences_get_int_array(preference_keys.background_color, default_bg_color_arr, PREFS_COLOR_NUM_ELEMENTS);
+  if(pref_color_len == PREFS_COLOR_NUM_ELEMENTS){
+    default_bg_color.r = (Uint8)default_bg_color_arr[0];
+    default_bg_color.g = (Uint8)default_bg_color_arr[1];
+    default_bg_color.b = (Uint8)default_bg_color_arr[2];
+    default_bg_color.unused = 0;
+  }
 
   default_text_style.fg_color = default_text_color;
   default_text_style.bg_color = default_bg_color;
