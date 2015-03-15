@@ -73,6 +73,7 @@ struct ecma48_modes {
   char VEM;
   char ZDM;
   char SIMD;
+  char DECOM;
 };
 
 static struct ecma48_modes modes;
@@ -106,6 +107,21 @@ void ecma48_parameter_arg_next(){
     escape_args.args[escape_args.num++][escape_args.pos] = '\0';
   }
   escape_args.pos = 0;
+}
+
+/* Convenience function for clearing all lines on the screen */
+void ecma48_clear_display(){
+	int i = 0;
+	for(i=0; i<rows; ++i){
+		buf_erase_line(buf.text[buf.top_line + i], cols);
+	}
+}
+
+/* Convenience function to set cursor origin. Calls CUP with no arguments. */
+void ecma48_set_cursor_home(){
+	escape_args.args[0][0] = '\0';
+	escape_args.args[1][0] = '\0';
+	ecma48_CUP();
 }
 
 void ecma48_init(){
@@ -485,8 +501,6 @@ BEL is used when there is a need to call for attention; it may control alarm or
 attention devices.
 */
 void ecma48_BEL(){
-  //ecma48_NOT_IMPLEMENTED("BEL");
-
   ecma48_PRINT_CONTROL_SEQUENCE("BEL");
   if(writing_buffer != BUFFER_NORMAL){
     /* BEL is used as ST sometimes... */
@@ -1215,7 +1229,6 @@ PROGRAM COMMAND (APC), DEVICE CONTROL STRING (DCS), OPERATING SYSTEM COMMAND
 (OSC), PRIVACY MESSAGE (PM), or START OF STRING (SOS).
 */
 void ecma48_ST(){
-  //ecma48_NOT_IMPLEMENTED("ST");
   ecma48_PRINT_CONTROL_SEQUENCE("ST");
   writing_buffer = BUFFER_NORMAL;
   ecma48_end_control();
@@ -1233,7 +1246,6 @@ the terminating delimiter STRING TERMINATOR (ST). The interpretation of the
 command string depends on the relevant operating system.
 */
 void ecma48_OSC(){
-  //ecma48_NOT_IMPLEMENTED("OSC");
   ecma48_PRINT_CONTROL_SEQUENCE("OSC");
   writing_buffer = BUFFER_OSC;
   ecma48_end_control();
@@ -1612,6 +1624,12 @@ void ecma48_CUP(){
   if((buf.line - buf.top_line) >= rows){
     buf.line = buf.top_line + rows - 1;
   }
+  if(modes.DECOM){
+  	// DEC ORIGIN MODE - coordinates are relative to scroll region.
+  	// We increment buf.line + (sr.top - 1).
+  	buf.line += (sr.top - 1);
+  	PRINT(stderr, "Moving within origin mode - buf.line = %d\n", buf.line);
+  }
   if(buf.col < 0){
     buf.col = 0;
   }
@@ -1688,9 +1706,7 @@ void ecma48_ED(){
       }
       break;
     case 2: // entire screen
-      for(i=0; i<rows; ++i){
-        buf_erase_line(buf.text[buf.top_line + i], cols);
-      }
+      ecma48_clear_display();
       /*
       buf.line = buf.top_line;
       buf.col = 0;
@@ -2051,7 +2067,6 @@ void ecma48_SD(){
     ++i;
   } while (i < Pn);
   ecma48_end_control();
-  //ecma48_NOT_IMPLEMENTED("SD");
 }
 
 /*
@@ -2331,6 +2346,10 @@ Parameter default value: Pn = 1
 HPR causes the active data position to be moved by n character positions in the
 data component in the direction of the character progression, where n equals the
 value of Pn.
+
+VT100 - DA - Device Attributes
+This expects the terminal to return a code indicating supported options. We don't
+do it because we're not VT100, but things like vttest expect us to respond.
 */
 void ecma48_HPR(){
   ecma48_NOT_IMPLEMENTED("HPR");
@@ -2958,35 +2977,36 @@ void ecma48_ANSI(){
   state = ECMA48_STATE_ANSI;
 }
 
-/* ansi_CIVIS
- * Handles all of the ESC[? Pn h codes, which is much more than
- * just CIVIS, but you have to name the function something..
+/* ansi_SM (set mode)
+ * Handles all of the ESC[? Pn h codes
  */
-void ansi_CIVIS(){
-  ecma48_PRINT_CONTROL_SEQUENCE("CIVIS");
+void ansi_SM(){
+  ecma48_PRINT_CONTROL_SEQUENCE("ansi_SM");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
   switch(Pn){
+  	case 3:  ecma48_clear_display(); ecma48_set_cursor_home(); break; // Clear the screen (and set 132 chars - not implemented)
+  	case 6:  modes.DECOM = 1; ecma48_set_cursor_home(); break;// DECOM Set origin relative
     case 7:  autowrap = 1; break;
-    case 12: break; // comes after \E[?25h for CNORM
-    case 25: draw_cursor = 0; break;
-    default: fprintf(stderr, "-- Unhandled code in ansi_CIVIS: %d\n", Pn); break;
+    case 12: break;
+    case 25: draw_cursor = 1; break;
+    default: fprintf(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn); break;
   };
   ecma48_end_control();
-  //ecma48_NOT_IMPLEMENTED("ansi_CIVIS");
 }
 
-/* ansi_CNORM
- * Handles all of the ESC[? Pn l codes, which is much more than
- * just CNORM.
+/* ansi_RM (reset mode)
+ * Handles all of the ESC[? Pn l codes
  */
-void ansi_CNORM(){
-  ecma48_PRINT_CONTROL_SEQUENCE("CNORM");
+void ansi_RM(){
+  ecma48_PRINT_CONTROL_SEQUENCE("ansi_RM");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
   switch(Pn){
+  	case 3:  ecma48_clear_display(); ecma48_set_cursor_home(); break; // Clear the screen (and set 80 chars - not implemented)
+  	case 6:  modes.DECOM = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
     case 7:  autowrap = 0; break;
-    case 12: break; // comes after \E?25h for CNORM
-    case 25: draw_cursor = 1; break;
-    default: fprintf(stderr, "-- Unhandled code in ansi_CNORM: %d\n", Pn); break;
+    case 12: break; // comes after \E?25h for ansi_SM
+    case 25: draw_cursor = 0; break;
+    default: fprintf(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn); break;
   };
   ecma48_end_control();
 }
@@ -3232,8 +3252,8 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x3a: ecma48_parameter_arg_add((char)tbuf[i]); break;
           case 0x3b: ecma48_parameter_arg_next(); break;
           /* final bytes */
-          case 0x68: ansi_CNORM(); break;
-          case 0x6c: ansi_CIVIS(); break;
+          case 0x68: ansi_SM(); break;
+          case 0x6c: ansi_RM(); break;
           default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
         }; break;
       case ECMA48_STATE_ANSI_POUND:
