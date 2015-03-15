@@ -523,6 +523,10 @@ IMPLICIT MOVEMENT DIRECTION (SIMD).
 */
 void ecma48_BS(){
   ecma48_PRINT_CONTROL_SEQUENCE("BS");
+  if(buf.col == cols){
+  	// backup twice, as per vt100 compat
+  	buf.col--;
+  }
   buf.col--;
   if (buf.col < 0) {
     buf.col = 0;
@@ -564,7 +568,10 @@ following line in the data component.
 */
 void ecma48_LF(){
   ecma48_PRINT_CONTROL_SEQUENCE("LF");
-  buf_increment_line();
+  if(buf.col < cols){
+  	// emulate xenl/xn newline glitch at the right margin
+  	buf_increment_line();
+  }
   //buf_check_screen_scroll();
   ecma48_end_control();
 }

@@ -758,7 +758,14 @@ void render() {
     SDL_FreeSurface(inv_cursor);
     inv_cursor = NULL;
     /* Get the character under the cursor */
-    sc = &buf.text[buf.line][buf.col];
+
+    int drawcols = buf.col;
+    if(buf.col == cols){
+    	// Don't draw off the edge - also make backspace from the right margin work 'right'
+    	drawcols -= 1;
+    }
+
+    sc = &buf.text[buf.line][drawcols];
     if(sc->c){
       str[0] = sc->c;
       TTF_SetFontStyle(font, sc->style.style);
@@ -767,7 +774,7 @@ void render() {
         PRINT(stderr, "Rendering failed for char %d\n", (int)sc->c);
       }
     }
-    cursor_x = buf.col;
+    cursor_x = drawcols;
     cursor_y = buf.line - buf.top_line;
     destrect.x = cursor_x * advance;
     destrect.y = cursor_y * text_height;
