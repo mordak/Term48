@@ -2999,8 +2999,29 @@ void ansi_POUND(){
   state = ECMA48_STATE_ANSI_POUND;
 }
 
+/* Fill the screen with 'E', and set the cursor to the home position */
 void ansi_DECALN(){
-  ecma48_NOT_IMPLEMENTED("ansi_DECALN");
+
+  ecma48_PRINT_CONTROL_SEQUENCE("ansi_DECALN");
+	int buf_x = screen_to_buf_col(1);
+	int buf_y = screen_to_buf_row(1);
+	int x, y;
+	struct screenchar *sc;
+	UChar pattern = 'E';
+	for(x = 0; x < cols; ++x){
+		for(y = 0; y < rows; ++y){
+			sc = &(buf.text[buf_y + y][buf_x + x]);
+			/* free old char */
+			buf_free_char(sc);
+			/* write new one */
+			sc->c = pattern;
+			sc->style = current_style;
+		}
+	}
+	buf.line = buf_y;
+	buf.col = buf_x;
+
+	ecma48_end_control();
 }
 
 void ecma48_filter_text(UChar* tbuf, ssize_t chars){
