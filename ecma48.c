@@ -1443,6 +1443,10 @@ the value of Pn.
 void ecma48_CUU(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUU");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  if(Pn == 0){
+  	// VT100 Compat
+  	Pn = 1;
+  }
   buf.line -= Pn;
   if (buf.line < buf.top_line) {
     buf.line = buf.top_line;
@@ -1463,6 +1467,10 @@ the value of Pn.
 void ecma48_CUD(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUD");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  if(Pn == 0){
+  	// VT100 Compat
+  	Pn = 1;
+  }
   buf.line += Pn;
   if (buf.line > buf.top_line + rows - 1) {
     buf.line = buf.top_line + rows - 1;
@@ -1483,6 +1491,10 @@ equals the value of Pn.
 void ecma48_CUF(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUF");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  if(Pn == 0){
+  	// VT100 Compat
+  	Pn = 1;
+  }
   buf.col += Pn;
     if (buf.col > cols) {
       buf.col = cols - 1;
@@ -1503,6 +1515,10 @@ equals the value of Pn.
 void ecma48_CUB(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUB");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  if(Pn == 0){
+  	// VT100 Compat
+  	Pn = 1;
+  }
   buf.col -= Pn;
     if (buf.col < 0) {
       buf.col = 0;
@@ -2990,9 +3006,9 @@ void ansi_CUU(){
   ecma48_CUU();
 }
 
-void ansi_CUB(){
-  ecma48_PRINT_CONTROL_SEQUENCE("ansi_CUB");
-  ecma48_CUB();
+void ansi_CUD(){
+  ecma48_PRINT_CONTROL_SEQUENCE("ansi_CUD");
+  ecma48_CUD();
 }
 
 void ansi_POUND(){
@@ -3075,7 +3091,7 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x41: ansi_CUU(); break;
           case 0x42: ecma48_BPH(); break;
           case 0x43: ecma48_NBH(); break;
-          case 0x44: ansi_CUB(); break;
+          case 0x44: ansi_CUD(); break; // VT100 IND (CUD), VT52 CUB
           case 0x45: ecma48_NEL(); break;
           case 0x46: ecma48_SSA(); break;
           case 0x47: ecma48_ESA(); break;
