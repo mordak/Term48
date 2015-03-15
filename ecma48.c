@@ -42,7 +42,7 @@ static char writing_buffer = BUFFER_NORMAL;
 static char autowrap = 1;
 //static int tabstop = 8;
 
-#define NUM_ESCAPE_ARGS 10
+#define NUM_ESCAPE_ARGS 16
 struct escape_arguments {
   char** args;
   int num;
@@ -1439,7 +1439,7 @@ parameter value of SET LINE HOME (SLH).
 */
 void ecma48_ICH(){
   ecma48_PRINT_CONTROL_SEQUENCE("ICH");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   if(!modes.HEM){
     buf_insert_character_following(Pn);
   } else {
@@ -1461,7 +1461,7 @@ the value of Pn.
 */
 void ecma48_CUU(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUU");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   if(Pn == 0){
   	// VT100 Compat
   	Pn = 1;
@@ -1485,7 +1485,7 @@ the value of Pn.
 */
 void ecma48_CUD(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUD");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   if(Pn == 0){
   	// VT100 Compat
   	Pn = 1;
@@ -1509,7 +1509,7 @@ equals the value of Pn.
 */
 void ecma48_CUF(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUF");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   if(Pn == 0){
   	// VT100 Compat
   	Pn = 1;
@@ -1533,7 +1533,7 @@ equals the value of Pn.
 */
 void ecma48_CUB(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUB");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   if(Pn == 0){
   	// VT100 Compat
   	Pn = 1;
@@ -1556,7 +1556,7 @@ equals the value of Pn.
 */
 void ecma48_CNL(){
   ecma48_PRINT_CONTROL_SEQUENCE("CNL");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   buf.line += Pn;
   if (buf.line > buf.top_line + rows - 1) {
     buf.line = buf.top_line + rows - 1;
@@ -1576,7 +1576,7 @@ equals the value of Pn.
 */
 void ecma48_CPL(){
   ecma48_PRINT_CONTROL_SEQUENCE("CPL");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   buf.line -= Pn;
   if (buf.line < buf.top_line) {
     buf.line = buf.top_line;
@@ -1596,7 +1596,7 @@ Pn.
 */
 void ecma48_CHA(){
   ecma48_PRINT_CONTROL_SEQUENCE("CHA");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   if(Pn > 0 && Pn <= cols){
     buf.col = Pn - 1;
   }
@@ -1615,8 +1615,8 @@ value of Pn1 and m equals the value of Pn2.
 */
 void ecma48_CUP(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUP");
-  int Pn1 = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0],NULL, 0) : 1;
-  int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 0) : 1;
+  int Pn1 = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0],NULL, 10) : 1;
+  int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 10) : 1;
   buf.line = buf.top_line + Pn1 - 1;
   buf.col = Pn2 - 1;
   // sanity check
@@ -1660,7 +1660,7 @@ value of Pn.
 */
 void ecma48_CHT(){
   ecma48_PRINT_CONTROL_SEQUENCE("CHT");
-  int Pn1 = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0],NULL, 0) : 1;
+  int Pn1 = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0],NULL, 10) : 1;
   int i;
   for(i = 1; i <= Pn1; ++i){
     ecma48_HT();
@@ -1698,7 +1698,7 @@ setting of the ERASURE MODE (ERM).
 void ecma48_ED(){
   ecma48_PRINT_CONTROL_SEQUENCE("ED");
   int i;
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 0;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   switch (Pn) {
     case 0: // from cursor to end of screen
       buf_erase_line(&buf.text[buf.line][buf.col], (cols-buf.col));
@@ -1752,7 +1752,7 @@ setting of the ERASURE MODE (ERM).
 */
 void ecma48_EL(){
   ecma48_PRINT_CONTROL_SEQUENCE("EL");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 0;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   switch (Pn) {
     case 0: // from cursor to end of line
       buf_erase_line(&buf.text[buf.line][buf.col], (cols-buf.col));
@@ -1800,7 +1800,7 @@ established by the parameter value of SET LINE HOME (SLH).
 */
 void ecma48_IL(){
   ecma48_PRINT_CONTROL_SEQUENCE("IL");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   int i = 0, j = 0;
   struct screenchar* tmp;
   do {
@@ -1852,7 +1852,7 @@ position is established by the parameter value of SET LINE HOME (SLH).
 */
 void ecma48_DL(){
   ecma48_PRINT_CONTROL_SEQUENCE("DL");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   int i = 0, j = 0;
   struct screenchar* tmp;
   do {
@@ -1961,7 +1961,7 @@ of the shifted part, n character positions are put into the erased state.
 */
 void ecma48_DCH(){
   ecma48_PRINT_CONTROL_SEQUENCE("DCH");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   if(!modes.HEM){
     buf_delete_character_following(Pn);
   } else {
@@ -2025,7 +2025,7 @@ The active presentation position is not affected by this control function.
 */
 void ecma48_SU(){
   ecma48_PRINT_CONTROL_SEQUENCE("SU");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   int i = 0, j = 0;
   struct screenchar* tmp;
   do {
@@ -2057,7 +2057,7 @@ The active presentation position is not affected by this control function.
 */
 void ecma48_SD(){
   ecma48_PRINT_CONTROL_SEQUENCE("SD");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   int i = 0, j = 0;
   struct screenchar* tmp;
   do {
@@ -2143,7 +2143,7 @@ setting of the ERASURE MODE (ERM).
 */
 void ecma48_ECH(){
   ecma48_PRINT_CONTROL_SEQUENCE("SD");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   /* Make sure not to overrun the end of the line */
   int max = cols - buf.col;
   Pn = Pn > max ? max : Pn;
@@ -2176,7 +2176,7 @@ value of Pn.
 */
 void ecma48_CBT(){
   ecma48_PRINT_CONTROL_SEQUENCE("CBT");
-  int Pn1 = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0],NULL, 0) : 1;
+  int Pn1 = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0],NULL, 10) : 1;
   int i, x;
   for(i = 1; i <= Pn1; ++i){
     x = screen_prev_tab_x();
@@ -2453,7 +2453,7 @@ the setting of the TABULATION STOP MODE (TSM)
 */
 void ecma48_TBC(){
   ecma48_PRINT_CONTROL_SEQUENCE("TBC");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 0;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   int i;
   switch (Pn){
     case 0 : clear_char_tabstop_at(buf_to_screen_row(-1), buf_to_screen_col(-1)); break;
@@ -2500,7 +2500,7 @@ NOTE Private modes may be implemented using private parameters, see 5.4.1 and
 */
 void ecma48_SM(){
   ecma48_PRINT_CONTROL_SEQUENCE("SM");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 0;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   switch(Pn){
     case 1: modes.GATM = 1; break;
     case 2: modes.KAM = 1; break;
@@ -2609,7 +2609,7 @@ NOTE Private modes may be implemented using private parameters, see 5.4.1 and
 */
 void ecma48_RM(){
   ecma48_PRINT_CONTROL_SEQUENCE("RM");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 0;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   switch(Pn){
     case 1: modes.GATM = 0; break;
     case 2: modes.KAM = 0; break;
@@ -2722,17 +2722,15 @@ implementation.
 */
 void ecma48_SGR(){
   ecma48_PRINT_CONTROL_SEQUENCE("SGR");
-//  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 0;
-//  int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 0) : 0;
   int Pn[NUM_ESCAPE_ARGS];
   SDL_Color tmpcolor;
   int i;
 
   // set the default
-  Pn[0] = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 0;
+  Pn[0] = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   // now process anything else
   for(i=1; i < NUM_ESCAPE_ARGS; ++i){
-    Pn[i] = escape_args.args[i][0] != '\0' ? (int)strtol(escape_args.args[i], NULL, 0) : -1;
+    Pn[i] = escape_args.args[i][0] != '\0' ? (int)strtol(escape_args.args[i], NULL, 10) : -1;
   }
   for(i=0; i < NUM_ESCAPE_ARGS; ++i){
     if(Pn[i] >= 0){
@@ -2989,7 +2987,7 @@ void ecma48_ANSI(){
  */
 void ansi_SM(){
   ecma48_PRINT_CONTROL_SEQUENCE("ansi_SM");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   switch(Pn){
   	case 3:  ecma48_clear_display(); ecma48_set_cursor_home(); break; // Clear the screen (and set 132 chars - not implemented)
   	case 6:  modes.DECOM = 1; ecma48_set_cursor_home(); break;// DECOM Set origin relative
@@ -3006,7 +3004,7 @@ void ansi_SM(){
  */
 void ansi_RM(){
   ecma48_PRINT_CONTROL_SEQUENCE("ansi_RM");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   switch(Pn){
   	case 3:  ecma48_clear_display(); ecma48_set_cursor_home(); break; // Clear the screen (and set 80 chars - not implemented)
   	case 6:  modes.DECOM = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
@@ -3019,8 +3017,8 @@ void ansi_RM(){
 }
 void ansi_CSR(){
   ecma48_PRINT_CONTROL_SEQUENCE("CSR");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 0) : 1;
-  int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 0) : rows;
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
+  int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 10) : rows;
   if ((Pn2 - Pn >= 2) && (Pn >= 1) && (Pn2 <= rows)){
     sr.top = Pn;
     sr.bottom = Pn2;
