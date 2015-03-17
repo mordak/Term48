@@ -568,11 +568,11 @@ following line in the data component.
 */
 void ecma48_LF(){
   ecma48_PRINT_CONTROL_SEQUENCE("LF");
-  if(buf.col < cols){
+
+  //if(buf.col < cols){
   	// emulate xenl/xn newline glitch at the right margin
   	buf_increment_line();
-  }
-  //buf_check_screen_scroll();
+  //}
   ecma48_end_control();
 }
 
