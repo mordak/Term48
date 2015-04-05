@@ -243,6 +243,84 @@ int send_metamode_keystrokes(const char* keystrokes){
   return 0;
 }
 
+char no_uppercase_representation(int keysym){
+	switch(keysym){
+		case 0x00:
+		case 0x01:
+		case 0x02:
+		case 0x03:
+		case 0x04:
+		case 0x05:
+		case 0x06:
+		case 0x07:
+		case 0x08:
+		case 0x09:
+		case 0x0a:
+		case 0x0b:
+		case 0x0c:
+		case 0x0d:
+		case 0x0e:
+		case 0x0f:
+		case 0x10:
+		case 0x11:
+		case 0x12:
+		case 0x13:
+		case 0x14:
+		case 0x15:
+		case 0x16:
+		case 0x17:
+		case 0x18:
+		case 0x19:
+		case 0x1a:
+		case 0x1b:
+		case 0x1c:
+		case 0x1d:
+		case 0x1e:
+		case 0x1f:
+    case KEYCODE_PAUSE      :
+    case KEYCODE_SCROLL_LOCK:
+    case KEYCODE_PRINT      :
+    case KEYCODE_SYSREQ     :
+    case KEYCODE_BREAK      :
+    case KEYCODE_ESCAPE     :
+    case KEYCODE_BACKSPACE  :
+    case KEYCODE_TAB        :
+    case KEYCODE_BACK_TAB   :
+    case KEYCODE_CAPS_LOCK  :
+    case KEYCODE_LEFT_SHIFT :
+    case KEYCODE_RIGHT_SHIFT:
+    case KEYCODE_LEFT_CTRL  :
+    case KEYCODE_RIGHT_CTRL :
+    case KEYCODE_LEFT_ALT   :
+    case KEYCODE_RIGHT_ALT  :
+    case KEYCODE_MENU       :
+    case KEYCODE_LEFT_HYPER :
+    case KEYCODE_RIGHT_HYPER:
+    case KEYCODE_INSERT     :
+    case KEYCODE_HOME       :
+    case KEYCODE_PG_UP      :
+    case KEYCODE_DELETE     :
+    case KEYCODE_END        :
+    case KEYCODE_PG_DOWN    :
+    case KEYCODE_NUM_LOCK   :
+    case KEYCODE_F1         :
+    case KEYCODE_F2         :
+    case KEYCODE_F3         :
+    case KEYCODE_F4         :
+    case KEYCODE_F5         :
+    case KEYCODE_F6         :
+    case KEYCODE_F7         :
+    case KEYCODE_F8         :
+    case KEYCODE_F9         :
+    case KEYCODE_F10        :
+    case KEYCODE_F11        :
+    case KEYCODE_F12        :
+    return 1;
+    break;
+	}
+	return 0;
+}
+
 void handleKeyboardEvent(screen_event_t screen_event)
 {
   int screen_val, screen_flags;
@@ -289,22 +367,23 @@ void handleKeyboardEvent(screen_event_t screen_event)
           metamode_toggle();
           key_repeat_done = 1;
           return;
-        }
-        /* Now try to upcase */
-        last_len = io_upcase_last_write(&target, CHARACTER_BUFFER);
-        if(last_len > 0){
-          /* We can upcase, send last_len backspaces and then the upcase char.
-           * Note that this really only works if the program on the other
-           * end of the line understands unicode, and can marry up backspaces
-           * with codepoints, instead of just blindly deleting one byte at a time. */
-          upcase_len = (size_t)(target - c);
-          PRINT(stderr, "Writing %d backspace and %d upcase chars\n", last_len, upcase_len);
-          for(bs_i = 1; bs_i <= last_len; ++bs_i){
-            io_write_master(&backspace, 1);
-          }
-          io_write_master(c, upcase_len);
-          key_repeat_done = 1;
-          return;
+        } else if (!no_uppercase_representation(screen_val)){
+					/* Now try to upcase */
+					last_len = io_upcase_last_write(&target, CHARACTER_BUFFER);
+					if(last_len > 0){
+						/* We can upcase, send last_len backspaces and then the upcase char.
+						 * Note that this really only works if the program on the other
+						 * end of the line understands unicode, and can marry up backspaces
+						 * with codepoints, instead of just blindly deleting one byte at a time. */
+						upcase_len = (size_t)(target - c);
+						PRINT(stderr, "Writing %d backspace and %d upcase chars\n", last_len, upcase_len);
+						for(bs_i = 1; bs_i <= last_len; ++bs_i){
+							io_write_master(&backspace, 1);
+						}
+						io_write_master(c, upcase_len);
+						key_repeat_done = 1;
+						return;
+					}
         } // fall through to usual behaviour if we can't upcase the last write.
       } else {
         // We have already handled this key repeat
