@@ -168,7 +168,7 @@ ssize_t io_read_utf8_string(const char* utf8, size_t utf8len, UChar* buf){
 	target = buf;
 	targetLimit = buf + utf8len;
 
-  ucnv_toUnicode(utf8_conv, &target, targetLimit, &source, sourceLimit, NULL, FALSE, &utf8_conv_err);
+  ucnv_toUnicode(utf8_conv, &target, targetLimit, &source, sourceLimit, NULL, TRUE, &utf8_conv_err);
 
   if(utf8_conv_err == U_BUFFER_OVERFLOW_ERROR){
   	fprintf(stderr, "ucnv_toUnicode() in io_read_utf8_string ran out of target buffer when converting from utf8\n");

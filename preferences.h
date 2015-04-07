@@ -19,10 +19,20 @@
 
 #include <sys/keycodes.h>
 #include <libconfig.h>
+#include "SDL.h"
 
 #define PREFS_COLOR_NUM_ELEMENTS 3
+#define PREFS_SYMKEYS_DEFAULT_NUM_ROWS 2
 
-static int PREFS_VERSION = 4;
+static int PREFS_VERSION = 5;
+
+struct symkey_entry {
+	const char* name;
+	const char* c;
+	UChar* uc;
+  int x, y;
+  SDL_Surface* surface;
+};
 
 static struct preferences_keys_t {
 	char* font_path;
@@ -46,6 +56,7 @@ static struct preferences_keys_t {
 			char* w;
 			char* h;
 	} metamode_hitbox;
+	char* sym_keys;
 	char* tty_encoding;
 	char* prefs_version;
 } preference_keys = {
@@ -70,6 +81,7 @@ static struct preferences_keys_t {
 				.w = "metamode_hitbox.w",
 				.h = "metamode_hitbox.h"
 		},
+		.sym_keys = "sym_keys",
 		.tty_encoding = "tty_encoding",
 		.prefs_version = "prefs_version"
 };
@@ -95,6 +107,7 @@ static struct preference_defaults_t {
 	char* metamode_keys[4];
 	char* metamode_sticky_keys[8];
 	char* metamode_func_keys[8];
+	char* sym_keys[2][14];
 	int keyhold_actions_exempt[2];
 } preference_defaults = {
 		.font_path = "/usr/fonts/font_repository/monotype/cour.ttf",
@@ -123,6 +136,9 @@ static struct preference_defaults_t {
 													 "c", "ctrl_down",
 													 "s", "rescreen",
 													 "v", "paste_clipboard"},
+		/* remember to update array sizes above when changing and PREFS_SYMKEYS_DEFAULT_NUM_ROWS */
+		.sym_keys = {{"q", "~", "w", "%", "e", "^", "r", "&", "t", "=", "y", "\\", "u", "|"},
+								 {"a", "`", "s", "<", "d", ">", "f", "[", "g", "]", "h", "{",  "j", "}"}},
 		/* remember to update array size above when changing */
 		.keyhold_actions_exempt = {KEYCODE_BACKSPACE,
 				                       KEYCODE_RETURN}
@@ -143,5 +159,9 @@ int preferences_is_keyhold_exempt(int keystroke);
 int preferences_get_int(char* pref);
 int preferences_get_bool(char* pref);
 int preferences_get_int_array(char* pref, int* fillme, int length);
+int preferences_guess_best_font_size(int target_cols);
 
+int preferences_get_sym_num_rows();
+int* preferences_get_sym_num_entries();
+struct symkey_entry** preferences_get_sym_entries();
 #endif /* PREFERENCES_H_ */

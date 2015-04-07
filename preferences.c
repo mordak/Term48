@@ -71,6 +71,41 @@ config_setting_t* preferences_init_group(config_setting_t* root, char* key){
   return setting;
 }
 
+char preferences_is_list_of_groups_of_strings(config_setting_t* setting){
+  config_setting_t* subsetting;
+
+	if(config_setting_is_list(setting) != CONFIG_TRUE){
+		return 0;
+	}
+  int num_elements = config_setting_length(setting); // num elements in list
+  int num_subelements; // num elements in each group in the list
+  unsigned int i, j;
+  for(i = 0; i < num_elements; ++i){
+  	subsetting = config_setting_get_elem(setting, i);
+  	if(config_setting_is_group(subsetting) != CONFIG_TRUE){
+  		return 0;
+  	}
+  	// now check for all string values
+  	num_subelements = config_setting_length(subsetting);
+  	for(j = 0; j < num_subelements; ++j){
+  		if(config_setting_type(config_setting_get_elem(subsetting, j)) != CONFIG_TYPE_STRING){
+  			return 0;
+  		}
+  	}
+  }
+  return 1;
+}
+
+config_setting_t* preferences_init_list_blank(config_setting_t* root, char* key){
+  int type = CONFIG_TYPE_LIST;
+  config_setting_t* setting = config_setting_get_member(root, key);
+  if(!setting || config_setting_type(setting) != type || config_setting_length(setting) > 0){
+    config_setting_remove(root, key);
+    setting = config_setting_add(root, key, type);
+  }
+  return setting;
+}
+
 config_setting_t* preferences_init_array(config_setting_t* root, char* key){
   int type = CONFIG_TYPE_ARRAY;
   config_setting_t* setting = config_setting_get_member(root, key);
@@ -104,17 +139,38 @@ int preferences_check_version(config_setting_t* root, char* key){
   return 0;
 }
 
-int preferences_guess_best_font_size(){
-	/* font widths in pixels for sizes 0-64, indexed by font size */
-	int num_sizes = 65;
-	int font_widths[65] = {0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6,
-			                   7, 7, 8, 8, 9, 10, 10, 11, 11, 12,
-			                   13, 13, 14, 14, 15, 16, 16, 17, 17,
-			                   18, 19, 19, 20, 20, 21, 22, 22, 23,
-			                   23, 24, 25, 25, 26, 26, 27, 28, 28,
-			                   29, 29, 30, 31, 31, 32, 32, 33, 34,
-			                   34, 35, 35, 36, 37, 37, 38, 38};
-	int target_cols = 60;
+int preferences_guess_best_font_size(int target_cols){
+	/* font widths in pixels for sizes 0-250, indexed by font size */
+	int num_sizes = 251;
+	int font_widths[251] = {0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6,
+												 7, 7, 8, 8, 9, 10, 10, 11, 11, 12,
+												 13, 13, 14, 14, 15, 16, 16, 17, 17,
+												 18, 19, 19, 20, 20, 21, 22, 22, 23,
+												 23, 24, 25, 25, 26, 26, 27, 28, 28,
+												 29, 29, 30, 31, 31, 32, 32, 33, 34,
+												 34, 35, 35, 36, 37, 37, 38, 38, 39,
+												 40, 40, 41, 41, 42, 43, 43, 44, 44,
+												 45, 46, 46, 47, 47, 48, 49, 49, 50,
+												 50, 51, 52, 52, 53, 53, 54, 55, 55,
+												 56, 56, 57, 58, 58, 59, 59, 60, 61,
+												 61, 62, 62, 63, 64, 64, 65, 65, 66,
+												 67, 67, 68, 68, 69, 70, 70, 71, 71,
+												 72, 73, 73, 74, 74, 75, 76, 76, 77,
+												 77, 78, 79, 79, 80, 80, 81, 82, 82,
+												 83, 83, 84, 85, 85, 86, 86, 87, 88,
+												 88, 89, 89, 90, 91, 91, 92, 92, 93,
+												 94, 94, 95, 95, 96, 97, 97, 98, 98,
+												 99, 100, 100, 101, 101, 102, 103, 103,
+												 104, 104, 105, 106, 106, 107, 107, 108,
+												 109, 109, 110, 110, 111, 112, 112, 113,
+												 113, 114, 115, 115, 116, 116, 117, 118,
+												 118, 119, 119, 120, 121, 121, 122, 122,
+												 123, 124, 124, 125, 125, 126, 127, 127,
+												 128, 128, 129, 130, 130, 131, 131, 132,
+												 133, 133, 134, 134, 135, 136, 136, 137,
+												 137, 138, 139, 139, 140, 140, 141, 142,
+												 142, 143, 143, 144, 145, 145, 146, 146,
+												 147, 148, 148, 149, 149};
 	int screen_width, screen_height, target_width;
 	if((getenv("WIDTH") == NULL) || (getenv("HEIGHT") == NULL)){
 		/* no width or height in env, just return the default */
@@ -161,7 +217,7 @@ void preferences_init(){
 
   /* check for values from the conf file, and set them if not found or wrong type */
   preferences_init_string(root, preference_keys.font_path, preference_defaults.font_path);
-  preferences_init_int(root, preference_keys.font_size, preferences_guess_best_font_size());
+  preferences_init_int(root, preference_keys.font_size, preferences_guess_best_font_size(60));
   preferences_init_bool(root, preference_keys.screen_idle_awake, preference_defaults.screen_idle_awake);
   preferences_init_bool(root, preference_keys.auto_show_vkb, preference_defaults.auto_show_vkb);
   preferences_init_bool(root, preference_keys.keyhold_actions, preference_defaults.keyhold_actions);
@@ -248,6 +304,24 @@ void preferences_init(){
 			preferences_init_string(setting,
 					preference_defaults.metamode_func_keys[i*2],
 					preference_defaults.metamode_func_keys[(i*2)+1]);
+		}
+	}
+
+	/* initialize the sym keys */
+	config_setting_t *subsetting;
+	setting = config_setting_get_member(root, preference_keys.sym_keys);
+	if(!setting || config_setting_type(setting) != CONFIG_TYPE_LIST || !preferences_is_list_of_groups_of_strings(setting)){
+		/* initialize if not defined or invalid */
+		setting = preferences_init_list_blank(root, preference_keys.sym_keys);
+		int i, j, num_entries;
+		for(j = 0; j < PREFS_SYMKEYS_DEFAULT_NUM_ROWS; ++j){
+			subsetting = config_setting_add(setting, NULL, CONFIG_TYPE_GROUP);
+			num_entries = sizeof(preference_defaults.sym_keys[j]) / sizeof(char*) / 2;
+			for(i = 0; i < num_entries; ++i){
+				preferences_init_string(subsetting,
+						preference_defaults.sym_keys[j][i*2],
+						preference_defaults.sym_keys[j][(i*2)+1]);
+			}
 		}
 	}
 
@@ -371,3 +445,58 @@ int preferences_is_keyhold_exempt(int keystroke){
 	return NULL;
 }
 
+int preferences_get_sym_num_rows(){
+	struct config_setting_t* keys, *root;
+	root = config_root_setting(preferences);
+	keys = config_setting_get_member(root, preference_keys.sym_keys);
+	if(keys){
+		return config_setting_length(keys);
+	}
+	// else
+	return 0;
+}
+/* must free the returned array */
+int* preferences_get_sym_num_entries(){
+	struct config_setting_t* keys, *root, *sub;
+	int* ret;
+	int i, num_entries;
+	root = config_root_setting(preferences);
+	keys = config_setting_get_member(root, preference_keys.sym_keys);
+	if(keys){
+		num_entries = config_setting_length(keys);
+		ret = calloc(num_entries, sizeof(int));
+		for(i = 0; i < num_entries; ++i){
+			sub = config_setting_get_elem(keys, i);
+			ret[i] = config_setting_length(sub);
+		}
+		return ret;
+	}
+	// else
+	return 0;
+}
+
+struct symkey_entry** preferences_get_sym_entries(){
+	struct config_setting_t* keys, *root, *sub, *entry;
+	struct symkey_entry** ret;
+	int i, j, num_entries, num_subentries;
+	root = config_root_setting(preferences);
+	keys = config_setting_get_member(root, preference_keys.sym_keys);
+	if(keys){
+		num_entries = config_setting_length(keys);
+		ret = (struct symkey_entry**)calloc(num_entries, sizeof(struct symkey_entry*));
+		for(i = 0; i < num_entries; ++i){
+			sub = config_setting_get_elem(keys, i);
+			num_subentries = config_setting_length(sub);
+			ret[i] = (struct symkey_entry*)calloc(num_subentries, sizeof(struct symkey_entry));
+			// FIXME: iterate over the entries and fill them in
+			for(j = 0; j < num_subentries; ++j){
+				entry = config_setting_get_elem(sub, j);
+				ret[i][j].name = config_setting_name(entry);
+				ret[i][j].c = config_setting_get_string(entry);
+			}
+		}
+		return ret;
+	}
+	// else
+	return 0;
+}

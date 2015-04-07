@@ -43,6 +43,12 @@ char draw_cursor = 1;
 
 char flash = 0;
 
+static char symmenu_show = 0;
+static int symmenu_num_rows = 0;
+static int* symmenu_num_entries;
+static struct symkey_entry** symmenu_entries;
+static int symmenu_height = 0;
+
 static char metamode = 0;
 static int metamode_doubletap_key = 0;
 static struct timespec metamode_last;
@@ -79,6 +85,26 @@ static char key_repeat_done = 0;
 
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
+
+int send_metamode_keystrokes(const char* keystrokes){
+
+  UChar* ukeystrokes;
+  size_t ukeystrokes_len;
+  size_t keystrokes_len;
+
+  if(keystrokes){
+    keystrokes_len = strlen(keystrokes);
+    /* libconfig will return ascii strings, but we can put utf8 in there too */
+    ukeystrokes = (UChar*)calloc(keystrokes_len, sizeof(UChar));
+    ukeystrokes_len = io_read_utf8_string(keystrokes, keystrokes_len, ukeystrokes);
+    /* and write out to the tty whatever the keys were */
+    io_write_master(ukeystrokes, ukeystrokes_len);
+    free(ukeystrokes);
+    return 1;
+  }
+  /* no keystrokes saved for this key */
+  return 0;
+}
 
 int get_virtualkeyboard_height(){
   int rc, vkb_h;
@@ -145,9 +171,84 @@ void metamode_toggle(){
   }
 }
 
+const char* symkey_for_mousedown(Uint16 x, Uint16 y){
+	int i, j;
+	if(symmenu_num_rows > 0){
+		for(i = 0; i < symmenu_num_rows; ++i){
+			for(j = 0; j < symmenu_num_entries[i]; ++j){
+				struct symkey_entry entry = symmenu_entries[i][j];
+				if(    (x > entry.x)
+						&& (y > entry.y)
+						&& (x < (entry.x + entry.surface->w))
+						&& (y < (entry.y + entry.surface->h))){
+					return entry.c;
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
+void symmenu_toggle(){
+	PRINT(stderr, "Sym key down\n");
+	symmenu_show = symmenu_show ? 0 : 1;
+	if(symmenu_show){
+		// resize to show menu
+		setup_screen_size(screen->w, screen->h - symmenu_height);
+	} else {
+		// resize to take full screen
+		setup_screen_size(screen->w, screen->h);
+	}
+}
+
+void symmenu_init(){
+
+	symmenu_num_rows = preferences_get_sym_num_rows();
+	symmenu_num_entries = preferences_get_sym_num_entries();
+	symmenu_entries = preferences_get_sym_entries();
+
+	PRINT(stderr, "num rows: %d\n", symmenu_num_rows);
+
+	UChar* ukeystrokes;
+	size_t ukeystrokes_len;
+	size_t keystrokes_len;
+	struct symkey_entry entry;
+
+	if(symmenu_num_rows > 0){
+		int i, j;
+
+		int longest = symmenu_num_entries[0];
+		for(i = 0; i < symmenu_num_rows; ++i){
+			longest = symmenu_num_entries[i] > longest ? symmenu_num_entries[i] : longest;
+		}
+
+		const char* symmenu_font_path = preference_defaults.font_path;
+		int symmenu_font_size = preferences_guess_best_font_size(longest);
+
+		/* Load the font - if this was going to fail, it would have failed earlier in init() */
+		TTF_Font* symmenu_font = TTF_OpenFont(symmenu_font_path, symmenu_font_size);
+		TTF_SetFontStyle(symmenu_font, TTF_STYLE_NORMAL);
+		TTF_SetFontOutline(symmenu_font, 0);
+		TTF_SetFontKerning(symmenu_font, 0);
+		TTF_SetFontHinting(symmenu_font, TTF_HINTING_NORMAL);
+
+		for(j = 0; j < symmenu_num_rows; ++j){
+			for(i = 0; i < symmenu_num_entries[j]; ++i){
+				keystrokes_len = strlen(symmenu_entries[j][i].c);
+				symmenu_entries[j][i].uc = (UChar*)calloc(keystrokes_len + 1, sizeof(UChar));
+				ukeystrokes_len = io_read_utf8_string(symmenu_entries[j][i].c, keystrokes_len, symmenu_entries[j][i].uc);
+				symmenu_entries[j][i].surface = TTF_RenderUNICODE_Shaded(symmenu_font, symmenu_entries[j][i].uc, default_bg_color, default_text_color);
+				symmenu_height = symmenu_num_rows * symmenu_entries[j][i].surface->h;
+				PRINT(stderr, "Got symkey: name: %s, value: %s\n", symmenu_entries[j][i].name, symmenu_entries[j][i].c);
+			}
+		}
+		TTF_CloseFont(symmenu_font);
+	}
+}
+
 void handle_activeevent(gain, state){
   if(gain){
-    PRINT(stderr, "Got ActiveEvent - initializing keyboard");
+    PRINT(stderr, "Got ActiveEvent - initializing keyboard\n");
     init_virtualkeyboard();
   }
 }
@@ -165,6 +266,11 @@ void handle_mousedown(Uint16 x, Uint16 y){
    * since the system wide gesture doesn't work to reveal. */
   if(isPassport){
     virtualkeyboard_show();
+  }
+
+  /* check for symmenu touches */
+  if(symmenu_show){
+  	send_metamode_keystrokes(symkey_for_mousedown(x, y));
   }
 }
 
@@ -221,26 +327,6 @@ void toggle_vkeymod(int mod){
   else {
     vmodifiers |= mod;
   }
-}
-
-int send_metamode_keystrokes(const char* keystrokes){
-
-  UChar* ukeystrokes;
-  size_t ukeystrokes_len;
-  size_t keystrokes_len;
-
-  if(keystrokes){
-    keystrokes_len = strlen(keystrokes);
-    /* libconfig will return ascii strings, but we can put utf8 in there too */
-    ukeystrokes = (UChar*)calloc(keystrokes_len, sizeof(UChar));
-    ukeystrokes_len = io_read_utf8_string(keystrokes, keystrokes_len, ukeystrokes);
-    /* and write out to the tty whatever the keys were */
-    io_write_master(ukeystrokes, ukeystrokes_len);
-    free(ukeystrokes);
-    return 1;
-  }
-  /* no keystrokes saved for this key */
-  return 0;
 }
 
 char no_uppercase_representation(int keysym){
@@ -346,6 +432,13 @@ void handleKeyboardEvent(screen_event_t screen_event)
   if (screen_flags & KEY_DOWN) {
     PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d)\n", (int)screen_val, modifiers, (char)screen_val, cap);
     fflush(stdout);
+
+    if(screen_val == KEYCODE_BB_SYM_KEY){
+    	if(!(screen_flags & KEY_REPEAT)){
+    		symmenu_toggle();
+    	}
+    	return;
+    }
 
     /* metamode sticky keys don't trigger repreat */
     if(metamode){
@@ -672,7 +765,6 @@ int init() {
     return TERM_FAILURE;
   }
 
-
   /* Initialize the cursor */
   UChar cursorstr[2] = {' ', NULL};
   cursor = TTF_RenderUNICODE_Shaded(font, cursorstr, default_bg_color, default_text_color);
@@ -695,6 +787,9 @@ int init() {
   text_height_padding = TTF_FontLineSkip(font) - text_height;
   text_height += text_height_padding;
   PRINT(stderr, "Character h: %d w:%d (h padding: %d) advance: %d\n", text_height, text_width, text_height_padding, advance);
+
+  /* Initialize the Sym Menu entries */
+  symmenu_init();
 
   /* Don't show the mouse icon */
   SDL_ShowCursor(SDL_DISABLE);
@@ -873,6 +968,23 @@ void render() {
     destrect.w = metamode_cursor->w;
     destrect.h = metamode_cursor->h;
     SDL_BlitSurface(metamode_cursor, NULL, screen, &destrect);
+  }
+
+  if(symmenu_show && symmenu_num_rows > 0){
+  	for(j = 0; j < symmenu_num_rows; ++j){
+			destrect.x = 0;
+			for(i = 0; i < symmenu_num_entries[j]; ++i){
+				destrect.w = symmenu_entries[j][i].surface->w;
+				destrect.h = symmenu_entries[j][i].surface->h;
+				destrect.y = screen->h - ((j+1) * (destrect.h + 1));
+				symmenu_entries[j][i].x = destrect.x;
+				symmenu_entries[j][i].y = destrect.y;
+				if(SDL_BlitSurface(symmenu_entries[j][i].surface, NULL, screen, &destrect) != 0){
+					PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
+				}
+				destrect.x += symmenu_entries[j][i].surface->w + 1; // +1 for a line between glyphs
+			}
+  	}
   }
 
   SDL_Flip(screen);
