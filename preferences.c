@@ -318,9 +318,11 @@ void preferences_init(){
 			subsetting = config_setting_add(setting, NULL, CONFIG_TYPE_GROUP);
 			num_entries = sizeof(preference_defaults.sym_keys[j]) / sizeof(char*) / 2;
 			for(i = 0; i < num_entries; ++i){
-				preferences_init_string(subsetting,
-						preference_defaults.sym_keys[j][i*2],
-						preference_defaults.sym_keys[j][(i*2)+1]);
+				if(preference_defaults.sym_keys[j][i*2] != NULL){
+					preferences_init_string(subsetting,
+							preference_defaults.sym_keys[j][i*2],
+							preference_defaults.sym_keys[j][(i*2)+1]);
+				}
 			}
 		}
 	}

@@ -107,7 +107,7 @@ static struct preference_defaults_t {
 	char* metamode_keys[4];
 	char* metamode_sticky_keys[8];
 	char* metamode_func_keys[8];
-	char* sym_keys[2][14];
+	char* sym_keys[2][20];
 	int keyhold_actions_exempt[2];
 } preference_defaults = {
 		.font_path = "/usr/fonts/font_repository/monotype/cour.ttf",
@@ -137,8 +137,8 @@ static struct preference_defaults_t {
 													 "s", "rescreen",
 													 "v", "paste_clipboard"},
 		/* remember to update array sizes above when changing and PREFS_SYMKEYS_DEFAULT_NUM_ROWS */
-		.sym_keys = {{"q", "~", "w", "%", "e", "^", "r", "&", "t", "=", "y", "\\", "u", "|"},
-								 {"a", "`", "s", "<", "d", ">", "f", "[", "g", "]", "h", "{",  "j", "}"}},
+		.sym_keys = {{"a", "=", "s", "-", "d", "*", "f", "/", "g", "\\", "h", "|", "j", "&", "k", "'", "l", "\""},
+					 {"q", "~", "w", "`", "e", "{", "r", "}", "t", "[", "y", "]", "u", "<", "i", ">", "o", "^", "p", "%"}},
 		/* remember to update array size above when changing */
 		.keyhold_actions_exempt = {KEYCODE_BACKSPACE,
 				                       KEYCODE_RETURN}
