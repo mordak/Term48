@@ -44,6 +44,7 @@ char draw_cursor = 1;
 char flash = 0;
 
 static char symmenu_show = 0;
+static char symmenu_lock = 0;
 static int symmenu_num_rows = 0;
 static int* symmenu_num_entries;
 static struct symkey_entry** symmenu_entries;
@@ -179,8 +180,11 @@ const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 				struct symkey_entry entry = symmenu_entries[i][j];
 				if(    (x > entry.x)
 						&& (y > entry.y)
-						&& (x < (entry.x + entry.surface->w))
-						&& (y < (entry.y + entry.surface->h))){
+						&& (x < (entry.x + entry.background->w))
+						&& (y < (entry.y + entry.background->h))){
+				    if(!symmenu_lock){
+				        symmenu_toggle();
+				    }
 					return entry.c;
 				}
 			}
@@ -189,8 +193,30 @@ const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 	return NULL;
 }
 
+const char* get_symmenu_keys(char key){
+	int i, j;
+	if(symmenu_num_rows > 0){
+		for(i = 0; i < symmenu_num_rows; ++i){
+			for(j = 0; j < symmenu_num_entries[i]; ++j){
+				struct symkey_entry entry = symmenu_entries[i][j];
+				if(entry.name[0] == key){
+				    if(!summenu_lock){
+				        symmenu_toggle();
+				    }
+					return entry.c;
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
+void symmenu_stick(){
+	PRINT(stderr, "Sticking Sym key\n");
+	symmenu_lock = 1;
+}
+
 void symmenu_toggle(){
-	PRINT(stderr, "Sym key down\n");
 	symmenu_show = symmenu_show ? 0 : 1;
 	if(symmenu_show){
 		// resize to show menu
@@ -198,6 +224,7 @@ void symmenu_toggle(){
 	} else {
 		// resize to take full screen
 		setup_screen_size(screen->w, screen->h);
+		symmenu_lock = 0;
 	}
 }
 
@@ -213,6 +240,8 @@ void symmenu_init(){
 	size_t ukeystrokes_len;
 	size_t keystrokes_len;
 	struct symkey_entry entry;
+	UChar blank_background[2] = {' ', NULL};
+	UChar cornerchar[2]; cornerchar[1] = NULL;
 
 	if(symmenu_num_rows > 0){
 		int i, j;
@@ -223,7 +252,9 @@ void symmenu_init(){
 		}
 
 		const char* symmenu_font_path = preference_defaults.font_path;
-		int symmenu_font_size = preferences_guess_best_font_size(longest);
+		int symmenu_background_size = preferences_guess_best_font_size(longest);
+		int symmenu_corner_size = symmenu_background_size / 5;
+		int symmenu_font_size = symmenu_background_size - symmenu_corner_size;
 
 		/* Load the font - if this was going to fail, it would have failed earlier in init() */
 		TTF_Font* symmenu_font = TTF_OpenFont(symmenu_font_path, symmenu_font_size);
@@ -232,17 +263,36 @@ void symmenu_init(){
 		TTF_SetFontKerning(symmenu_font, 0);
 		TTF_SetFontHinting(symmenu_font, TTF_HINTING_NORMAL);
 
+		TTF_Font* symmenu_background_font = TTF_OpenFont(symmenu_font_path, symmenu_background_size);
+		TTF_SetFontStyle(symmenu_background_font, TTF_STYLE_NORMAL);
+		TTF_SetFontOutline(symmenu_background_font, 0);
+		TTF_SetFontKerning(symmenu_background_font, 0);
+		TTF_SetFontHinting(symmenu_background_font, TTF_HINTING_NORMAL);
+
+		TTF_Font* symmenu_corner_font = TTF_OpenFont(symmenu_font_path, symmenu_corner_size);
+		TTF_SetFontStyle(symmenu_corner_font, TTF_STYLE_NORMAL);
+		TTF_SetFontOutline(symmenu_corner_font, 0);
+		TTF_SetFontKerning(symmenu_corner_font, 0);
+		TTF_SetFontHinting(symmenu_corner_font, TTF_HINTING_NORMAL);
+
 		for(j = 0; j < symmenu_num_rows; ++j){
 			for(i = 0; i < symmenu_num_entries[j]; ++i){
 				keystrokes_len = strlen(symmenu_entries[j][i].c);
 				symmenu_entries[j][i].uc = (UChar*)calloc(keystrokes_len + 1, sizeof(UChar));
 				ukeystrokes_len = io_read_utf8_string(symmenu_entries[j][i].c, keystrokes_len, symmenu_entries[j][i].uc);
-				symmenu_entries[j][i].surface = TTF_RenderUNICODE_Shaded(symmenu_font, symmenu_entries[j][i].uc, default_bg_color, default_text_color);
-				symmenu_height = symmenu_num_rows * symmenu_entries[j][i].surface->h;
+				symmenu_entries[j][i].background = TTF_RenderUNICODE_Shaded(symmenu_background_font, blank_background, (SDL_Color)SYMMENU_BORDER, (SDL_Color)SYMMENU_BORDER);
+				symmenu_entries[j][i].symbol = TTF_RenderUNICODE_Shaded(symmenu_font, symmenu_entries[j][i].uc, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
+				symmenu_entries[j][i].off_x = (symmenu_entries[j][i].background->w - symmenu_entries[j][i].symbol->w) / 2;
+				symmenu_entries[j][i].off_y = (symmenu_entries[j][i].background->h - symmenu_entries[j][i].symbol->h) / 2;
+				cornerchar[0] = symmenu_entries[j][i].name[0];
+				symmenu_entries[j][i].key = TTF_RenderUNICODE_Shaded(symmenu_corner_font, cornerchar, (SDL_Color)SYMMENU_CORNER, (SDL_Color)SYMMENU_BACKGROUND);
+				symmenu_height = symmenu_num_rows * symmenu_entries[j][i].background->h;
 				PRINT(stderr, "Got symkey: name: %s, value: %s\n", symmenu_entries[j][i].name, symmenu_entries[j][i].c);
 			}
 		}
 		TTF_CloseFont(symmenu_font);
+		TTF_CloseFont(symmenu_corner_font);
+		TTF_CloseFont(symmenu_background_font);
 	}
 }
 
@@ -270,7 +320,7 @@ void handle_mousedown(Uint16 x, Uint16 y){
 
   /* check for symmenu touches */
   if(symmenu_show){
-  	send_metamode_keystrokes(symkey_for_mousedown(x, y));
+      send_metamode_keystrokes(symkey_for_mousedown(x, y));
   }
 }
 
@@ -436,8 +486,20 @@ void handleKeyboardEvent(screen_event_t screen_event)
     if(screen_val == KEYCODE_BB_SYM_KEY){
     	if(!(screen_flags & KEY_REPEAT)){
     		symmenu_toggle();
+    	} else{
+    		/* they are holding it down */
+    		symmenu_stick();
     	}
     	return;
+    }
+
+    /* sym keys don't trigger repeat */
+    if(symmenu_show){
+    	keys = get_symmenu_keys((char)screen_val);
+    	if(keys != NULL){
+    		send_metamode_keystrokes(keys);
+    		return;
+    	}
     }
 
     /* metamode sticky keys don't trigger repreat */
@@ -510,7 +572,8 @@ void handleKeyboardEvent(screen_event_t screen_event)
     modifiers |= vmodifiers;
     vmodifiers = 0;
 
-    if(screen_val == metamode_doubletap_key){
+    /* if we're toggling metamode on or off with doubletap */
+    if((screen_val == metamode_doubletap_key) && !(screen_flags & KEY_REPEAT)){
       clock_gettime(CLOCK_MONOTONIC, &now);
       now_t = timespec2nsec(&now);
       metamode_last_t = timespec2nsec(&metamode_last);
@@ -866,6 +929,7 @@ void uninit(){
 
   SDL_FreeSurface(blank_surface);
   SDL_FreeSurface(screen);
+  /* FIXME: Free the symmenu stuff */
 
   ecma48_uninit();
 
@@ -972,17 +1036,28 @@ void render() {
 
   if(symmenu_show && symmenu_num_rows > 0){
   	for(j = 0; j < symmenu_num_rows; ++j){
-			destrect.x = 0;
 			for(i = 0; i < symmenu_num_entries[j]; ++i){
-				destrect.w = symmenu_entries[j][i].surface->w;
-				destrect.h = symmenu_entries[j][i].surface->h;
-				destrect.y = screen->h - ((j+1) * (destrect.h + 1));
+				destrect.w = symmenu_entries[j][i].background->w;
+				destrect.h = symmenu_entries[j][i].background->h;
+				destrect.x = i * symmenu_entries[j][i].background->w;
+				destrect.y = screen->h - ((j+1) * (destrect.h));
 				symmenu_entries[j][i].x = destrect.x;
 				symmenu_entries[j][i].y = destrect.y;
-				if(SDL_BlitSurface(symmenu_entries[j][i].surface, NULL, screen, &destrect) != 0){
+				if(SDL_BlitSurface(symmenu_entries[j][i].background, NULL, screen, &destrect) != 0){
 					PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
 				}
-				destrect.x += symmenu_entries[j][i].surface->w + 1; // +1 for a line between glyphs
+				destrect.x += symmenu_entries[j][i].off_x;
+				destrect.y += symmenu_entries[j][i].off_y;
+				destrect.w = symmenu_entries[j][i].symbol->w;
+				destrect.h = symmenu_entries[j][i].symbol->h;
+				if(SDL_BlitSurface(symmenu_entries[j][i].symbol, NULL, screen, &destrect) != 0){
+					PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
+				}
+				destrect.w = symmenu_entries[j][i].key->w;
+				destrect.h = symmenu_entries[j][i].key->h;
+				if(SDL_BlitSurface(symmenu_entries[j][i].key, NULL, screen, &destrect) != 0){
+					PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
+				}
 			}
   	}
   }

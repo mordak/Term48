@@ -24,14 +24,16 @@
 #define PREFS_COLOR_NUM_ELEMENTS 3
 #define PREFS_SYMKEYS_DEFAULT_NUM_ROWS 2
 
-static int PREFS_VERSION = 5;
+static int PREFS_VERSION = 6;
 
 struct symkey_entry {
 	const char* name;
 	const char* c;
 	UChar* uc;
-  int x, y;
-  SDL_Surface* surface;
+	int x, y, off_x, off_y;
+	SDL_Surface* background;
+	SDL_Surface* symbol;
+	SDL_Surface* key;
 };
 
 static struct preferences_keys_t {
@@ -57,6 +59,9 @@ static struct preferences_keys_t {
 			char* h;
 	} metamode_hitbox;
 	char* sym_keys;
+	char* sticky_sym_key;
+	char* sticky_shift_key;
+	char* sticky_alt_key;
 	char* tty_encoding;
 	char* prefs_version;
 } preference_keys = {
@@ -82,6 +87,9 @@ static struct preferences_keys_t {
 				.h = "metamode_hitbox.h"
 		},
 		.sym_keys = "sym_keys",
+		.sticky_sym_key = "sticky_sym_key",
+		.sticky_shift_key = "sticky_shift_key",
+		.sticky_alt_key = "sticky_alt_key",
 		.tty_encoding = "tty_encoding",
 		.prefs_version = "prefs_version"
 };
@@ -108,6 +116,9 @@ static struct preference_defaults_t {
 	char* metamode_sticky_keys[8];
 	char* metamode_func_keys[8];
 	char* sym_keys[2][20];
+	int sticky_sym_key;
+	int sticky_shift_key;
+	int sticky_alt_key;
 	int keyhold_actions_exempt[2];
 } preference_defaults = {
 		.font_path = "/usr/fonts/font_repository/monotype/cour.ttf",
@@ -139,7 +150,10 @@ static struct preference_defaults_t {
 		/* remember to update array sizes above when changing and PREFS_SYMKEYS_DEFAULT_NUM_ROWS */
 		.sym_keys = {{"a", "=", "s", "-", "d", "*", "f", "/", "g", "\\", "h", "|", "j", "&", "k", "'", "l", "\""},
 					 {"q", "~", "w", "`", "e", "{", "r", "}", "t", "[", "y", "]", "u", "<", "i", ">", "o", "^", "p", "%"}},
-		/* remember to update array size above when changing */
+		.sticky_sym_key = 0,
+		.sticky_shift_key = 1,
+		.sticky_alt_key = 1,
+	    /* remember to update array size above when changing */
 		.keyhold_actions_exempt = {KEYCODE_BACKSPACE,
 				                       KEYCODE_RETURN}
 };

@@ -57,4 +57,9 @@ void uninit();
 #define BT_CYAN     {0,   255,  255,  0}
 #define WHITE       {255, 255,  255,  0}
 
+#define SYMMENU_BORDER     {50,  50,  50,  0}
+#define SYMMENU_BACKGROUND {38,  38,  38,  0}
+#define SYMMENU_CORNER     {153, 153, 153, 0}
+#define SYMMENU_FONT       {255, 255, 255, 0}
+
 #endif /* TERMINAL_H_ */
