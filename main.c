@@ -172,6 +172,26 @@ void metamode_toggle(){
   }
 }
 
+void symmenu_stick(){
+    PRINT(stderr, "Sticking Sym key\n");
+    symmenu_lock = 1;
+}
+
+void symmenu_toggle(){
+    symmenu_show = symmenu_show ? 0 : 1;
+    if(symmenu_show){
+        // resize to show menu
+        setup_screen_size(screen->w, screen->h - symmenu_height);
+        if(preferences_get_bool(preference_keys.sticky_sym_key)){
+            symmenu_stick();
+        }
+    } else {
+        // resize to take full screen
+        setup_screen_size(screen->w, screen->h);
+        symmenu_lock = 0;
+    }
+}
+
 const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 	int i, j;
 	if(symmenu_num_rows > 0){
@@ -200,7 +220,7 @@ const char* get_symmenu_keys(char key){
 			for(j = 0; j < symmenu_num_entries[i]; ++j){
 				struct symkey_entry entry = symmenu_entries[i][j];
 				if(entry.name[0] == key){
-				    if(!summenu_lock){
+				    if(!symmenu_lock){
 				        symmenu_toggle();
 				    }
 					return entry.c;
@@ -209,23 +229,6 @@ const char* get_symmenu_keys(char key){
 		}
 	}
 	return NULL;
-}
-
-void symmenu_stick(){
-	PRINT(stderr, "Sticking Sym key\n");
-	symmenu_lock = 1;
-}
-
-void symmenu_toggle(){
-	symmenu_show = symmenu_show ? 0 : 1;
-	if(symmenu_show){
-		// resize to show menu
-		setup_screen_size(screen->w, screen->h - symmenu_height);
-	} else {
-		// resize to take full screen
-		setup_screen_size(screen->w, screen->h);
-		symmenu_lock = 0;
-	}
 }
 
 void symmenu_init(){
