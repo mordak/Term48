@@ -493,7 +493,6 @@ struct symkey_entry** preferences_get_sym_entries(){
 			sub = config_setting_get_elem(keys, i);
 			num_subentries = config_setting_length(sub);
 			ret[i] = (struct symkey_entry*)calloc(num_subentries, sizeof(struct symkey_entry));
-			// FIXME: iterate over the entries and fill them in
 			for(j = 0; j < num_subentries; ++j){
 				entry = config_setting_get_elem(sub, j);
 				ret[i][j].name = config_setting_name(entry);

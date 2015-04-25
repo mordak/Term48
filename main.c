@@ -229,6 +229,23 @@ const char* get_symmenu_keys(char key){
 	return NULL;
 }
 
+void symmenu_uninit(){
+  int i, j;
+  if(symmenu_num_rows > 0){
+    for(i = 0; i < symmenu_num_rows; ++i){
+      for(j = 0; j < symmenu_num_entries[i]; ++j){
+        SDL_FreeSurface(symmenu_entries[i][j].background);
+        SDL_FreeSurface(symmenu_entries[i][j].flash_symbol);
+        SDL_FreeSurface(symmenu_entries[i][j].key);
+        SDL_FreeSurface(symmenu_entries[i][j].symbol);
+        free(symmenu_entries[j][i].uc);
+      }
+      free(symmenu_entries[i]);
+    }
+    free(symmenu_entries);
+  }
+}
+
 void symmenu_init(){
 
 	symmenu_num_rows = preferences_get_sym_num_rows();
@@ -975,8 +992,13 @@ void uninit(){
   }
 
   SDL_FreeSurface(blank_surface);
+  SDL_FreeSurface(flash_surface);
+  SDL_FreeSurface(metamode_cursor);
+  SDL_FreeSurface(ctrl_key_indicator);
+  SDL_FreeSurface(alt_key_indicator);
+  SDL_FreeSurface(shift_key_indicator);
+  symmenu_uninit();
   SDL_FreeSurface(screen);
-  /* FIXME: Free the symmenu stuff */
 
   ecma48_uninit();
 
