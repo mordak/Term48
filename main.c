@@ -199,8 +199,9 @@ const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 						&& (y < (symmenu_entries[i][j].y + symmenu_entries[i][j].background->h))){
 				  if(!symmenu_lock){
 				    symmenu_toggle();
+				  } else {
+				    symmenu_entries[i][j].flash = 1;
 				  }
-				  symmenu_entries[i][j].flash = 1;
 					return symmenu_entries[i][j].c;
 				}
 			}
@@ -217,9 +218,10 @@ const char* get_symmenu_keys(char key){
 				if(symmenu_entries[i][j].name[0] == key){
 				  if(!symmenu_lock){
 				    symmenu_toggle();
+				  } else {
+				    symmenu_entries[i][j].flash = 1;
 				  }
-				  symmenu_entries[i][j].flash = 1;
-					return symmenu_entries[i][j].c;
+				    return symmenu_entries[i][j].c;
 				}
 			}
 		}
