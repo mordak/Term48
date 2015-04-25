@@ -463,11 +463,12 @@ char no_uppercase_representation(int keysym){
 
 void handleKeyboardEvent(screen_event_t screen_event)
 {
-  int screen_val, screen_flags;
+  int screen_val, screen_flags, screen_alt_val;
   int modifiers;
   int cap;
   int num_chars;
   int vkbd_h;
+  int metamode_just_set = 0;
   UChar c[CHARACTER_BUFFER];
   UChar *target = c;
   struct timespec now;
@@ -480,11 +481,12 @@ void handleKeyboardEvent(screen_event_t screen_event)
 
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_FLAGS, &screen_flags);
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_SYM, &screen_val);
+  screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_ALTERNATE_SYM, &screen_alt_val);
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_MODIFIERS, &modifiers);
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_CAP, &cap);
 
   if (screen_flags & KEY_DOWN) {
-    PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d)\n", (int)screen_val, modifiers, (char)screen_val, cap);
+    PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d) (alt %d)\n", (int)screen_val, modifiers, (char)screen_val, cap, (int)screen_alt_val);
     fflush(stdout);
 
     /* if we're toggling metamode on or off with doubletap */
@@ -495,6 +497,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
       diff_t = now_t > metamode_last_t ? now_t - metamode_last_t : now_t;
       if(diff_t <= metamode_doubletap){
         metamode_toggle();
+        metamode_just_set = 1;
       }
       metamode_last = now;
     }
@@ -527,7 +530,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
     }
 
     /* metamode sticky keys don't trigger repreat */
-    if(metamode){
+    if(metamode && !metamode_just_set){
       keys = preferences_get_metamode_sticky_keys((char)screen_val);
       if(keys != NULL){
         send_metamode_keystrokes(keys);
@@ -572,7 +575,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
       key_repeat_done = 0;
     }
 
-    if(metamode){
+    if(metamode && !metamode_just_set){
       keys = preferences_get_metamode_keys((char)screen_val);
       if(keys != NULL){
         send_metamode_keystrokes(keys);
