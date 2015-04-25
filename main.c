@@ -77,6 +77,9 @@ static SDL_Surface* flash_surface;
 static SDL_Surface* cursor;
 static SDL_Surface* inv_cursor;
 static SDL_Surface* screen;
+static SDL_Surface* ctrl_key_indicator;
+static SDL_Surface* alt_key_indicator;
+static SDL_Surface* shift_key_indicator;
 
 static pid_t child_pid = -1;
 
@@ -163,13 +166,6 @@ int get_wm_info(SDL_SysWMinfo* info){
 
 void metamode_toggle(){
   metamode = metamode ? 0 : 1;
-  UChar metasym[2] = {'M', NULL};
-  /* free the last one */
-  SDL_FreeSurface(metamode_cursor);
-  metamode_cursor = NULL;
-  if(metamode){
-    metamode_cursor = TTF_RenderUNICODE_Shaded(font, metasym, metamode_cursor_fg, metamode_cursor_bg);
-  }
 }
 
 void symmenu_stick(){
@@ -197,15 +193,15 @@ const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 	if(symmenu_num_rows > 0){
 		for(i = 0; i < symmenu_num_rows; ++i){
 			for(j = 0; j < symmenu_num_entries[i]; ++j){
-				struct symkey_entry entry = symmenu_entries[i][j];
-				if(    (x > entry.x)
-						&& (y > entry.y)
-						&& (x < (entry.x + entry.background->w))
-						&& (y < (entry.y + entry.background->h))){
-				    if(!symmenu_lock){
-				        symmenu_toggle();
-				    }
-					return entry.c;
+				if(    (x > symmenu_entries[i][j].x)
+						&& (y > symmenu_entries[i][j].y)
+						&& (x < (symmenu_entries[i][j].x + symmenu_entries[i][j].background->w))
+						&& (y < (symmenu_entries[i][j].y + symmenu_entries[i][j].background->h))){
+				  if(!symmenu_lock){
+				    symmenu_toggle();
+				  }
+				  symmenu_entries[i][j].flash = 1;
+					return symmenu_entries[i][j].c;
 				}
 			}
 		}
@@ -218,12 +214,12 @@ const char* get_symmenu_keys(char key){
 	if(symmenu_num_rows > 0){
 		for(i = 0; i < symmenu_num_rows; ++i){
 			for(j = 0; j < symmenu_num_entries[i]; ++j){
-				struct symkey_entry entry = symmenu_entries[i][j];
-				if(entry.name[0] == key){
-				    if(!symmenu_lock){
-				        symmenu_toggle();
-				    }
-					return entry.c;
+				if(symmenu_entries[i][j].name[0] == key){
+				  if(!symmenu_lock){
+				    symmenu_toggle();
+				  }
+				  symmenu_entries[i][j].flash = 1;
+					return symmenu_entries[i][j].c;
 				}
 			}
 		}
@@ -282,9 +278,11 @@ void symmenu_init(){
 			for(i = 0; i < symmenu_num_entries[j]; ++i){
 				keystrokes_len = strlen(symmenu_entries[j][i].c);
 				symmenu_entries[j][i].uc = (UChar*)calloc(keystrokes_len + 1, sizeof(UChar));
+				symmenu_entries[j][i].flash = 0;
 				ukeystrokes_len = io_read_utf8_string(symmenu_entries[j][i].c, keystrokes_len, symmenu_entries[j][i].uc);
 				symmenu_entries[j][i].background = TTF_RenderUNICODE_Shaded(symmenu_background_font, blank_background, (SDL_Color)SYMMENU_BORDER, (SDL_Color)SYMMENU_BORDER);
-				symmenu_entries[j][i].symbol = TTF_RenderUNICODE_Shaded(symmenu_font, symmenu_entries[j][i].uc, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
+        symmenu_entries[j][i].symbol = TTF_RenderUNICODE_Shaded(symmenu_font, symmenu_entries[j][i].uc, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
+        symmenu_entries[j][i].flash_symbol = TTF_RenderUNICODE_Shaded(symmenu_font, symmenu_entries[j][i].uc, (SDL_Color)SYMMENU_BACKGROUND, (SDL_Color)SYMMENU_FONT);
 				symmenu_entries[j][i].off_x = (symmenu_entries[j][i].background->w - symmenu_entries[j][i].symbol->w) / 2;
 				symmenu_entries[j][i].off_y = (symmenu_entries[j][i].background->h - symmenu_entries[j][i].symbol->h) / 2;
 				cornerchar[0] = symmenu_entries[j][i].name[0];
@@ -512,7 +510,8 @@ void handleKeyboardEvent(screen_event_t screen_event)
     	}
     	return;
     }
-    if((screen_val == KEYCODE_LEFT_SHIFT) || (screen_val == KEYCODE_RIGHT_SHIFT)){
+    if(!virtualkeyboard_visible
+        && ((screen_val == KEYCODE_LEFT_SHIFT) || (screen_val == KEYCODE_RIGHT_SHIFT))){
         if(preferences_get_bool(preference_keys.sticky_shift_key)
                 && !(screen_flags & KEY_REPEAT)){
             toggle_vkeymod(KEYMOD_SHIFT);
@@ -842,6 +841,38 @@ int init() {
     return TERM_FAILURE;
   }
 
+  str[0] = 'A';
+  alt_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+  if (alt_key_indicator == NULL){
+    PRINT(stderr, "Couldn't render alt_key_indicator surface: %s\n", TTF_GetError());
+    exit_application = 1;
+    return TERM_FAILURE;
+  }
+
+  str[0] = 'C';
+  ctrl_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+  if (ctrl_key_indicator == NULL){
+    PRINT(stderr, "Couldn't render ctrl_key_indicator surface: %s\n", TTF_GetError());
+    exit_application = 1;
+    return TERM_FAILURE;
+  }
+
+  str[0] = 0x2191;
+  shift_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+  if (shift_key_indicator == NULL){
+    PRINT(stderr, "Couldn't render shift_key_indicator surface: %s\n", TTF_GetError());
+    exit_application = 1;
+    return TERM_FAILURE;
+  }
+
+  str[0] = 'M';
+  metamode_cursor = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+  if (metamode_cursor == NULL){
+    PRINT(stderr, "Couldn't render metamode_cursor surface: %s\n", TTF_GetError());
+    exit_application = 1;
+    return TERM_FAILURE;
+  }
+
   /* Initialize the cursor */
   UChar cursorstr[2] = {' ', NULL};
   cursor = TTF_RenderUNICODE_Shaded(font, cursorstr, default_bg_color, default_text_color);
@@ -1048,6 +1079,30 @@ void render() {
     SDL_BlitSurface(metamode_cursor, NULL, screen, &destrect);
   }
 
+  if(vmodifiers & KEYMOD_CTRL){
+    destrect.x = (cols-1) * advance;
+    destrect.y = 1 * text_height;
+    destrect.w = ctrl_key_indicator->w;
+    destrect.h = ctrl_key_indicator->h;
+    SDL_BlitSurface(ctrl_key_indicator, NULL, screen, &destrect);
+  }
+
+  if(vmodifiers & KEYMOD_ALT){
+    destrect.x = (cols-1) * advance;
+    destrect.y = 2 * text_height;
+    destrect.w = alt_key_indicator->w;
+    destrect.h = alt_key_indicator->h;
+    SDL_BlitSurface(alt_key_indicator, NULL, screen, &destrect);
+  }
+
+  if(vmodifiers & KEYMOD_SHIFT){
+    destrect.x = (cols-1) * advance;
+    destrect.y = 3 * text_height;
+    destrect.w = shift_key_indicator->w;
+    destrect.h = shift_key_indicator->h;
+    SDL_BlitSurface(shift_key_indicator, NULL, screen, &destrect);
+  }
+
   if(symmenu_show && symmenu_num_rows > 0){
   	for(j = 0; j < symmenu_num_rows; ++j){
 			for(i = 0; i < symmenu_num_entries[j]; ++i){
@@ -1064,8 +1119,15 @@ void render() {
 				destrect.y += symmenu_entries[j][i].off_y;
 				destrect.w = symmenu_entries[j][i].symbol->w;
 				destrect.h = symmenu_entries[j][i].symbol->h;
-				if(SDL_BlitSurface(symmenu_entries[j][i].symbol, NULL, screen, &destrect) != 0){
-					PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
+				if(symmenu_entries[j][i].flash){
+				  symmenu_entries[j][i].flash = 0;
+				  if(SDL_BlitSurface(symmenu_entries[j][i].flash_symbol, NULL, screen, &destrect) != 0){
+				    PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
+				  }
+				} else {
+				  if(SDL_BlitSurface(symmenu_entries[j][i].symbol, NULL, screen, &destrect) != 0){
+				    PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
+				  }
 				}
 				destrect.w = symmenu_entries[j][i].key->w;
 				destrect.h = symmenu_entries[j][i].key->h;

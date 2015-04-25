@@ -223,7 +223,7 @@ void preferences_init(){
   preferences_init_bool(root, preference_keys.keyhold_actions, preference_defaults.keyhold_actions);
   preferences_init_bool(root, preference_keys.sticky_sym_key, preference_defaults.sticky_sym_key);
   preferences_init_bool(root, preference_keys.sticky_shift_key, preference_defaults.sticky_shift_key);
-  preferences_init_bool(root, preference_keys.sticky_alt_key, preference_defaults.sticky_alt_key);
+  //preferences_init_bool(root, preference_keys.sticky_alt_key, preference_defaults.sticky_alt_key);
   preferences_init_int(root, preference_keys.metamode_hold_key, preference_defaults.metamode_hold_key);
   preferences_init_int(root, preference_keys.metamode_doubletap_key, preference_defaults.metamode_doubletap_key);
   preferences_init_int(root, preference_keys.metamode_doubletap_delay, preference_defaults.metamode_doubletap_delay);

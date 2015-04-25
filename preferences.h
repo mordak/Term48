@@ -29,10 +29,12 @@ static int PREFS_VERSION = 6;
 struct symkey_entry {
 	const char* name;
 	const char* c;
+  char flash;
 	UChar* uc;
 	int x, y, off_x, off_y;
 	SDL_Surface* background;
 	SDL_Surface* symbol;
+	SDL_Surface* flash_symbol;
 	SDL_Surface* key;
 };
 
