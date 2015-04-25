@@ -374,6 +374,7 @@ void send_key(int keycode, int modifiers, int keycap){
 }
 
 void toggle_vkeymod(int mod){
+  PRINT(stderr, "Toggle modifier %d\n", mod);
   if(vmodifiers & mod){
     vmodifiers &= ~mod;
   }
@@ -486,6 +487,19 @@ void handleKeyboardEvent(screen_event_t screen_event)
     PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d)\n", (int)screen_val, modifiers, (char)screen_val, cap);
     fflush(stdout);
 
+    /* if we're toggling metamode on or off with doubletap */
+    if((screen_val == metamode_doubletap_key) && !(screen_flags & KEY_REPEAT)){
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      now_t = timespec2nsec(&now);
+      metamode_last_t = timespec2nsec(&metamode_last);
+      diff_t = now_t > metamode_last_t ? now_t - metamode_last_t : now_t;
+      if(diff_t <= metamode_doubletap){
+        metamode_toggle();
+      }
+      metamode_last = now;
+    }
+
+    /* handle sticky keys */
     if(screen_val == KEYCODE_BB_SYM_KEY){
     	if(!(screen_flags & KEY_REPEAT)){
     		symmenu_toggle();
@@ -494,6 +508,13 @@ void handleKeyboardEvent(screen_event_t screen_event)
     		symmenu_stick();
     	}
     	return;
+    }
+    if((screen_val == KEYCODE_LEFT_SHIFT) || (screen_val == KEYCODE_RIGHT_SHIFT)){
+        if(preferences_get_bool(preference_keys.sticky_shift_key)
+                && !(screen_flags & KEY_REPEAT)){
+            toggle_vkeymod(KEYMOD_SHIFT);
+            return;
+        }
     }
 
     /* sym keys don't trigger repeat */
@@ -575,20 +596,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
     modifiers |= vmodifiers;
     vmodifiers = 0;
 
-    /* if we're toggling metamode on or off with doubletap */
-    if((screen_val == metamode_doubletap_key) && !(screen_flags & KEY_REPEAT)){
-      clock_gettime(CLOCK_MONOTONIC, &now);
-      now_t = timespec2nsec(&now);
-      metamode_last_t = timespec2nsec(&metamode_last);
-      diff_t = now_t > metamode_last_t ? now_t - metamode_last_t : now_t;
-      if(diff_t <= metamode_doubletap){
-        metamode_toggle();
-      }
-      metamode_last = now;
-    }
-
-
-    /* otherwise */
+    /* now process the keypress */
     switch (screen_val) {
       case KEYCODE_PAUSE      :
       case KEYCODE_SCROLL_LOCK:
