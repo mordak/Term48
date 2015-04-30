@@ -214,10 +214,11 @@ void preferences_init(){
 
   config_setting_t *root, *setting;
   root = config_root_setting(preferences);
+  int default_font_columns = (atoi(getenv("WIDTH")) <= 720) ? 45 : 60;
 
   /* check for values from the conf file, and set them if not found or wrong type */
   preferences_init_string(root, preference_keys.font_path, preference_defaults.font_path);
-  preferences_init_int(root, preference_keys.font_size, preferences_guess_best_font_size(60));
+  preferences_init_int(root, preference_keys.font_size, preferences_guess_best_font_size(default_font_columns));
   preferences_init_bool(root, preference_keys.screen_idle_awake, preference_defaults.screen_idle_awake);
   preferences_init_bool(root, preference_keys.auto_show_vkb, preference_defaults.auto_show_vkb);
   preferences_init_bool(root, preference_keys.keyhold_actions, preference_defaults.keyhold_actions);

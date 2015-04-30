@@ -153,8 +153,8 @@ static struct preference_defaults_t {
 		.sym_keys = {{"a", "=", "s", "-", "d", "*", "f", "/", "g", "\\", "h", "|", "j", "&", "k", "'", "l", "\""},
 					 {"q", "~", "w", "`", "e", "{", "r", "}", "t", "[", "y", "]", "u", "<", "i", ">", "o", "^", "p", "%"}},
 		.sticky_sym_key = 0,
-		.sticky_shift_key = 1,
-		.sticky_alt_key = 1,
+		.sticky_shift_key = 0,
+		.sticky_alt_key = 0,
 	    /* remember to update array size above when changing */
 		.keyhold_actions_exempt = {KEYCODE_BACKSPACE,
 				                       KEYCODE_RETURN}

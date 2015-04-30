@@ -89,6 +89,7 @@ static char key_repeat_done = 0;
 
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
+#define README45_FILE_PATH "../app/native/README45"
 
 int send_metamode_keystrokes(const char* keystrokes){
 
@@ -144,13 +145,14 @@ void check_device(){
 
 void first_run(){
   struct stat statbuf;
+  char* readme_path = (atoi(getenv("WIDTH")) <= 720) ? README45_FILE_PATH : README_FILE_PATH;
   fprintf(stderr, "Updating README\n");
-  int rc = stat(README_FILE_PATH, &statbuf);
+  int rc = stat(readme_path, &statbuf);
   if(rc == 0){
     // stat success!
     char cpycmd[60] = "/base/bin/ln -sf ";
-    strncat(cpycmd, README_FILE_PATH, 21);
-    strncat(cpycmd, " .", 3);
+    strncat(cpycmd, readme_path, strlen(readme_path));
+    strncat(cpycmd, " ./README", 9);
     if(system(cpycmd) == -1){
       fprintf(stderr, "Error linking README from app to PWD\n");
     }
