@@ -533,11 +533,14 @@ void handleKeyboardEvent(screen_event_t screen_event)
     }
     if(!virtualkeyboard_visible
         && ((screen_val == KEYCODE_LEFT_SHIFT) || (screen_val == KEYCODE_RIGHT_SHIFT))){
-        if(preferences_get_bool(preference_keys.sticky_shift_key)
-                && !(screen_flags & KEY_REPEAT)){
-            toggle_vkeymod(KEYMOD_SHIFT);
-            return;
+      if(preferences_get_bool(preference_keys.sticky_shift_key)){
+        if(screen_flags & KEY_REPEAT){
+          return;
+        } else {
+          toggle_vkeymod(KEYMOD_SHIFT);
+          return;
         }
+      }
     }
 
     /* metamode sticky keys don't trigger repreat */
