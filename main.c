@@ -540,15 +540,6 @@ void handleKeyboardEvent(screen_event_t screen_event)
         }
     }
 
-    /* sym keys don't trigger repeat */
-    if(symmenu_show){
-    	keys = get_symmenu_keys((char)screen_val);
-    	if(keys != NULL){
-    		send_metamode_keystrokes(keys);
-    		return;
-    	}
-    }
-
     /* metamode sticky keys don't trigger repreat */
     if(metamode && !metamode_just_set){
       keys = preferences_get_metamode_sticky_keys((char)screen_val);
@@ -613,6 +604,15 @@ void handleKeyboardEvent(screen_event_t screen_event)
       }
       metamode_toggle();
       return;
+    }
+
+    /* handle sym keys */
+    if(symmenu_show){
+      keys = get_symmenu_keys((char)screen_val);
+      if(keys != NULL){
+        send_metamode_keystrokes(keys);
+        return;
+      }
     }
 
     /* if we have virtual keymods, then put them in, then turn them off */
