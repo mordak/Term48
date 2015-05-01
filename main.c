@@ -90,6 +90,7 @@ static char key_repeat_done = 0;
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
 #define README45_FILE_PATH "../app/native/README45"
+#define SYMMENU_KEY_BORDER 2
 
 int send_metamode_keystrokes(const char* keystrokes){
 
@@ -198,7 +199,7 @@ const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 				if(    (x > symmenu_entries[i][j].x)
 						&& (y > symmenu_entries[i][j].y)
 						&& (x < (symmenu_entries[i][j].x + symmenu_entries[i][j].background->w))
-						&& (y < (symmenu_entries[i][j].y + symmenu_entries[i][j].background->h))){
+						&& (y < (symmenu_entries[i][j].y + symmenu_entries[i][j].symbol->h))){
 				  if(!symmenu_lock){
 				    symmenu_toggle();
 				  } else {
@@ -274,7 +275,7 @@ void symmenu_init(){
 		const char* symmenu_font_path = preference_defaults.font_path;
 		int symmenu_background_size = preferences_guess_best_font_size(longest);
 		int symmenu_corner_size = symmenu_background_size / 5;
-		int symmenu_font_size = symmenu_background_size - symmenu_corner_size;
+		int symmenu_font_size = (6 * symmenu_background_size) / 10;
 
 		/* Load the font - if this was going to fail, it would have failed earlier in init() */
 		TTF_Font* symmenu_font = TTF_OpenFont(symmenu_font_path, symmenu_font_size);
@@ -1024,7 +1025,9 @@ void render() {
   float x, y;
   struct screenchar* sc;
   SDL_Rect destrect;
+  SDL_Rect symmenu_srcrect;
   SDL_Surface* torender;
+  SDL_Color symmenu_background = (SDL_Color)SYMMENU_BACKGROUND;
   UChar str[2];
   str[1] = NULL;
 
@@ -1135,17 +1138,30 @@ void render() {
   if(symmenu_show && symmenu_num_rows > 0){
   	for(j = 0; j < symmenu_num_rows; ++j){
 			for(i = 0; i < symmenu_num_entries[j]; ++i){
-				destrect.w = symmenu_entries[j][i].background->w;
-				destrect.h = symmenu_entries[j][i].background->h;
+				// Draw the background box
+			  destrect.w = symmenu_entries[j][i].background->w;
+				destrect.h = symmenu_entries[j][i].symbol->h + (2 * SYMMENU_KEY_BORDER); // be just bigger than the symbol
 				destrect.x = i * symmenu_entries[j][i].background->w;
 				destrect.y = screen->h - ((j+1) * (destrect.h));
+				symmenu_srcrect.x = 0;
+				symmenu_srcrect.y = 0;
+				symmenu_srcrect.w = destrect.w;
+				symmenu_srcrect.h = destrect.h;
 				symmenu_entries[j][i].x = destrect.x;
 				symmenu_entries[j][i].y = destrect.y;
-				if(SDL_BlitSurface(symmenu_entries[j][i].background, NULL, screen, &destrect) != 0){
+				if(SDL_BlitSurface(symmenu_entries[j][i].background, &symmenu_srcrect, screen, &destrect) != 0){
 					PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
 				}
-				destrect.x += symmenu_entries[j][i].off_x;
-				destrect.y += symmenu_entries[j][i].off_y;
+
+				// Fill the background of the symbol
+				destrect.w = symmenu_entries[j][i].background->w - (2 * SYMMENU_KEY_BORDER);
+				destrect.h = symmenu_entries[j][i].symbol->h;
+				destrect.x += SYMMENU_KEY_BORDER;
+				destrect.y += SYMMENU_KEY_BORDER;
+				SDL_FillRect(screen, &destrect, SDL_MapRGB(screen->format, symmenu_background.r, symmenu_background.g, symmenu_background.b));
+
+				// Draw the symbol
+				destrect.x = (i * symmenu_entries[j][i].background->w) + symmenu_entries[j][i].off_x;
 				destrect.w = symmenu_entries[j][i].symbol->w;
 				destrect.h = symmenu_entries[j][i].symbol->h;
 				if(symmenu_entries[j][i].flash){
@@ -1158,6 +1174,9 @@ void render() {
 				    PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
 				  }
 				}
+
+				// Draw the key
+        destrect.x = i * symmenu_entries[j][i].background->w + SYMMENU_KEY_BORDER;
 				destrect.w = symmenu_entries[j][i].key->w;
 				destrect.h = symmenu_entries[j][i].key->h;
 				if(SDL_BlitSurface(symmenu_entries[j][i].key, NULL, screen, &destrect) != 0){
