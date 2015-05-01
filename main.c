@@ -309,7 +309,7 @@ void symmenu_init(){
 				symmenu_entries[j][i].off_y = (symmenu_entries[j][i].background->h - symmenu_entries[j][i].symbol->h) / 2;
 				cornerchar[0] = symmenu_entries[j][i].name[0];
 				symmenu_entries[j][i].key = TTF_RenderUNICODE_Shaded(symmenu_corner_font, cornerchar, (SDL_Color)SYMMENU_CORNER, (SDL_Color)SYMMENU_BACKGROUND);
-				symmenu_height = symmenu_num_rows * symmenu_entries[j][i].background->h;
+				symmenu_height = symmenu_num_rows * (SYMMENU_KEY_BORDER + symmenu_entries[j][i].symbol->h);
 				PRINT(stderr, "Got symkey: name: %s, value: %s\n", symmenu_entries[j][i].name, symmenu_entries[j][i].c);
 			}
 		}
