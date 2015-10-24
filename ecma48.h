@@ -20,7 +20,7 @@
 void ecma48_init();
 void ecma48_uninit();
 void ecma48_setenv();
-int  ecma48_parse_control_codes(int sym, int mod, int cap, UChar* buf);
+int  ecma48_parse_control_codes(int sym, int mod, UChar* buf);
 void ecma48_filter_text(UChar* tbuf, ssize_t chars);
 
 /* Control Code function declarations */

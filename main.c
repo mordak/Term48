@@ -382,17 +382,6 @@ void rescreen(int w, int h){
   setup_screen_size(width, height);
 }
 
-void send_key(int keycode, int modifiers, int keycap){
-  int num_chars;
-  UChar c[CHARACTER_BUFFER];
-  num_chars = ecma48_parse_control_codes(keycode, modifiers, keycap, c);
-  int nc;
-  for(nc = 0; nc < num_chars; ++nc){
-    PRINT(stderr, "Writing 0x%x\n", (int)c[nc]);
-  }
-  io_write_master((const UChar*)&c, num_chars);
-}
-
 void toggle_vkeymod(int mod){
   PRINT(stderr, "Toggle modifier %d\n", mod);
   if(vmodifiers & mod){
@@ -485,7 +474,6 @@ void handleKeyboardEvent(screen_event_t screen_event)
 {
   int screen_val, screen_flags, screen_alt_val;
   int modifiers;
-  int cap;
   int num_chars;
   int vkbd_h;
   int metamode_just_set = 0;
@@ -503,7 +491,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_SYM, &screen_val);
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_ALTERNATE_SYM, &screen_alt_val);
   screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_MODIFIERS, &modifiers);
-  screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_CAP, &cap);
+  //screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_KEY_CAP, &cap);
 
   if (screen_flags & KEY_DOWN) {
     PRINT(stderr, "The '%d' key was pressed (modifiers: %d) (char %c) (cap %d) (alt %d)\n", (int)screen_val, modifiers, (char)screen_val, cap, (int)screen_alt_val);
@@ -666,7 +654,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
         PRINT(stderr, "Modifier %d\n", screen_val);
         break;
       default:
-        num_chars = ecma48_parse_control_codes(screen_val, modifiers, cap, c);
+        num_chars = ecma48_parse_control_codes(screen_val, modifiers, c);
         int nc;
         for(nc = 0; nc < num_chars; ++nc){
           PRINT(stderr, "Writing 0x%x\n", (int)c[nc]);

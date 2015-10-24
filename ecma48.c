@@ -78,6 +78,7 @@ struct ecma48_modes {
 
 static struct ecma48_modes modes;
 static struct font_style current_style;
+static UChar last_char;
 
 extern buf_t buf;
 extern int rows;
@@ -204,6 +205,8 @@ void ecma48_add_char(UChar c){
     /* write new one */
     sc->c = c;
     sc->style = current_style;
+    /* cache for REP */
+    last_char = c;
   } /* else { BUFFER_OSC, etc. -> ignore for now } */
 }
 
@@ -246,7 +249,7 @@ int ecma48_ESC_O_KEY(UChar* tbuf, char code){
 }
 
 
-int ecma48_parse_control_codes(int sym, int mod, int cap, UChar* tbuf){
+int ecma48_parse_control_codes(int sym, int mod, UChar* tbuf){
 
   // by default, we just put the symbol in the buffer
   int num_chars = 1;
@@ -302,72 +305,72 @@ int ecma48_parse_control_codes(int sym, int mod, int cap, UChar* tbuf){
 
   /* handle the shift key being down */
 	if((mod & KEYMOD_SHIFT) || (mod & KEYMOD_SHIFT_LOCK) || (mod & KEYMOD_CAPS_LOCK)){
-		switch(cap){
-			case 'a': tbuf[0] = 0101; break;
-			case 'b': tbuf[0] = 0102; break;
-			case 'c': tbuf[0] = 0103; break;
-			case 'd': tbuf[0] = 0104; break;
-			case 'e': tbuf[0] = 0105; break;
-			case 'f': tbuf[0] = 0106; break;
-			case 'g': tbuf[0] = 0107; break;
-			case 'h': tbuf[0] = 0110; break;
-			case 'i': tbuf[0] = 0111; break;
-			case 'j': tbuf[0] = 0112; break;
-			case 'k': tbuf[0] = 0113; break;
-			case 'l': tbuf[0] = 0114; break;
-			case 'm': tbuf[0] = 0115; break;
-			case 'n': tbuf[0] = 0116; break;
-			case 'o': tbuf[0] = 0117; break;
-			case 'p': tbuf[0] = 0120; break;
-			case 'q': tbuf[0] = 0121; break;
-			case 'r': tbuf[0] = 0122; break;
-			case 's': tbuf[0] = 0123; break;
-			case 't': tbuf[0] = 0124; break;
-			case 'u': tbuf[0] = 0125; break;
-			case 'v': tbuf[0] = 0126; break;
-			case 'w': tbuf[0] = 0127; break;
-			case 'x': tbuf[0] = 0130; break;
-			case 'y': tbuf[0] = 0131; break;
-			case 'z': tbuf[0] = 0132; break;
+		switch(sym){
+			case KEYCODE_A: tbuf[0] = 0101; break;
+			case KEYCODE_B: tbuf[0] = 0102; break;
+			case KEYCODE_C: tbuf[0] = 0103; break;
+			case KEYCODE_D: tbuf[0] = 0104; break;
+			case KEYCODE_E: tbuf[0] = 0105; break;
+			case KEYCODE_F: tbuf[0] = 0106; break;
+			case KEYCODE_G: tbuf[0] = 0107; break;
+			case KEYCODE_H: tbuf[0] = 0110; break;
+			case KEYCODE_I: tbuf[0] = 0111; break;
+			case KEYCODE_J: tbuf[0] = 0112; break;
+			case KEYCODE_K: tbuf[0] = 0113; break;
+			case KEYCODE_L: tbuf[0] = 0114; break;
+			case KEYCODE_M: tbuf[0] = 0115; break;
+			case KEYCODE_N: tbuf[0] = 0116; break;
+			case KEYCODE_O: tbuf[0] = 0117; break;
+			case KEYCODE_P: tbuf[0] = 0120; break;
+			case KEYCODE_Q: tbuf[0] = 0121; break;
+			case KEYCODE_R: tbuf[0] = 0122; break;
+			case KEYCODE_S: tbuf[0] = 0123; break;
+			case KEYCODE_T: tbuf[0] = 0124; break;
+			case KEYCODE_U: tbuf[0] = 0125; break;
+			case KEYCODE_V: tbuf[0] = 0126; break;
+			case KEYCODE_W: tbuf[0] = 0127; break;
+			case KEYCODE_X: tbuf[0] = 0130; break;
+			case KEYCODE_Y: tbuf[0] = 0131; break;
+			case KEYCODE_Z: tbuf[0] = 0132; break;
 		}
 		num_chars = 1;
 	}
 
   // now look for control down
   if(mod & KEYMOD_CTRL){
-    switch (cap) {
-      case ' ': tbuf[0] = 000; break;
-      case 'a': tbuf[0] = 001; break;
-      case 'b': tbuf[0] = 002; break;
-      case 'c': tbuf[0] = 003; break;
-      case 'd': tbuf[0] = 004; break;
-      case 'e': tbuf[0] = 005; break;
-      case 'f': tbuf[0] = 006; break;
-      case 'g': tbuf[0] = 007; break;
-      case 'h': tbuf[0] = 010; break;
-      case 'i': tbuf[0] = 011; break;
-      case 'j': tbuf[0] = 012; break;
-      case 'k': tbuf[0] = 013; break;
-      case 'l': tbuf[0] = 014; break;
-      case 'm': tbuf[0] = 015; break;
-      case 'n': tbuf[0] = 016; break;
-      case 'o': tbuf[0] = 017; break;
-      case 'p': tbuf[0] = 020; break;
-      case 'q': tbuf[0] = 021; break;
-      case 'r': tbuf[0] = 022; break;
-      case 's': tbuf[0] = 023; break;
-      case 't': tbuf[0] = 024; break;
-      case 'u': tbuf[0] = 025; break;
-      case 'v': tbuf[0] = 026; break;
-      case 'w': tbuf[0] = 027; break;
-      case 'x': tbuf[0] = 030; break;
-      case 'y': tbuf[0] = 031; break;
-      case 'z': tbuf[0] = 032; break;
-      case '[': tbuf[0] = 033; break;
-      case 0134:tbuf[0] = 034; break;
-      case ']': tbuf[0] = 035; break;
-      case 0140: if(mod & KEYMOD_SHIFT){tbuf[0] = 036;} break;
-      case 057:  if(mod & KEYMOD_SHIFT){tbuf[0] = 037;} break;
+    switch (sym) {
+      case KEYCODE_SPACE: tbuf[0] = 000; break;
+      case KEYCODE_A: tbuf[0] = 001; break;
+      case KEYCODE_B: tbuf[0] = 002; break;
+      case KEYCODE_C: tbuf[0] = 003; break;
+      case KEYCODE_D: tbuf[0] = 004; break;
+      case KEYCODE_E: tbuf[0] = 005; break;
+      case KEYCODE_F: tbuf[0] = 006; break;
+      case KEYCODE_G: tbuf[0] = 007; break;
+      case KEYCODE_H: tbuf[0] = 010; break;
+      case KEYCODE_I: tbuf[0] = 011; break;
+      case KEYCODE_J: tbuf[0] = 012; break;
+      case KEYCODE_K: tbuf[0] = 013; break;
+      case KEYCODE_L: tbuf[0] = 014; break;
+      case KEYCODE_M: tbuf[0] = 015; break;
+      case KEYCODE_N: tbuf[0] = 016; break;
+      case KEYCODE_O: tbuf[0] = 017; break;
+      case KEYCODE_P: tbuf[0] = 020; break;
+      case KEYCODE_Q: tbuf[0] = 021; break;
+      case KEYCODE_R: tbuf[0] = 022; break;
+      case KEYCODE_S: tbuf[0] = 023; break;
+      case KEYCODE_T: tbuf[0] = 024; break;
+      case KEYCODE_U: tbuf[0] = 025; break;
+      case KEYCODE_V: tbuf[0] = 026; break;
+      case KEYCODE_W: tbuf[0] = 027; break;
+      case KEYCODE_X: tbuf[0] = 030; break;
+      case KEYCODE_Y: tbuf[0] = 031; break;
+      case KEYCODE_Z: tbuf[0] = 032; break;
+      case KEYCODE_LEFT_BRACKET: tbuf[0] = 033; break;
+      case KEYCODE_BACK_SLASH: tbuf[0] = 034; break;
+      case KEYCODE_RIGHT_BRACKET: tbuf[0] = 035; break;
+      case KEYCODE_GRAVE: if(mod & KEYMOD_SHIFT){tbuf[0] = 036;} break;
+      case KEYCODE_SLASH:  if(mod & KEYMOD_SHIFT){tbuf[0] = 037;} break;
     }
     num_chars = 1;
   }
@@ -408,7 +411,27 @@ do not or have not implemented
 */
 void ecma48_NOT_IMPLEMENTED(char* function){
   fprintf(stderr, "NOT IMPLEMENTED: ");
-  ecma48_PRINT_CONTROL_SEQUENCE(function);
+  switch (state){
+    case ECMA48_STATE_C1: fprintf(stderr, "ESC "); break;
+    case ECMA48_STATE_CSI: fprintf(stderr, "ESC [ "); break;
+    case ECMA48_STATE_ANSI: fprintf(stderr, "ESC [ ? "); break;
+    case ECMA48_STATE_ANSI_POUND: fprintf(stderr, "ESC # "); break;
+  }
+
+  fprintf(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
+                    function,
+                    escape_args.args[0],
+                    escape_args.args[1],
+                    escape_args.args[2],
+                    escape_args.args[3],
+                    escape_args.args[4],
+                    escape_args.args[5],
+                    escape_args.args[6],
+                    escape_args.args[7],
+                    escape_args.args[8],
+                    escape_args.args[9],
+                    state
+                    );
   ecma48_end_control();
 }
 
@@ -2374,7 +2397,13 @@ character preceding REP is a control function or part of a control function, the
 effect of REP is not defined by this Standard.
 */
 void ecma48_REP(){
-  ecma48_NOT_IMPLEMENTED("HPR");
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
+  int i = 0;
+  for(i = 0; i < Pn; ++i){
+    ecma48_add_char(last_char);
+  }
+  ecma48_end_control();
+  //ecma48_NOT_IMPLEMENTED("REP");
 }
 
 /*
@@ -2388,7 +2417,7 @@ to a register which is to be established. If the parameter value is 0, DA is
 used to request an identifying DA from a device.
 */
 void ecma48_DA(){
-  ecma48_NOT_IMPLEMENTED("HPR");
+  ecma48_NOT_IMPLEMENTED("DA");
 }
 
 /*
@@ -2734,6 +2763,7 @@ void ecma48_SGR(){
   }
   for(i=0; i < NUM_ESCAPE_ARGS; ++i){
     if(Pn[i] >= 0){
+      //fprintf(stderr, "SGR: %u\n", Pn[i]);
       switch (Pn[i]){
         case 0: // 0 default rendition
           current_style = default_text_style;
@@ -2764,10 +2794,12 @@ void ecma48_SGR(){
           current_style.style |= TTF_STYLE_STRIKETHROUGH;
           break;
         case 10: // 10 primary (default) font
+          ecma48_SI();
           break;
         case 11: // 11 first alternative font
           break;
         case 12: // 12 second alternative font
+          ecma48_SO();
           break;
         case 13: // 13 third alternative font
           break;
@@ -2835,7 +2867,7 @@ void ecma48_SGR(){
           break;
         case 38: break;
         case 39: // 39 default display colour [255,255,255]
-          current_style.fg_color = (SDL_Color)WHITE;
+          current_style.fg_color = default_text_style.fg_color;
           break;
         case 40: // 40 black background [0,0,0]
           current_style.bg_color = (SDL_Color)BLACK;
@@ -2863,7 +2895,7 @@ void ecma48_SGR(){
           break;
         case 48: break;
         case 49: // 49 default background colour
-          current_style.bg_color = (SDL_Color)BLACK;
+          current_style.bg_color = default_text_style.bg_color;
           break;
         case 50: break;
         case 51: // 51 framed
