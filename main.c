@@ -17,6 +17,7 @@
 #include <ioctl.h>
 #include <unix.h>
 #include <termios.h>
+#include <sys/select.h>
 
 #include <bps/screen.h>
 #include <bps/virtualkeyboard.h>
@@ -26,6 +27,7 @@
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "SDL_syswm.h"
+#include "SDL_thread.h"
 
 #include "terminal.h"
 #include "ecma48.h"
@@ -86,6 +88,10 @@ static pid_t child_pid = -1;
 static char virtualkeyboard_visible = 0;
 static char isPassport = 0;
 static char key_repeat_done = 0;
+
+static SDL_mutex *input_mutex = NULL;
+
+static int event_pipe[2];
 
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
@@ -966,6 +972,14 @@ int init() {
   hb_val = preferences_get_int(preference_keys.metamode_hitbox.h);
   metamode_hitbox[3] = hb_val ? hb_val : preference_defaults.hitbox.h;
 
+  /* init the input mutex */
+  input_mutex = SDL_CreateMutex();
+  /* init the event input pipe */
+  if(pipe(event_pipe) == -1){
+    fprintf(stderr, "Couldn't create event pipe\n");
+    return TERM_FAILURE;
+  }
+
   ecma48_init();
 
   return TERM_SUCCESS;
@@ -984,6 +998,8 @@ void uninit(){
   if(buf.text != NULL){
     free(buf.text);
   }
+
+  SDL_DestroyMutex(input_mutex);
 
   SDL_FreeSurface(blank_surface);
   SDL_FreeSurface(flash_surface);
@@ -1288,6 +1304,68 @@ void sig_child(int signo){
   errno = old_errno;
 }
 
+void lock_input(){
+  if(SDL_LockMutex(input_mutex) == -1){
+    fprintf(stderr, "Couldn't lock input mutex - exiting\n");
+    exit_application = 1;
+  }
+}
+void unlock_input(){
+  if(SDL_UnlockMutex(input_mutex) == -1){
+    fprintf(stderr, "Couldn't unlock input mutex - exiting\n");
+    exit_application = 1;
+  }
+}
+
+void indicate_event_input(){
+  char *indicate_buf = "w";
+  /* indicate that the render thread should run. Note that
+   * we are logging errors here, but aren't doing anything with them. */
+  if(write(event_pipe[1], (void*)indicate_buf, 1) < 0){
+    fprintf(stderr, "Error writing to event pipe: %d\n", errno);
+  }
+}
+
+/* This function is run in an SDL_Thread, and will check
+ * for either input event indication or data from the
+ * shell, then run the render loop
+ */
+int run_render(void* data){
+
+ fd_set fds;
+  char ev_buf[100];
+  int n = 0;
+  UChar lbuf[READ_BUFFER_SIZE];
+  ssize_t num_chars = 0;
+  int master = io_get_master();
+  while(1){
+    FD_ZERO(&fds);
+    FD_SET(master, &fds);
+    FD_SET(event_pipe[0], &fds);
+    n = select(1+max(master, event_pipe[0]), &fds, NULL, NULL, NULL);
+    if(n < 0){
+      printf("Error calling select on inputs: %d\n", errno);
+    } else {
+      if(FD_ISSET(master, &fds)){
+        lock_input();
+        // Read anything from the child
+        while ((num_chars = io_read_master(lbuf, READ_BUFFER_SIZE)) > 0){
+          ecma48_filter_text(lbuf, num_chars);
+        }
+        unlock_input();
+      }
+      if(FD_ISSET(event_pipe[0], &fds)){
+        // Just read the stuff and throw it away
+        read(event_pipe[0], (void*)ev_buf, 99);
+      }
+    }
+    PRINT(stderr, "Render Loop");
+    render();
+  }
+  /* never reached */
+  return 0;
+}
+
 int main(int argc, char **argv) {
   int rc;
 
@@ -1340,19 +1418,23 @@ int main(int argc, char **argv) {
 
   init_virtualkeyboard();
 
-  UChar lbuf[READ_BUFFER_SIZE];
-  ssize_t num_chars = 0;
+  SDL_Thread *render_thread = SDL_CreateThread(run_render, NULL);
+  //UChar lbuf[READ_BUFFER_SIZE];
+  //ssize_t num_chars = 0;
   while (!exit_application) {
 
+    /*
     // Read anything from the child
     while ((num_chars = io_read_master(lbuf, READ_BUFFER_SIZE)) > 0){
       ecma48_filter_text(lbuf, num_chars);
     }
+    */
 
     //Request and process all available events
     SDL_Event event;
 
-    while(SDL_PollEvent(&event)){
+    while(SDL_WaitEvent(&event)){
+      lock_input();
       switch (event.type) {
         case SDL_QUIT:
           exit_application = 1;
@@ -1387,11 +1469,14 @@ int main(int argc, char **argv) {
           PRINT(stderr, "Unknown Event: %d\n", event.type);
           break;
       }
+      indicate_event_input();
+      unlock_input();
     }
-    render();
+    //render();
   }
 
   PRINT(stderr, "Exiting run loop\n");
+  SDL_KillThread(render_thread);
   virtualkeyboard_hide();
   uninit();
 
