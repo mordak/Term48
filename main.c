@@ -730,17 +730,46 @@ void setup_screen_size(int s_w, int s_h){
   }
 }
 
+void lock_input(){
+  if(SDL_LockMutex(input_mutex) == -1){
+    fprintf(stderr, "Couldn't lock input mutex - exiting\n");
+    exit_application = 1;
+  }
+}
+void unlock_input(){
+  if(SDL_UnlockMutex(input_mutex) == -1){
+    fprintf(stderr, "Couldn't unlock input mutex - exiting\n");
+    exit_application = 1;
+  }
+}
+
+void indicate_event_input(){
+  char *indicate_buf = "w";
+  /* indicate that the render thread should run. Note that
+   * we are logging errors here, but aren't doing anything with them. */
+  if(write(event_pipe[1], (void*)indicate_buf, 1) < 0){
+    fprintf(stderr, "Error writing to event pipe: %d\n", errno);
+  }
+}
 
 int init() {
 
   int i;
+
+  /* init the input mutex */
+  input_mutex = SDL_CreateMutex();
+  /* init the event input pipe */
+  if(pipe(event_pipe) == -1){
+    fprintf(stderr, "Couldn't create event pipe\n");
+    return TERM_FAILURE;
+  }
 
   /* Initialize SDL */
   if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
     PRINT(stderr, "Couldn't initialize SDL: %s\n",SDL_GetError());
     return TERM_FAILURE;
   }
-
+  PRINT(stderr, "Post SDL_Init()\n");
   check_device();
 
   SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
@@ -972,14 +1001,6 @@ int init() {
   hb_val = preferences_get_int(preference_keys.metamode_hitbox.h);
   metamode_hitbox[3] = hb_val ? hb_val : preference_defaults.hitbox.h;
 
-  /* init the input mutex */
-  input_mutex = SDL_CreateMutex();
-  /* init the event input pipe */
-  if(pipe(event_pipe) == -1){
-    fprintf(stderr, "Couldn't create event pipe\n");
-    return TERM_FAILURE;
-  }
-
   ecma48_init();
 
   return TERM_SUCCESS;
@@ -1195,6 +1216,8 @@ void render() {
   if(flash){
     /* turn it off */
     flash = 0;
+    /* write to the input pipe so we run again */
+    indicate_event_input();
   }
 
 }
@@ -1286,6 +1309,7 @@ int init_pty() {
   return TERM_SUCCESS;
 }
 
+extern int SDL_PrivateQuit(void);
 void sig_child(int signo){
   int status;
 
@@ -1298,32 +1322,11 @@ void sig_child(int signo){
       PRINT(stderr, "Child %d exited abnormally\n", child_pid);
     }
     exit_application = 1;
+    SDL_PrivateQuit();
   } else {
     PRINT(stderr, "Got SIGCHILD for process other than %d\n", child_pid);
   }
   errno = old_errno;
-}
-
-void lock_input(){
-  if(SDL_LockMutex(input_mutex) == -1){
-    fprintf(stderr, "Couldn't lock input mutex - exiting\n");
-    exit_application = 1;
-  }
-}
-void unlock_input(){
-  if(SDL_UnlockMutex(input_mutex) == -1){
-    fprintf(stderr, "Couldn't unlock input mutex - exiting\n");
-    exit_application = 1;
-  }
-}
-
-void indicate_event_input(){
-  char *indicate_buf = "w";
-  /* indicate that the render thread should run. Note that
-   * we are logging errors here, but aren't doing anything with them. */
-  if(write(event_pipe[1], (void*)indicate_buf, 1) < 0){
-    fprintf(stderr, "Error writing to event pipe: %d\n", errno);
-  }
 }
 
 /* This function is run in an SDL_Thread, and will check
@@ -1332,13 +1335,13 @@ void indicate_event_input(){
  */
 int run_render(void* data){
 
- fd_set fds;
+  fd_set fds;
   char ev_buf[100];
   int n = 0;
   UChar lbuf[READ_BUFFER_SIZE];
   ssize_t num_chars = 0;
   int master = io_get_master();
-  while(1){
+  while(!exit_application){
     FD_ZERO(&fds);
     FD_SET(master, &fds);
     FD_SET(event_pipe[0], &fds);
@@ -1359,7 +1362,7 @@ int run_render(void* data){
         read(event_pipe[0], (void*)ev_buf, 99);
       }
     }
-    PRINT(stderr, "Render Loop");
+    PRINT(stderr, "Render Loop\n");
     render();
   }
   /* never reached */
@@ -1433,7 +1436,8 @@ int main(int argc, char **argv) {
     //Request and process all available events
     SDL_Event event;
 
-    while(SDL_WaitEvent(&event)){
+    //while(SDL_WaitEvent(&event)){
+    SDL_WaitEvent(&event);
       lock_input();
       switch (event.type) {
         case SDL_QUIT:
@@ -1471,7 +1475,7 @@ int main(int argc, char **argv) {
       }
       indicate_event_input();
       unlock_input();
-    }
+    //}
     //render();
   }
 
