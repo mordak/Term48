@@ -1422,61 +1422,49 @@ int main(int argc, char **argv) {
   init_virtualkeyboard();
 
   SDL_Thread *render_thread = SDL_CreateThread(run_render, NULL);
-  //UChar lbuf[READ_BUFFER_SIZE];
-  //ssize_t num_chars = 0;
   while (!exit_application) {
-
-    /*
-    // Read anything from the child
-    while ((num_chars = io_read_master(lbuf, READ_BUFFER_SIZE)) > 0){
-      ecma48_filter_text(lbuf, num_chars);
-    }
-    */
 
     //Request and process all available events
     SDL_Event event;
 
-    //while(SDL_WaitEvent(&event)){
     SDL_WaitEvent(&event);
-      lock_input();
-      switch (event.type) {
-        case SDL_QUIT:
-          exit_application = 1;
-          break;
-        case SDL_VIDEORESIZE:
-          rescreen(event.resize.w, event.resize.h);
-          break;
-        case SDL_KEYDOWN:
-        {
-          fprintf(stderr, "SDL_KEYDOWN\n");
-          UChar uc;
-          char sdlkey = event.key.keysym.sym;
-          uc = (UChar)sdlkey;
-          io_write_master(&uc, 1);
-        }
+    lock_input();
+    switch (event.type) {
+      case SDL_QUIT:
+        exit_application = 1;
         break;
-        case SDL_SYSWMEVENT:
-        {
-          bps_event_t* bps_event = event.syswm.msg->event;
-          int screene_type;
-          int domain = bps_event_get_domain(bps_event);
-          PRINT(stderr, "Unhandled SYSWMEVENT: %d\n", domain);
-        }
+      case SDL_VIDEORESIZE:
+        rescreen(event.resize.w, event.resize.h);
         break;
-        case SDL_MOUSEBUTTONDOWN:
-          handle_mousedown(event.button.x, event.button.y);
-          break;
-        case SDL_ACTIVEEVENT:
-          handle_activeevent(event.active.gain, event.active.state);
-          break;
-        default:
-          PRINT(stderr, "Unknown Event: %d\n", event.type);
-          break;
+      case SDL_KEYDOWN:
+      {
+        fprintf(stderr, "SDL_KEYDOWN\n");
+        UChar uc;
+        char sdlkey = event.key.keysym.sym;
+        uc = (UChar)sdlkey;
+        io_write_master(&uc, 1);
       }
-      indicate_event_input();
-      unlock_input();
-    //}
-    //render();
+      break;
+      case SDL_SYSWMEVENT:
+      {
+        bps_event_t* bps_event = event.syswm.msg->event;
+        int screene_type;
+        int domain = bps_event_get_domain(bps_event);
+        PRINT(stderr, "Unhandled SYSWMEVENT: %d\n", domain);
+      }
+      break;
+      case SDL_MOUSEBUTTONDOWN:
+        handle_mousedown(event.button.x, event.button.y);
+        break;
+      case SDL_ACTIVEEVENT:
+        handle_activeevent(event.active.gain, event.active.state);
+        break;
+      default:
+        PRINT(stderr, "Unknown Event: %d\n", event.type);
+        break;
+    }
+    indicate_event_input();
+    unlock_input();
   }
 
   PRINT(stderr, "Exiting run loop\n");
