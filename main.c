@@ -1363,7 +1363,9 @@ int run_render(void* data){
       }
     }
     PRINT(stderr, "Render Loop\n");
+    lock_input();
     render();
+    unlock_input();
   }
   /* never reached */
   return 0;
