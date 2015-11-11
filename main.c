@@ -384,8 +384,13 @@ void rescreen(int w, int h){
 
   int width  = w == -1 ? screen->w : w;
   int height = h == -1 ? screen->h : h;
+  int vkb_h = 0;
   screen = SDL_SetVideoMode(width, height, PB_D_PIXELS, SDL_HWSURFACE | SDL_DOUBLEBUF);
   setup_screen_size(width, height);
+  if(virtualkeyboard_visible){
+    vkb_h = get_virtualkeyboard_height();
+    setup_screen_size(width, height - vkb_h);
+  }
 }
 
 void toggle_vkeymod(int mod){
