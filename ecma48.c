@@ -3101,9 +3101,9 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
 
   ssize_t i;
 
-  PRINT(stderr, "Got characters: ");
+  PRINT(stderr, "Got characters:");
   for(i = 0; i < chars; ++i){
-    PRINT(stderr, ":%c", tbuf[i]);
+    PRINT(stderr, "%x:", tbuf[i]);
 
     switch(state){
       case ECMA48_STATE_NORMAL:
