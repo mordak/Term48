@@ -157,10 +157,7 @@ void first_run(){
   int rc = stat(readme_path, &statbuf);
   if(rc == 0){
     // stat success!
-    char cpycmd[60] = "/base/bin/ln -sf ";
-    strncat(cpycmd, readme_path, strlen(readme_path));
-    strncat(cpycmd, " ./README", 9);
-    if(system(cpycmd) == -1){
+    if(symlink(readme_path, "./README") == -1){
       fprintf(stderr, "Error linking README from app to PWD\n");
     }
   }

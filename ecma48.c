@@ -20,6 +20,8 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
+
 
 #include "SDL_ttf.h"
 
@@ -28,6 +30,7 @@
 
 #include "ecma48.h"
 
+#define ECMA48_TERMINFO "../app/native/terminfo"
 #define ECMA48_STATE_NORMAL 0
 #define ECMA48_STATE_C1 1
 #define ECMA48_STATE_CSI 2
@@ -173,10 +176,20 @@ void ecma48_uninit(){
 }
 
 void ecma48_setenv(){
-  setenv("TERM", "qansi", 1);
-  if(system("/base/bin/stty +sane term=qansi erase=^H") == -1){
+  /* link in the .terminfo lib if it isn't there */
+  struct stat terminfo_f;
+  if(stat(".terminfo", &terminfo_f) == -1){
+    /* assume it doesn't exist yet */
+    if(symlink(ECMA48_TERMINFO, ".terminfo") == -1){
+      fprintf(stderr, "Error linking terminfo database - terminal may be non-functional\n");
+    }
+  }
+  setenv("TERM", "xterm-color", 1);
+  /*
+  if(system("/base/bin/stty +sane term=xterm-color erase=^H") == -1){
     PRINT(stderr, "Error invoking system(stty..)\n");
   }
+  */
 }
 
 void ecma48_end_control(){
