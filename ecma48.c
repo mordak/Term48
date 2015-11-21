@@ -605,10 +605,10 @@ following line in the data component.
 void ecma48_LF(){
   ecma48_PRINT_CONTROL_SEQUENCE("LF");
 
-  //if(buf.col < cols){
+  if(buf.col < cols){
   	// emulate xenl/xn newline glitch at the right margin
   	buf_increment_line();
-  //}
+  }
   ecma48_end_control();
 }
 
@@ -3085,6 +3085,18 @@ void ansi_POUND(){
   state = ECMA48_STATE_ANSI_POUND;
 }
 
+void ansi_FUNCKEY(){
+  ecma48_NOT_IMPLEMENTED("FUNCKEY");
+}
+
+void xterm_SC(){
+  ecma48_NOT_IMPLEMENTED("SC");
+}
+
+void xterm_RC(){
+  ecma48_NOT_IMPLEMENTED("RC");
+}
+
 /* Fill the screen with 'E', and set the cursor to the home position */
 void ansi_DECALN(){
 
@@ -3158,6 +3170,8 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
       case ECMA48_STATE_C1:
         switch(tbuf[i]){
           case 0x23: ansi_POUND(); break;
+          case 0x37: xterm_SC(); break;
+          case 0x38: xterm_RC(); break;
           case 0x41: ansi_CUU(); break;
           case 0x42: ecma48_BPH(); break;
           case 0x43: ecma48_NBH(); break;
@@ -3284,6 +3298,7 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x6e: ecma48_DSR(); break;
           case 0x6f: ecma48_DAQ(); break;
           case 0x72: ansi_CSR(); break;
+          case 0x7e: ansi_FUNCKEY(); break;
           default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
         }; break;
       case ECMA48_STATE_ANSI:
