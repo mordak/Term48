@@ -124,6 +124,10 @@ ssize_t io_write_master(const UChar *buf, size_t nUChar){
 	return write(master_fd, writebuf, (size_t)(target - writebuf));
 }
 
+ssize_t io_write_master_char(const char *buf, size_t n){
+  return write(master_fd, buf, n);
+}
+
 ssize_t io_read_master(UChar *buf, size_t nUChar){
 	const char *source;
 	const char *sourceLimit;

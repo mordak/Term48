@@ -27,6 +27,7 @@
 
 #include "terminal.h"
 #include "buffer.h"
+#include "io.h"
 
 #include "ecma48.h"
 
@@ -446,6 +447,16 @@ void ecma48_NOT_IMPLEMENTED(char* function){
                     state
                     );
   ecma48_end_control();
+}
+
+void ecma48_reverse_video(){
+  current_style.fg_color = default_text_style.bg_color;
+  current_style.bg_color = default_text_style.fg_color;
+}
+
+void ecma48_normal_video(){
+  current_style.fg_color = default_text_style.fg_color;
+  current_style.bg_color = default_text_style.bg_color;
 }
 
 /* NUL - NULL
@@ -2410,6 +2421,7 @@ character preceding REP is a control function or part of a control function, the
 effect of REP is not defined by this Standard.
 */
 void ecma48_REP(){
+  ecma48_PRINT_CONTROL_SEQUENCE("REP");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   int i = 0;
   for(i = 0; i < Pn; ++i){
@@ -2430,7 +2442,13 @@ to a register which is to be established. If the parameter value is 0, DA is
 used to request an identifying DA from a device.
 */
 void ecma48_DA(){
-  ecma48_NOT_IMPLEMENTED("DA");
+  ecma48_PRINT_CONTROL_SEQUENCE("DA");
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
+  switch(Pn){
+    case 0:  io_write_master_char(TERMID, sizeof(TERMID)); break;
+    default: fprintf(stderr, "-- Unhandled code in ecma48_DA: %d\n", Pn); break;
+  };
+  ecma48_end_control();
 }
 
 /*
@@ -2797,9 +2815,7 @@ void ecma48_SGR(){
         case 6: // 6 rapidly blinking (150 per minute or more)
           break;
         case 7: // 7 negative image
-          tmpcolor = current_style.fg_color;
-          current_style.fg_color = current_style.bg_color;
-          current_style.bg_color = tmpcolor;
+          ecma48_reverse_video();
           break;
         case 8: // 8 concealed characters
           break;
@@ -2845,9 +2861,7 @@ void ecma48_SGR(){
           break;
         case 26: break;
         case 27: // 27 positive image
-          tmpcolor = current_style.fg_color;
-          current_style.fg_color = current_style.bg_color;
-          current_style.bg_color = tmpcolor;
+          ecma48_normal_video();
           break;
         case 28: // 28 revealed characters
           break;
@@ -3034,11 +3048,18 @@ void ansi_SM(){
   ecma48_PRINT_CONTROL_SEQUENCE("ansi_SM");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   switch(Pn){
+    case 1:  break; // DECCKM ignored
+    //case 2:  break; // DECANM
   	case 3:  ecma48_clear_display(); ecma48_set_cursor_home(); break; // Clear the screen (and set 132 chars - not implemented)
+    case 4:  break; // DECSCLM ignored
+    case 5:  ecma48_reverse_video(); break; // DECSCNM
   	case 6:  modes.DECOM = 1; ecma48_set_cursor_home(); break;// DECOM Set origin relative
     case 7:  autowrap = 1; break;
-    case 12: break;
+    case 8:  break; // DECARM ignored
+    //case 12: break;
     case 25: draw_cursor = 1; break;
+    //case 40: break; // DECANM
+    //case 45: break; // DECANM
     default: fprintf(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn); break;
   };
   ecma48_end_control();
@@ -3051,10 +3072,14 @@ void ansi_RM(){
   ecma48_PRINT_CONTROL_SEQUENCE("ansi_RM");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   switch(Pn){
+    case 1:  break; // DECCKM ignored
   	case 3:  ecma48_clear_display(); ecma48_set_cursor_home(); break; // Clear the screen (and set 80 chars - not implemented)
+    case 4:  break; // DECSCLM ignored
+    case 5:  ecma48_normal_video(); break; // DECSCNM
   	case 6:  modes.DECOM = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
     case 7:  autowrap = 0; break;
-    case 12: break; // comes after \E?25h for ansi_SM
+    case 8:  break; // DECARM ignored
+    //case 12: break; // comes after \E?25h for ansi_SM
     case 25: draw_cursor = 0; break;
     default: fprintf(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn); break;
   };

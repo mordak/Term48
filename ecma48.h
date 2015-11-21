@@ -17,6 +17,8 @@
 #ifndef ECMA48_H_
 #define ECMA48_H_
 
+#define TERMID "\033[?6c"
+
 void ecma48_init();
 void ecma48_uninit();
 void ecma48_setenv();
