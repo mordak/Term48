@@ -59,9 +59,6 @@ int TEXT_BUFFER_SIZE;
 
 #define TAB_WIDTH 8
 
-int buf_mod_top_line(int diff);
-int buf_mod_line(int diff);
-int buf_get_row_num(int rownum);
 int buf_bottom_line();
 void buf_erase_line(struct screenchar* sc, size_t n);
 void buf_erase_lines(int start_line, int num);

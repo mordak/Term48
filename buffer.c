@@ -22,21 +22,6 @@
 
 #include "buffer.h"
 
-int buf_mod_top_line(int diff){
-  buf.top_line = (buf.top_line + diff) % TEXT_BUFFER_SIZE;
-  return buf.top_line;
-}
-
-int buf_mod_line(int diff){
-  buf.line = (buf.line + diff) % TEXT_BUFFER_SIZE;
-  return buf.line;
-}
-
-int buf_get_row_num(int rownum){
-  return (buf.top_line + rownum) % TEXT_BUFFER_SIZE;
-}
-
-
 /* returns the bottom buffer line showing on the screen */
 int buf_bottom_line(){
   return buf.top_line + rows - 1;
