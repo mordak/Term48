@@ -322,6 +322,138 @@ void symmenu_init(){
 	}
 }
 
+int font_init(int font_size){
+
+  fprintf(stderr, "Setting font size %d\n", font_size);
+  const char* font_path = preferences_get_string(preference_keys.font_path);
+  if(font_size < MIN_FONT_SIZE){
+    fprintf(stderr, "Refusing to set font size to %d - too small\n",font_size);
+    int default_font_columns = (atoi(getenv("WIDTH")) <= 720) ? 45 : 60;
+    font_size = preferences_guess_best_font_size(default_font_columns);
+  }
+
+  /* Load the font */
+  font = TTF_OpenFont(font_path, font_size);
+  if ( font == NULL ) {
+    /* try opening the default stuff */
+    fprintf(stderr, "Couldn't load %d pt font from %s: %s\n", font_size, font_path, SDL_GetError());
+    font = TTF_OpenFont(preference_defaults.font_path, preference_defaults.font_size);
+    if(font == NULL){
+      fprintf(stderr, "Could not open default font %s: %s\n", preference_defaults.font_path, SDL_GetError());
+      return TERM_FAILURE;
+    }
+  }
+  PRINT(stderr, "Font is Fixed Width: %d\n", TTF_FontFaceIsFixedWidth(font));
+
+  /* Set default options */
+  TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
+  TTF_SetFontOutline(font, 0);
+  TTF_SetFontKerning(font, 0);
+  TTF_SetFontHinting(font, TTF_HINTING_NORMAL);
+
+  /* get default colour settings */
+  int pref_color_len = preferences_get_int_array(preference_keys.text_color, default_text_color_arr, PREFS_COLOR_NUM_ELEMENTS);
+  if(pref_color_len == PREFS_COLOR_NUM_ELEMENTS){
+    default_text_color.r = (Uint8)default_text_color_arr[0];
+    default_text_color.g = (Uint8)default_text_color_arr[1];
+    default_text_color.b = (Uint8)default_text_color_arr[2];
+    default_text_color.unused = 0;
+  }
+  pref_color_len = preferences_get_int_array(preference_keys.background_color, default_bg_color_arr, PREFS_COLOR_NUM_ELEMENTS);
+  if(pref_color_len == PREFS_COLOR_NUM_ELEMENTS){
+    default_bg_color.r = (Uint8)default_bg_color_arr[0];
+    default_bg_color.g = (Uint8)default_bg_color_arr[1];
+    default_bg_color.b = (Uint8)default_bg_color_arr[2];
+    default_bg_color.unused = 0;
+  }
+
+  default_text_style.fg_color = default_text_color;
+  default_text_style.bg_color = default_bg_color;
+  default_text_style.style = TTF_STYLE_NORMAL;
+
+  /* initialize special characters */
+  UChar str[2] = {' ', NULL};
+  blank_surface = TTF_RenderUNICODE_Shaded(font, str, default_text_color, default_bg_color);
+  if (blank_surface == NULL){
+    PRINT(stderr, "Couldn't render blank surface: %s\n", TTF_GetError());
+    return TERM_FAILURE;
+  }
+
+  blank_sc.c = ' ';
+  blank_sc.style = default_text_style;
+  blank_sc.surface = blank_surface;
+  flash_surface = TTF_RenderUNICODE_Shaded(font, str, default_bg_color, default_text_color);
+  if (flash_surface == NULL){
+    PRINT(stderr, "Couldn't render flash surface: %s\n", TTF_GetError());
+    return TERM_FAILURE;
+  }
+
+  str[0] = 'A';
+  alt_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+  if (alt_key_indicator == NULL){
+    PRINT(stderr, "Couldn't render alt_key_indicator surface: %s\n", TTF_GetError());
+    return TERM_FAILURE;
+  }
+
+  str[0] = 'C';
+  ctrl_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+  if (ctrl_key_indicator == NULL){
+    PRINT(stderr, "Couldn't render ctrl_key_indicator surface: %s\n", TTF_GetError());
+    return TERM_FAILURE;
+  }
+
+  str[0] = 0x2191;
+  shift_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+  if (shift_key_indicator == NULL){
+    PRINT(stderr, "Couldn't render shift_key_indicator surface: %s\n", TTF_GetError());
+    return TERM_FAILURE;
+  }
+
+  str[0] = 'M';
+  metamode_cursor = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+  if (metamode_cursor == NULL){
+    PRINT(stderr, "Couldn't render metamode_cursor surface: %s\n", TTF_GetError());
+    return TERM_FAILURE;
+  }
+
+  /* Initialize the cursor */
+  UChar cursorstr[2] = {' ', NULL};
+  cursor = TTF_RenderUNICODE_Shaded(font, cursorstr, default_bg_color, default_text_color);
+  if (cursor == NULL){
+    PRINT(stderr, "Couldn't render cursor char: %s\n", TTF_GetError());
+    return TERM_FAILURE;
+  }
+
+  /* Get the size of the font */
+  int minx, maxx, miny, maxy;
+  if(TTF_GlyphMetrics(font, (Uint16)'X', &minx, &maxx, &miny, &maxy, &advance) != 0){
+    PRINT(stderr, "Could not get Glyph Metrics: %s\n", TTF_GetError());
+    return TERM_FAILURE;
+  }
+
+  text_width = advance;
+  text_height = maxy - miny;
+  text_height_padding = TTF_FontLineSkip(font) - text_height;
+  text_height += text_height_padding;
+  PRINT(stderr, "Character h: %d w:%d (h padding: %d) advance: %d\n", text_height, text_width, text_height_padding, advance);
+
+  return TERM_SUCCESS;
+}
+
+void font_uninit(){
+
+  SDL_FreeSurface(blank_surface);
+  SDL_FreeSurface(flash_surface);
+  SDL_FreeSurface(metamode_cursor);
+  SDL_FreeSurface(ctrl_key_indicator);
+  SDL_FreeSurface(alt_key_indicator);
+  SDL_FreeSurface(shift_key_indicator);
+  SDL_FreeSurface(cursor);
+  if(font != NULL){
+    TTF_CloseFont(font);
+  }
+}
+
 void handle_activeevent(gain, state){
   if(gain){
     PRINT(stderr, "Got ActiveEvent - initializing keyboard\n");
@@ -383,6 +515,13 @@ void rescreen(int w, int h){
   int height = h == -1 ? screen->h : h;
   int vkb_h = 0;
   screen = SDL_SetVideoMode(width, height, PB_D_PIXELS, SDL_HWSURFACE | SDL_DOUBLEBUF);
+  /* reset the font size as well */
+  font_uninit();
+  if(font_init(preferences_get_int(preference_keys.font_size)) == TERM_FAILURE){
+    fprintf(stderr, "Couldn't initialize font\n");
+    exit_application = 1;
+  }
+
   setup_screen_size(width, height);
   if(virtualkeyboard_visible){
     vkb_h = get_virtualkeyboard_height();
@@ -677,6 +816,15 @@ void set_tty_window_size(){
   if(tcsetsize(io_get_master(), rows, cols) < 0){
     PRINT(stderr, "ERROR: tcsetsize() returned <0 (%s). Did not set child pty window size. \n", strerror(errno));
   }
+  /* and send SIGWINCH */
+  int pgrp;
+  if(ioctl(io_get_master(), TIOCGPGRP, &pgrp) != -1){
+    killpg(pgrp, SIGWINCH);
+  } else {
+    PRINT(stderr, "Could not get pgrp of tty: %s\n", strerror(errno));
+    /* and assume the pgrp is our own, because we're not allowed to set pgrp.. */
+    killpg(getpid(), SIGWINCH);
+  }
 }
 
 /* Call _after_ we have calculated the text size */
@@ -720,16 +868,6 @@ void setup_screen_size(int s_w, int s_h){
 
   // set the tty size
   set_tty_window_size();
-
-  /* and send SIGWINCH */
-  int pgrp;
-  if(ioctl(io_get_master(), TIOCGPGRP, &pgrp) != -1){
-    killpg(pgrp, SIGWINCH);
-  } else {
-    PRINT(stderr, "Could not get pgrp of tty: %s\n", strerror(errno));
-    /* and assume the pgrp is our own, because we're not allowed to set pgrp.. */
-    killpg(getpid(), SIGWINCH);
-  }
 }
 
 void lock_input(){
@@ -751,6 +889,25 @@ void indicate_event_input(){
    * we are logging errors here, but aren't doing anything with them. */
   if(write(event_pipe[1], (void*)indicate_buf, 1) < 0){
     fprintf(stderr, "Error writing to event pipe: %d\n", errno);
+  }
+}
+
+
+/* This function is intended for resizing the number of
+ * colums after app init */
+void set_screen_cols(int ncols){
+  /* the user wants this number of columns */
+  int new_fontsize = preferences_guess_best_font_size(ncols);
+  font_uninit();
+  buf_clear_all_renders();
+  if(font_init(new_fontsize) == TERM_FAILURE){
+    fprintf(stderr, "Error setting new font size\n");
+    exit_application = 1;
+  } else {
+    setup_screen_size(screen->w, screen->h);
+    /* and force the number of columns */
+    cols = ncols;
+    set_tty_window_size();
   }
 }
 
@@ -806,50 +963,6 @@ int init() {
     return TERM_FAILURE;
   }
 
-  const char* font_path = preferences_get_string(preference_keys.font_path);
-  int font_size = preferences_get_int(preference_keys.font_size);
-
-  /* Load the font */
-  font = TTF_OpenFont(font_path, font_size);
-  if ( font == NULL ) {
-    /* try opening the default stuff */
-    fprintf(stderr, "Couldn't load %d pt font from %s: %s\n", font_size, font_path, SDL_GetError());
-    font = TTF_OpenFont(preference_defaults.font_path, preference_defaults.font_size);
-    if(font == NULL){
-      fprintf(stderr, "Could not open default font %s: %s\n", preference_defaults.font_path, SDL_GetError());
-      TTF_Quit();
-      SDL_Quit();
-      return TERM_FAILURE;
-    }
-  }
-  PRINT(stderr, "Font is Fixed Width: %d\n", TTF_FontFaceIsFixedWidth(font));
-
-  /* Set default options */
-  TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
-  TTF_SetFontOutline(font, 0);
-  TTF_SetFontKerning(font, 0);
-  TTF_SetFontHinting(font, TTF_HINTING_NORMAL);
-
-  /* get default colour settings */
-  int pref_color_len = preferences_get_int_array(preference_keys.text_color, default_text_color_arr, PREFS_COLOR_NUM_ELEMENTS);
-  if(pref_color_len == PREFS_COLOR_NUM_ELEMENTS){
-    default_text_color.r = (Uint8)default_text_color_arr[0];
-    default_text_color.g = (Uint8)default_text_color_arr[1];
-    default_text_color.b = (Uint8)default_text_color_arr[2];
-    default_text_color.unused = 0;
-  }
-  pref_color_len = preferences_get_int_array(preference_keys.background_color, default_bg_color_arr, PREFS_COLOR_NUM_ELEMENTS);
-  if(pref_color_len == PREFS_COLOR_NUM_ELEMENTS){
-    default_bg_color.r = (Uint8)default_bg_color_arr[0];
-    default_bg_color.g = (Uint8)default_bg_color_arr[1];
-    default_bg_color.b = (Uint8)default_bg_color_arr[2];
-    default_bg_color.unused = 0;
-  }
-
-  default_text_style.fg_color = default_text_color;
-  default_text_style.bg_color = default_bg_color;
-  default_text_style.style = TTF_STYLE_NORMAL;
-
   /* set screen idle mode */
   if(!preferences_get_bool(preference_keys.screen_idle_awake)){
     setenv("SCREEN_IDLE_NORMAL", "1", 0);
@@ -872,79 +985,12 @@ int init() {
     return TERM_FAILURE;
   }
 
-  /* initialize special characters */
-  UChar str[2] = {' ', NULL};
-  blank_surface = TTF_RenderUNICODE_Shaded(font, str, default_text_color, default_bg_color);
-  if (blank_surface == NULL){
-    PRINT(stderr, "Couldn't render blank surface: %s\n", TTF_GetError());
-    exit_application = 1;
+  if(font_init(preferences_get_int(preference_keys.font_size)) == TERM_FAILURE){
+    PRINT(stderr, "Couldn't initialize font\n");
+    TTF_Quit();
+    SDL_Quit();
     return TERM_FAILURE;
   }
-
-  blank_sc.c = ' ';
-  blank_sc.style = default_text_style;
-  blank_sc.surface = blank_surface;
-  flash_surface = TTF_RenderUNICODE_Shaded(font, str, default_bg_color, default_text_color);
-  if (flash_surface == NULL){
-    PRINT(stderr, "Couldn't render flash surface: %s\n", TTF_GetError());
-    exit_application = 1;
-    return TERM_FAILURE;
-  }
-
-  str[0] = 'A';
-  alt_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
-  if (alt_key_indicator == NULL){
-    PRINT(stderr, "Couldn't render alt_key_indicator surface: %s\n", TTF_GetError());
-    exit_application = 1;
-    return TERM_FAILURE;
-  }
-
-  str[0] = 'C';
-  ctrl_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
-  if (ctrl_key_indicator == NULL){
-    PRINT(stderr, "Couldn't render ctrl_key_indicator surface: %s\n", TTF_GetError());
-    exit_application = 1;
-    return TERM_FAILURE;
-  }
-
-  str[0] = 0x2191;
-  shift_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
-  if (shift_key_indicator == NULL){
-    PRINT(stderr, "Couldn't render shift_key_indicator surface: %s\n", TTF_GetError());
-    exit_application = 1;
-    return TERM_FAILURE;
-  }
-
-  str[0] = 'M';
-  metamode_cursor = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
-  if (metamode_cursor == NULL){
-    PRINT(stderr, "Couldn't render metamode_cursor surface: %s\n", TTF_GetError());
-    exit_application = 1;
-    return TERM_FAILURE;
-  }
-
-  /* Initialize the cursor */
-  UChar cursorstr[2] = {' ', NULL};
-  cursor = TTF_RenderUNICODE_Shaded(font, cursorstr, default_bg_color, default_text_color);
-  if (cursor == NULL){
-    PRINT(stderr, "Couldn't render cursor char: %s\n", TTF_GetError());
-    exit_application = 1;
-    return TERM_FAILURE;
-  }
-
-  /* Get the size of the font */
-  int minx, maxx, miny, maxy;
-  if(TTF_GlyphMetrics(font, (Uint16)'X', &minx, &maxx, &miny, &maxy, &advance) != 0){
-    PRINT(stderr, "Could not get Glyph Metrics: %s\n", TTF_GetError());
-    exit_application = 1;
-    return TERM_FAILURE;
-  }
-
-  text_width = advance;
-  text_height = maxy - miny;
-  text_height_padding = TTF_FontLineSkip(font) - text_height;
-  text_height += text_height_padding;
-  PRINT(stderr, "Character h: %d w:%d (h padding: %d) advance: %d\n", text_height, text_width, text_height_padding, advance);
 
   /* Initialize the Sym Menu entries */
   symmenu_init();
@@ -961,9 +1007,11 @@ int init() {
 
   /* we allocate as much buffer as we will ever need */
   int largest_dimension = screen->w > screen->h ? screen->w : screen->h;
-  MAX_ROWS = largest_dimension / text_height;
-  MAX_COLS = largest_dimension / text_width;
+  MAX_ROWS = largest_dimension / MIN_FONT_SIZE;
+  MAX_COLS = largest_dimension / MIN_FONT_SIZE;
   TEXT_BUFFER_SIZE = MAX_ROWS * 4;
+
+  fprintf(stderr, "Allocating %d rows and %d cols\n",TEXT_BUFFER_SIZE, MAX_COLS);
 
   /* malloc the text buf structures */
   buf.text = (struct screenchar**)calloc(TEXT_BUFFER_SIZE + 1, sizeof(struct screenchar*));
@@ -1024,20 +1072,12 @@ void uninit(){
 
   SDL_DestroyMutex(input_mutex);
 
-  SDL_FreeSurface(blank_surface);
-  SDL_FreeSurface(flash_surface);
-  SDL_FreeSurface(metamode_cursor);
-  SDL_FreeSurface(ctrl_key_indicator);
-  SDL_FreeSurface(alt_key_indicator);
-  SDL_FreeSurface(shift_key_indicator);
   symmenu_uninit();
+  font_uninit();
   SDL_FreeSurface(screen);
 
   ecma48_uninit();
 
-  if(font != NULL){
-    TTF_CloseFont(font);
-  }
   TTF_Quit();
   SDL_Quit();
 

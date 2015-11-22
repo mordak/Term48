@@ -3050,7 +3050,10 @@ void ansi_SM(){
   switch(Pn){
     case 1:  break; // DECCKM ignored
     //case 2:  break; // DECANM
-  	case 3:  ecma48_clear_display(); ecma48_set_cursor_home(); break; // Clear the screen (and set 132 chars - not implemented)
+  	case 3:  ecma48_clear_display(); // Clear the screen and set 132 chars
+  	         ecma48_set_cursor_home();
+  	         set_screen_cols(132);
+  	         break;
     case 4:  break; // DECSCLM ignored
     case 5:  ecma48_reverse_video(); break; // DECSCNM
   	case 6:  modes.DECOM = 1; ecma48_set_cursor_home(); break;// DECOM Set origin relative
@@ -3073,7 +3076,10 @@ void ansi_RM(){
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   switch(Pn){
     case 1:  break; // DECCKM ignored
-  	case 3:  ecma48_clear_display(); ecma48_set_cursor_home(); break; // Clear the screen (and set 80 chars - not implemented)
+  	case 3:  ecma48_clear_display(); // Clear the screen and set 80 chars
+  	         ecma48_set_cursor_home();
+             set_screen_cols(80);
+  	         break;
     case 4:  break; // DECSCLM ignored
     case 5:  ecma48_normal_video(); break; // DECSCNM
   	case 6:  modes.DECOM = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute

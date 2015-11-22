@@ -29,12 +29,14 @@
 
 #define READ_BUFFER_SIZE 5000
 #define CHARACTER_BUFFER 10
+#define MIN_FONT_SIZE 4
 
 // sym = f0d3 // z = 0x007a
 #define KEYCODE_BB_SYM_KEY 0xf0d3
 
 void rescreen();
 void setup_screen_size(int w, int h);
+void set_screen_cols(int cols);
 void first_run();
 
 int init();

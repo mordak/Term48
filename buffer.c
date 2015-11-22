@@ -22,6 +22,21 @@
 
 #include "buffer.h"
 
+int buf_mod_top_line(int diff){
+  buf.top_line = (buf.top_line + diff) % TEXT_BUFFER_SIZE;
+  return buf.top_line;
+}
+
+int buf_mod_line(int diff){
+  buf.line = (buf.line + diff) % TEXT_BUFFER_SIZE;
+  return buf.line;
+}
+
+int buf_get_row_num(int rownum){
+  return (buf.top_line + rownum) % TEXT_BUFFER_SIZE;
+}
+
+
 /* returns the bottom buffer line showing on the screen */
 int buf_bottom_line(){
   return buf.top_line + rows - 1;
@@ -72,7 +87,6 @@ void buf_free_char(struct screenchar* sc){
   }
   sc->surface = NULL;
 }
-
 
 void buf_erase_line(struct screenchar* sc, size_t n){
   size_t i;
@@ -362,6 +376,16 @@ void buf_insert_character_preceding(int n){
   int i;
   for(i = 0; i < n; ++i){
     buf_insert_character(1);
+  }
+}
+
+void buf_clear_all_renders(){
+  int i = 0;
+  int j = 0;
+  for(i=0; i<TEXT_BUFFER_SIZE; ++i){
+    for(j=0; j<MAX_COLS;++j){
+      buf_free_char(&(buf.text[i][j]));
+    }
   }
 }
 
