@@ -73,6 +73,7 @@ struct ecma48_modes {
   char SRM;
   char SRTM;
   char TSM;
+  char LNM;
   char TTM;
   char VEM;
   char ZDM;
@@ -155,6 +156,7 @@ void ecma48_init(){
   modes.SRM = 0;
   modes.SRTM = 0;
   modes.TSM = 0;
+  modes.LNM = 0;
   modes.TTM = 0;
   modes.VEM = 0;
   modes.ZDM = 0;
@@ -641,10 +643,16 @@ component to the corresponding character position on the line at which the
 following line tabulation stop is set.
 */
 void ecma48_VT_INTER(){
-  ecma48_NOT_IMPLEMENTED("VT");
+  ecma48_PRINT_CONTROL_SEQUENCE("LF");
+  int row = buf_to_screen_row(-1);
+  int next_vtab = buf_next_vtab(row);
+  if(next_vtab > 0){
+    buf.line = screen_to_buf_row(next_vtab);
+  }
 }
 void ecma48_VT(){
   ecma48_VT_INTER();
+  ecma48_end_control();
 }
 
 /*
@@ -2564,6 +2572,7 @@ parameter values:
 18 TABULATION STOP MODE (TSM)
 19 (Shall not be used; see F.5.1 in annex F)
 20 (Shall not be used; see F.5.2 in annex F)
+20 (vt100) LNM – Line Feed/New Line Mode - when reset, LF=>LF, when set LF=>CRLF
 21 GRAPHIC RENDITION COMBINATION (GRCM)
 22 ZERO DEFAULT MODE (ZDM) (see F.4.2 in annex F)
 NOTE Private modes may be implemented using private parameters, see 5.4.1 and
@@ -2591,6 +2600,7 @@ void ecma48_SM(){
     case 16: modes.TTM = 1; break;
     case 17: modes.SATM = 1; break;
     case 18: modes.TSM = 1; break;
+    case 20: modes.LNM = 1; break;
     case 21: modes.GRCM = 1; break;
     case 22: modes.ZDM = 1; break;
   }
@@ -2700,6 +2710,7 @@ void ecma48_RM(){
     case 16: modes.TTM = 0; break;
     case 17: modes.SATM = 0; break;
     case 18: modes.TSM = 0; break;
+    case 20: modes.LNM = 0; break;
     case 21: modes.GRCM = 0; break;
     case 22: modes.ZDM = 0; break;
   }
@@ -3072,8 +3083,8 @@ void ansi_SM(){
     case 8:  break; // DECARM ignored
     //case 12: break;
     case 25: draw_cursor = 1; break;
-    //case 40: break; // DECANM
-    //case 45: break; // DECANM
+    //case 40: break; /* Enable 80/132 switch (xterm) */
+    //case 45: break; /* Enable reverse wrap (xterm) */
     default: fprintf(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn); break;
   };
   ecma48_end_control();
@@ -3098,6 +3109,8 @@ void ansi_RM(){
     case 8:  break; // DECARM ignored
     //case 12: break; // comes after \E?25h for ansi_SM
     case 25: draw_cursor = 0; break;
+    //case 40: break; /* Disable 80/132 switch (xterm) */
+    //case 45: break; /* Disable reverse wrap (xterm) */
     default: fprintf(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn); break;
   };
   ecma48_end_control();

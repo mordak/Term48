@@ -121,6 +121,21 @@ int screen_prev_tab_x(){
   return 1;
 }
 
+void buf_init_vtab(int i){
+  tabs[i][MAX_COLS] = 1;
+}
+
+int buf_next_vtab(int row){
+  int i = 0;
+  for(i = row+1; i <= rows; ++i){
+    if(tabs[i][MAX_COLS] == 1){
+      return i;
+    }
+  }
+  /* no vtab - return -1 */
+  return -1;
+}
+
 void clear_char_tabstop_at(int row, int col){
   tabs[row][col] = 0;
 }

@@ -58,6 +58,7 @@ int MAX_ROWS;
 int TEXT_BUFFER_SIZE;
 
 #define TAB_WIDTH 8
+#define TAB_HEIGHT 2
 
 int buf_bottom_line();
 void buf_erase_line(struct screenchar* sc, size_t n);
@@ -80,6 +81,9 @@ int screen_to_buf_row(int row_screen);
 void buf_init_tabstops(char* tabs);
 int screen_next_tab_x();
 int screen_prev_tab_x();
+void buf_init_vtab(int i);
+int buf_next_vtab(int row);
+
 
 void clear_char_tabstop_at(int row, int col);
 void clear_char_tabstops_on_row(int row);

@@ -1027,11 +1027,15 @@ int init() {
 
   /* initialize the tab stops
    * tab stops are in screen coords (1,1)->(cols,rows)
+   * We use the extra column for vertical tabs
    * */
   tabs = (char**)calloc((MAX_ROWS+1), sizeof(char*));
   for(i=1; i <= MAX_ROWS; ++i){
     tabs[i] = (char*)calloc((MAX_COLS+1), sizeof(char));
     buf_init_tabstops(tabs[i]);
+    if(i % TAB_HEIGHT == 0){
+      buf_init_vtab(i);
+    }
   }
 
   /* initialize the metamode key */
