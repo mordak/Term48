@@ -517,6 +517,7 @@ void rescreen(int w, int h){
   screen = SDL_SetVideoMode(width, height, PB_D_PIXELS, SDL_HWSURFACE | SDL_DOUBLEBUF);
   /* reset the font size as well */
   font_uninit();
+  buf_clear_all_renders();
   if(font_init(preferences_get_int(preference_keys.font_size)) == TERM_FAILURE){
     fprintf(stderr, "Couldn't initialize font\n");
     exit_application = 1;
