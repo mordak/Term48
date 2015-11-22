@@ -1028,9 +1028,9 @@ int init() {
   /* initialize the tab stops
    * tab stops are in screen coords (1,1)->(cols,rows)
    * */
-  tabs = (char**)calloc((rows+1), sizeof(char*));
-  for(i=1; i <= rows; ++i){
-    tabs[i] = (char*)calloc((cols+1), sizeof(char));
+  tabs = (char**)calloc((MAX_ROWS+1), sizeof(char*));
+  for(i=1; i <= MAX_ROWS; ++i){
+    tabs[i] = (char*)calloc((MAX_COLS+1), sizeof(char));
     buf_init_tabstops(tabs[i]);
   }
 

@@ -92,7 +92,7 @@ void buf_erase_lines(int start_line, int num){
 
 void buf_init_tabstops(char* tabs){
   int i;
-  for(i=1; i <= cols; i += TAB_WIDTH){
+  for(i=1; i <= MAX_COLS; i += TAB_WIDTH){
     tabs[i] = 1;
   }
 }

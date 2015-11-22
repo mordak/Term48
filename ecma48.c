@@ -568,16 +568,19 @@ data component in the direction opposite to that of the implicit movement.
 The direction of the implicit movement depends on the parameter value of SELECT
 IMPLICIT MOVEMENT DIRECTION (SIMD).
 */
-void ecma48_BS(){
+void ecma48_BS_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("BS");
   if(buf.col == cols){
-  	// backup twice, as per vt100 compat
-  	buf.col--;
+    // backup twice, as per vt100 compat
+    buf.col--;
   }
   buf.col--;
   if (buf.col < 0) {
     buf.col = 0;
   }
+}
+void ecma48_BS(){
+  ecma48_BS_INTER();
   ecma48_end_control();
 }
 
@@ -595,10 +598,13 @@ line according to the properties of that tabulation stop. The end of the string
 is indicated by the next occurrence of HT or CARRIAGE RETURN (CR) or NEXT LINE
 (NEL) in the data stream.
 */
-void ecma48_HT(){
+void ecma48_HT_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("HT");
   int x = screen_next_tab_x();
   buf.col = screen_to_buf_col(x);
+}
+void ecma48_HT(){
+  ecma48_HT_INTER();
   ecma48_end_control();
 }
 
@@ -613,13 +619,16 @@ If the DEVICE COMPONENT SELECT MODE (DCSM) is set to DATA, LF causes the active
 data position to be moved to the corresponding character position of the
 following line in the data component.
 */
-void ecma48_LF(){
+void ecma48_LF_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("LF");
 
   if(buf.col < cols){
-  	// emulate xenl/xn newline glitch at the right margin
-  	buf_increment_line();
+    // emulate xenl/xn newline glitch at the right margin
+    buf_increment_line();
   }
+}
+void ecma48_LF(){
+  ecma48_LF_INTER();
   ecma48_end_control();
 }
 
@@ -631,8 +640,11 @@ VT causes the active presentation position to be moved in the presentation
 component to the corresponding character position on the line at which the
 following line tabulation stop is set.
 */
-void ecma48_VT(){
+void ecma48_VT_INTER(){
   ecma48_NOT_IMPLEMENTED("VT");
+}
+void ecma48_VT(){
+  ecma48_VT_INTER();
 }
 
 /*
@@ -672,9 +684,12 @@ be moved to the line limit position of the same line in the data component. The
 line limit position is established by the parameter value of SET LINE LIMIT
 (SLL).
 */
-void ecma48_CR(){
+void ecma48_CR_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("CR");
   buf.col = 0;
+}
+void ecma48_CR(){
+  ecma48_CR_INTER();
   ecma48_end_control();
 }
 
@@ -1761,10 +1776,6 @@ void ecma48_ED(){
       break;
     case 2: // entire screen
       ecma48_clear_display();
-      /*
-      buf.line = buf.top_line;
-      buf.col = 0;
-      */
       break;
   };
   ecma48_end_control();
@@ -2518,7 +2529,7 @@ void ecma48_TBC(){
   switch (Pn){
     case 0 : clear_char_tabstop_at(buf_to_screen_row(-1), buf_to_screen_col(-1)); break;
     case 1 : break; /* FIXME: line tabs not done */
-    case 2 : clear_char_tabstops_on_row(buf_to_screen_row(-1)); break; /* qansi has this as clear all tabs */
+    case 2 : clear_char_tabstops_on_row(buf_to_screen_row(-1)); break;
     case 3 : clear_all_char_tabstops() ; break;
     case 4 : break; /* FIXME: line tabs not done */
     case 5 : clear_all_char_tabstops(); break;
@@ -3132,14 +3143,16 @@ void xterm_RC(){
 void ansi_DECALN(){
 
   ecma48_PRINT_CONTROL_SEQUENCE("ansi_DECALN");
-	int buf_x = screen_to_buf_col(1);
-	int buf_y = screen_to_buf_row(1);
+  /* hard set the cursor back to the zero position */
+  buf.top_line = 0;
+  buf.line = 0;
+  buf.col = 0;
 	int x, y;
 	struct screenchar *sc;
 	UChar pattern = 'E';
 	for(x = 0; x < cols; ++x){
 		for(y = 0; y < rows; ++y){
-			sc = &(buf.text[buf_y + y][buf_x + x]);
+			sc = &(buf.text[y][x]);
 			/* free old char */
 			buf_free_char(sc);
 			/* write new one */
@@ -3147,8 +3160,9 @@ void ansi_DECALN(){
 			sc->style = current_style;
 		}
 	}
-	buf.line = buf_y;
-	buf.col = buf_x;
+	buf.top_line = 0;
+	buf.line = 0;
+	buf.col = 0;
 
 	ecma48_end_control();
 }
@@ -3248,6 +3262,11 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
         }; break;
       case ECMA48_STATE_CSI:
         switch(tbuf[i]){
+          case 0x08: ecma48_BS_INTER(); break;
+          case 0x09: ecma48_HT_INTER(); break;
+          case 0x0a: ecma48_LF_INTER(); break;
+          case 0x0b: ecma48_VT_INTER(); break;
+          case 0x0d: ecma48_CR_INTER(); break;
           /* intermediate bytes */
           case 0x20:
           case 0x21:
