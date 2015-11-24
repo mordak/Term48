@@ -125,6 +125,17 @@ void buf_init_vtab(int i){
   tabs[i][MAX_COLS] = 1;
 }
 
+void buf_clear_vtab(int i){
+  tabs[i][MAX_COLS] = 0;
+}
+
+void buf_clear_all_vtabs(){
+  int i = 0;
+  for(i=1; i<=rows; ++i) {
+    buf_clear_vtab(i);
+  }
+}
+
 int buf_next_vtab(int row){
   int i = 0;
   for(i = row+1; i <= rows; ++i){
@@ -140,7 +151,7 @@ void clear_char_tabstop_at(int row, int col){
   tabs[row][col] = 0;
 }
 void clear_char_tabstops_on_row(int row){
-  bzero(tabs[row], (cols+1) * sizeof(char));
+  bzero(tabs[row], (MAX_COLS) * sizeof(char));
 }
 void clear_all_char_tabstops(){
   int i;

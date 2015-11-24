@@ -1031,7 +1031,11 @@ The number of lines affected depends on the setting of the TABULATION STOP MODE
 (TSM).
 */
 void ecma48_HTS(){
-  ecma48_NOT_IMPLEMENTED("HTS");
+  ecma48_PRINT_CONTROL_SEQUENCE("HTS");
+  int row = buf_to_screen_row(-1);
+  int col = buf_to_screen_col(-1);
+  tabs[row][col] = 1;
+  ecma48_end_control();
 }
 
 /*
@@ -2536,11 +2540,11 @@ void ecma48_TBC(){
   int i;
   switch (Pn){
     case 0 : clear_char_tabstop_at(buf_to_screen_row(-1), buf_to_screen_col(-1)); break;
-    case 1 : break; /* FIXME: line tabs not done */
-    case 2 : clear_char_tabstops_on_row(buf_to_screen_row(-1)); break;
+    case 1 : buf_clear_vtab(buf_to_screen_row(-1)); break;
+    case 2 : break;//clear_char_tabstops_on_row(buf_to_screen_row(-1)); break;
     case 3 : clear_all_char_tabstops() ; break;
-    case 4 : break; /* FIXME: line tabs not done */
-    case 5 : clear_all_char_tabstops(); break;
+    case 4 : buf_clear_all_vtabs(); break;
+    case 5 : clear_all_char_tabstops(); buf_clear_all_vtabs(); break;
   }
   ecma48_end_control();
 }
@@ -3078,7 +3082,7 @@ void ansi_SM(){
   	         break;
     case 4:  break; // DECSCLM ignored
     case 5:  ecma48_reverse_video(); break; // DECSCNM
-  	case 6:  modes.DECOM = 1; ecma48_set_cursor_home(); break;// DECOM Set origin relative
+  	case 6:  modes.DECOM = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
     case 7:  autowrap = 1; break;
     case 8:  break; // DECARM ignored
     //case 12: break;
@@ -3119,10 +3123,11 @@ void ansi_CSR(){
   ecma48_PRINT_CONTROL_SEQUENCE("CSR");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 10) : rows;
-  if ((Pn2 - Pn >= 2) && (Pn >= 1) && (Pn2 <= rows)){
+  if ((Pn2 > Pn) && (Pn >= 1) && (Pn2 <= rows)){
     sr.top = Pn;
     sr.bottom = Pn2;
   }
+  ecma48_set_cursor_home();
   ecma48_end_control();
 }
 

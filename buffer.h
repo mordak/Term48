@@ -83,7 +83,8 @@ int screen_next_tab_x();
 int screen_prev_tab_x();
 void buf_init_vtab(int i);
 int buf_next_vtab(int row);
-
+void buf_clear_vtab(int i);
+void buf_clear_all_vtabs();
 
 void clear_char_tabstop_at(int row, int col);
 void clear_char_tabstops_on_row(int row);
