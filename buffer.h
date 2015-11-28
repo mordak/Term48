@@ -37,6 +37,7 @@ struct text {
   int line;
   int col;
   int top_line;
+  char inverse_video;
 };
 typedef struct text buf_t;
 

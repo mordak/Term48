@@ -3089,7 +3089,7 @@ void ansi_SM(){
   	         set_screen_cols(132);
   	         break;
     case 4:  break; // DECSCLM ignored
-    case 5:  ecma48_reverse_video(); break; // DECSCNM
+    case 5:  buf.inverse_video = 1; buf_clear_all_renders(); break; // DECSCNM
   	case 6:  modes.DECOM = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
     case 7:  autowrap = 1; break;
     case 8:  break; // DECARM ignored
@@ -3115,7 +3115,7 @@ void ansi_RM(){
              set_screen_cols(80);
   	         break;
     case 4:  break; // DECSCLM ignored
-    case 5:  ecma48_normal_video(); break; // DECSCNM
+    case 5:  buf.inverse_video = 0; buf_clear_all_renders(); break; // DECSCNM
   	case 6:  modes.DECOM = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
     case 7:  autowrap = 0; break;
     case 8:  break; // DECARM ignored

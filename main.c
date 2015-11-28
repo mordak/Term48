@@ -1020,6 +1020,7 @@ int init() {
     buf.text[i] = (struct screenchar*)calloc(MAX_COLS+1, sizeof(struct screenchar));
     buf_erase_line(buf.text[i], (size_t)MAX_COLS);
   }
+  buf.inverse_video = 0;
 
   /* initialize the scroll_region */
   sr.top = 1;
@@ -1117,14 +1118,22 @@ void render() {
         // we have added a new char, but not rendered it yet
         str[0] = sc->c;
         TTF_SetFontStyle(font, sc->style.style);
-        sc->surface = TTF_RenderUNICODE_Shaded(font, str, sc->style.fg_color, sc->style.bg_color);
+        if(buf.inverse_video){
+          sc->surface = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
+        } else {
+          sc->surface = TTF_RenderUNICODE_Shaded(font, str, sc->style.fg_color, sc->style.bg_color);
+        }
         if(sc->surface == NULL){
           PRINT(stderr, "Rendering failed for char %d\n", (int)sc->c);
         }
       }
       if(sc->surface == NULL || flash){
         // no glyph here - render blank
-        torender = flash ? flash_surface : blank_surface;
+        if(buf.inverse_video){
+          torender = flash ? blank_surface : flash_surface;
+        } else {
+          torender = flash ? flash_surface : blank_surface;
+        }
       } else {
         torender = sc->surface;
       }
@@ -1156,7 +1165,11 @@ void render() {
     if(sc->c){
       str[0] = sc->c;
       TTF_SetFontStyle(font, sc->style.style);
-      inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
+      if(buf.inverse_video){
+        inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.fg_color, sc->style.bg_color);
+      } else {
+        inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
+      }
       if(inv_cursor == NULL){
         PRINT(stderr, "Rendering failed for char %d\n", (int)sc->c);
       }
@@ -1170,7 +1183,7 @@ void render() {
     if(inv_cursor != NULL){
       SDL_BlitSurface(inv_cursor, NULL, screen, &destrect);
     } else {
-      SDL_BlitSurface(cursor, NULL, screen, &destrect);
+      SDL_BlitSurface(buf.inverse_video ? blank_surface: cursor, NULL, screen, &destrect);
     }
   }
 
