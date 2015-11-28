@@ -51,6 +51,19 @@ int buf_to_screen_row(int y_buf){
   }
   return y_buf > buf.top_line + rows - 1 ? rows : y_buf - buf.top_line + 1;
 }
+
+int buf_to_screen_row_origin(int y_buf){
+  int r = 0;
+  if(y_buf < 0){
+    y_buf = buf.line;
+  }
+  r = buf_to_screen_row(y_buf);
+  if(buf.origin && buf_in_scroll_region()){
+    r = r - sr.top + 1;
+  }
+  return r;
+}
+
 int screen_to_buf_col(int x_screen){
   if(x_screen < 0){
     return buf.col;

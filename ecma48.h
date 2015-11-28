@@ -18,6 +18,8 @@
 #define ECMA48_H_
 
 #define TERMID "\033[?6c"
+#define DSROK "\033[0n"
+#define OUTBUF_LEN 30
 
 void ecma48_init();
 void ecma48_uninit();

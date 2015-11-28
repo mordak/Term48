@@ -3015,7 +3015,20 @@ response to a request such as a DSR with a parameter value 5 or MESSAGE WAITING
 (MW).
 */
 void ecma48_DSR(){
-  ecma48_NOT_IMPLEMENTED("DSR");
+  ecma48_PRINT_CONTROL_SEQUENCE("DSR");
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
+  char cpr[OUTBUF_LEN];
+  switch(Pn){
+    case 5: io_write_master_char(DSROK, strlen(DSROK)); break; // send DSR
+    case 6: bzero(cpr, OUTBUF_LEN * sizeof(char)); // send CPR
+            snprintf(cpr, OUTBUF_LEN, "\033[%d;%dR",
+                buf_to_screen_row_origin(-1),
+                buf_to_screen_col(-1));
+            io_write_master_char(cpr, sizeof(cpr));
+            break;
+    default: fprintf(stderr, "-- Unhandled code in ecma48_DSR: %d\n", Pn); break;
+  }
+  ecma48_end_control();
 }
 
 /*
@@ -3097,10 +3110,10 @@ void ansi_SM(){
       switch(Pn[i]){
         case 1:  break; // DECCKM ignored
         //case 2:  break; // DECANM
-        case 3:  ecma48_clear_display(); // Clear the screen and set 132 chars
-        ecma48_set_cursor_home();
-        set_screen_cols(132);
-        break;
+        case 3: ecma48_clear_display(); // Clear the screen and set 132 chars
+                ecma48_set_cursor_home();
+                set_screen_cols(132);
+                break;
         case 4:  break; // DECSCLM ignored
         case 5:  buf.inverse_video = 1; buf_clear_all_renders(); break; // DECSCNM
         case 6:  buf.origin = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
@@ -3135,10 +3148,10 @@ void ansi_RM(){
     if(Pn[i] >= 0){
       switch(Pn[i]){
         case 1:  break; // DECCKM ignored
-        case 3:  ecma48_clear_display(); // Clear the screen and set 80 chars
-        ecma48_set_cursor_home();
-        set_screen_cols(80);
-        break;
+        case 3: ecma48_clear_display(); // Clear the screen and set 80 chars
+                ecma48_set_cursor_home();
+                set_screen_cols(80);
+                break;
         case 4:  break; // DECSCLM ignored
         case 5:  buf.inverse_video = 0; buf_clear_all_renders(); break; // DECSCNM
         case 6:  buf.origin = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute

@@ -84,9 +84,9 @@ void buf_insert_character(char shift_preceding);
 
 int buf_to_screen_col(int col_buf);
 int buf_to_screen_row(int row_buf);
+int buf_to_screen_row_origin(int row_buf);
 int screen_to_buf_col(int col_screen);
 int screen_to_buf_row(int row_screen);
-
 int buf_in_scroll_region();
 
 void buf_init_tabstops(char* tabs);
