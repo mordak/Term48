@@ -216,7 +216,7 @@ void ecma48_add_char(UChar c){
 		}
   	if(modes.IRM){
   	  /* INSERT Mode - insert a blank before doing the usual thing */
-  	  buf_insert_character(1);
+  	  buf_insert_character(0);
   	}
     struct screenchar *sc = &(buf.text[buf.line][buf.col++]);
 

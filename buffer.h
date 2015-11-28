@@ -79,6 +79,8 @@ void buf_delete_character_following(int n);
 void buf_delete_character_preceding(int n);
 void buf_insert_character_following(int n);
 void buf_insert_character_preceding(int n);
+void buf_insert_character(char shift_preceding);
+
 
 int buf_to_screen_col(int col_buf);
 int buf_to_screen_row(int row_buf);
