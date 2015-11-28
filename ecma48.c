@@ -3191,16 +3191,28 @@ void ansi_FUNCKEY(){
   ecma48_NOT_IMPLEMENTED("FUNCKEY");
 }
 
-void xterm_SC(){
+void ansi_LINE_SIZE(){
+  ecma48_NOT_IMPLEMENTED("LINE SIZE");
+}
+
+void ansi_SC(){
   ecma48_PRINT_CONTROL_SEQUENCE("SC");
   saved_buf = buf;
   ecma48_end_control();
 }
 
-void xterm_RC(){
+void ansi_RC(){
   ecma48_PRINT_CONTROL_SEQUENCE("RC");
   buf = saved_buf;
   ecma48_end_control();
+}
+
+void ansi_DECKPAM(){
+  ecma48_NOT_IMPLEMENTED("DECKPAM");
+}
+
+void ansi_DECANM(){
+  ecma48_NOT_IMPLEMENTED("DECANM");
 }
 
 /* Fill the screen with 'E', and set the cursor to the home position */
@@ -3281,8 +3293,11 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x23: ansi_POUND(); break;
           case 0x28: ansi_SCS(); break;
           case 0x29: ansi_SCS(); break;
-          case 0x37: xterm_SC(); break;
-          case 0x38: xterm_RC(); break;
+          case 0x37: ansi_SC(); break;
+          case 0x38: ansi_RC(); break;
+          case 0x3c: ansi_DECANM(); break;
+          case 0x3d: // 0x3d/3e turn on / off cursor mode
+          case 0x3e: ansi_DECKPAM(); break;
           case 0x41: ansi_CUU(); break;
           case 0x42: ecma48_BPH(); break;
           case 0x43: ecma48_NBH(); break;
@@ -3439,6 +3454,10 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
         }; break;
       case ECMA48_STATE_ANSI_POUND:
         switch(tbuf[i]){
+          case 0x33:
+          case 0x34:
+          case 0x35:
+          case 0x36: ansi_LINE_SIZE(); break;
           case 0x38: ansi_DECALN(); break;
           default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
         }; break;
