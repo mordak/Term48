@@ -1536,13 +1536,17 @@ the value of Pn.
 void ecma48_CUU(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUU");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
+  int top = buf.top_line;
   if(Pn == 0){
   	// VT100 Compat
   	Pn = 1;
   }
+  if(buf_in_scroll_region()){
+    top = screen_to_buf_row(sr.top);
+  }
   buf.line -= Pn;
-  if (buf.line < buf.top_line) {
-    buf.line = buf.top_line;
+  if (buf.line < top) {
+    buf.line = top;
   }
   ecma48_end_control();
 }
@@ -1560,13 +1564,17 @@ the value of Pn.
 void ecma48_CUD(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUD");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
+  int bot = buf_bottom_line();
   if(Pn == 0){
   	// VT100 Compat
   	Pn = 1;
   }
+  if(buf_in_scroll_region()){
+    bot = screen_to_buf_row(sr.bottom);
+  }
   buf.line += Pn;
-  if (buf.line > buf.top_line + rows - 1) {
-    buf.line = buf.top_line + rows - 1;
+  if (buf.line > bot) {
+    buf.line = bot;
   }
   ecma48_end_control();
 }
