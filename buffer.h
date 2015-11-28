@@ -38,6 +38,9 @@ struct text {
   int col;
   int top_line;
   char inverse_video;
+  char origin;
+  struct font_style current_style;
+
 };
 typedef struct text buf_t;
 
@@ -48,6 +51,7 @@ struct scroll_region {
 struct scroll_region sr;
 
 buf_t buf;
+buf_t saved_buf;
 int rows;
 int cols;
 char ** tabs;

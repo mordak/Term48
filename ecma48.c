@@ -37,6 +37,7 @@
 #define ECMA48_STATE_CSI 2
 #define ECMA48_STATE_ANSI 3
 #define ECMA48_STATE_ANSI_POUND 4
+#define ECMA48_STATE_ANSI_SCS 5
 static char state = ECMA48_STATE_NORMAL;
 
 #define BUFFER_NORMAL 0
@@ -78,11 +79,9 @@ struct ecma48_modes {
   char VEM;
   char ZDM;
   char SIMD;
-  char DECOM;
 };
 
 static struct ecma48_modes modes;
-static struct font_style current_style;
 static UChar last_char;
 
 extern buf_t buf;
@@ -162,7 +161,8 @@ void ecma48_init(){
   modes.ZDM = 0;
   modes.SIMD = 0;
 
-  current_style = default_text_style;
+  buf.current_style = default_text_style;
+  saved_buf = buf;
 }
 
 void ecma48_uninit(){
@@ -220,7 +220,7 @@ void ecma48_add_char(UChar c){
     buf_free_char(sc);
     /* write new one */
     sc->c = c;
-    sc->style = current_style;
+    sc->style = buf.current_style;
     /* cache for REP */
     last_char = c;
   } /* else { BUFFER_OSC, etc. -> ignore for now } */
@@ -452,13 +452,13 @@ void ecma48_NOT_IMPLEMENTED(char* function){
 }
 
 void ecma48_reverse_video(){
-  current_style.fg_color = default_text_style.bg_color;
-  current_style.bg_color = default_text_style.fg_color;
+  buf.current_style.fg_color = default_text_style.bg_color;
+  buf.current_style.bg_color = default_text_style.fg_color;
 }
 
 void ecma48_normal_video(){
-  current_style.fg_color = default_text_style.fg_color;
-  current_style.bg_color = default_text_style.bg_color;
+  buf.current_style.fg_color = default_text_style.fg_color;
+  buf.current_style.bg_color = default_text_style.bg_color;
 }
 
 /* NUL - NULL
@@ -1713,7 +1713,7 @@ void ecma48_CUP(){
   if((buf.line - buf.top_line) >= rows){
     buf.line = buf.top_line + rows - 1;
   }
-  if(modes.DECOM){
+  if(buf.origin){
   	// DEC ORIGIN MODE - coordinates are relative to scroll region.
   	// We increment buf.line + (sr.top - 1).
   	buf.line += (sr.top - 1);
@@ -2831,18 +2831,18 @@ void ecma48_SGR(){
       //fprintf(stderr, "SGR: %u\n", Pn[i]);
       switch (Pn[i]){
         case 0: // 0 default rendition
-          current_style = default_text_style;
+          buf.current_style = default_text_style;
           break;
         case 1: // 1 bold or increased intensity
-          current_style.style |= TTF_STYLE_BOLD;
+          buf.current_style.style |= TTF_STYLE_BOLD;
           break;
         case 2: // 2 faint, decreased intensity or second colour
           break;
         case 3: // 3 italicized
-          current_style.style |= TTF_STYLE_ITALIC;
+          buf.current_style.style |= TTF_STYLE_ITALIC;
           break;
         case 4: // 4 singly underlined
-          current_style.style |= TTF_STYLE_UNDERLINE;
+          buf.current_style.style |= TTF_STYLE_UNDERLINE;
           break;
         case 5: // 5 slowly blinking (less then 150 per minute)
           break;
@@ -2854,7 +2854,7 @@ void ecma48_SGR(){
         case 8: // 8 concealed characters
           break;
         case 9: // 9 crossed-out
-          current_style.style |= TTF_STYLE_STRIKETHROUGH;
+          buf.current_style.style |= TTF_STYLE_STRIKETHROUGH;
           break;
         case 10: // 10 primary (default) font
           ecma48_SI();
@@ -2883,13 +2883,13 @@ void ecma48_SGR(){
         case 21: // 21 doubly underlined
           break;
         case 22: // 22 normal colour or normal intensity (neither bold nor faint)
-          current_style.style ^= TTF_STYLE_BOLD;
+          buf.current_style.style ^= TTF_STYLE_BOLD;
           break;
         case 23: // 23 not italicized, not fraktur
-          current_style.style ^= TTF_STYLE_ITALIC;
+          buf.current_style.style ^= TTF_STYLE_ITALIC;
           break;
         case 24: // 24 not underlined (neither singly nor doubly)
-          current_style.style ^= TTF_STYLE_UNDERLINE;
+          buf.current_style.style ^= TTF_STYLE_UNDERLINE;
           break;
         case 25: // 25 steady (not blinking)
           break;
@@ -2900,63 +2900,63 @@ void ecma48_SGR(){
         case 28: // 28 revealed characters
           break;
         case 29: // 29 not crossed out
-          current_style.style ^= TTF_STYLE_STRIKETHROUGH;
+          buf.current_style.style ^= TTF_STYLE_STRIKETHROUGH;
           break;
         case 30: // 30 black display [0,0,0] b [127,127,127]
-          current_style.fg_color = (SDL_Color)BLACK;
+          buf.current_style.fg_color = (SDL_Color)BLACK;
           break;
         case 31: // 31 red display [205,0,0] b [255,0,0]
-          current_style.fg_color = (SDL_Color)RED;
+          buf.current_style.fg_color = (SDL_Color)RED;
           break;
         case 32: // 32 green display [0,205,0] b [0,255,0]
-          current_style.fg_color = (SDL_Color)GREEN;
+          buf.current_style.fg_color = (SDL_Color)GREEN;
           break;
         case 33: // 33 yellow display [205,205,0] b [255,255,0]
-          current_style.fg_color = (SDL_Color)YELLOW;
+          buf.current_style.fg_color = (SDL_Color)YELLOW;
           break;
         case 34: // 34 blue display [0,0,238] b [92,92,255]
-          current_style.fg_color = (SDL_Color)BLUE;
+          buf.current_style.fg_color = (SDL_Color)BLUE;
           break;
         case 35: // 35 magenta display [205,0,205] b [255,0,255]
-          current_style.fg_color = (SDL_Color)MAGENTA;
+          buf.current_style.fg_color = (SDL_Color)MAGENTA;
           break;
         case 36: // 36 cyan display [0,205,205] b [0,255,255]
-          current_style.fg_color = (SDL_Color)CYAN;
+          buf.current_style.fg_color = (SDL_Color)CYAN;
           break;
         case 37: // 37 white display [229,229,229] b [255,255,255]
-          current_style.fg_color = (SDL_Color)WHITE;
+          buf.current_style.fg_color = (SDL_Color)WHITE;
           break;
         case 38: break;
         case 39: // 39 default display colour [255,255,255]
-          current_style.fg_color = default_text_style.fg_color;
+          buf.current_style.fg_color = default_text_style.fg_color;
           break;
         case 40: // 40 black background [0,0,0]
-          current_style.bg_color = (SDL_Color)BLACK;
+          buf.current_style.bg_color = (SDL_Color)BLACK;
           break;
         case 41: // 41 red background [205,0,0]
-          current_style.bg_color = (SDL_Color)RED;
+          buf.current_style.bg_color = (SDL_Color)RED;
           break;
         case 42: // 42 green background [0,205,0]
-          current_style.bg_color = (SDL_Color)GREEN;
+          buf.current_style.bg_color = (SDL_Color)GREEN;
           break;
         case 43: // 43 yellow background [205,205,0]
-          current_style.bg_color = (SDL_Color)YELLOW;
+          buf.current_style.bg_color = (SDL_Color)YELLOW;
           break;
         case 44: // 44 blue background [0,0,238]
-          current_style.bg_color = (SDL_Color)BLUE;
+          buf.current_style.bg_color = (SDL_Color)BLUE;
           break;
         case 45: // 45 magenta background [205,0,205]
-          current_style.bg_color = (SDL_Color)MAGENTA;
+          buf.current_style.bg_color = (SDL_Color)MAGENTA;
           break;
         case 46: // 46 cyan background [0,205,205]
-          current_style.bg_color = (SDL_Color)CYAN;
+          buf.current_style.bg_color = (SDL_Color)CYAN;
           break;
         case 47: // 47 white background [255,225,255]
-          current_style.bg_color = (SDL_Color)WHITE;
+          buf.current_style.bg_color = (SDL_Color)WHITE;
           break;
         case 48: break;
         case 49: // 49 default background colour
-          current_style.bg_color = default_text_style.bg_color;
+          buf.current_style.bg_color = default_text_style.bg_color;
           break;
         case 50: break;
         case 51: // 51 framed
@@ -3090,7 +3090,7 @@ void ansi_SM(){
   	         break;
     case 4:  break; // DECSCLM ignored
     case 5:  buf.inverse_video = 1; buf_clear_all_renders(); break; // DECSCNM
-  	case 6:  modes.DECOM = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
+  	case 6:  buf.origin = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
     case 7:  autowrap = 1; break;
     case 8:  break; // DECARM ignored
     //case 12: break;
@@ -3116,7 +3116,7 @@ void ansi_RM(){
   	         break;
     case 4:  break; // DECSCLM ignored
     case 5:  buf.inverse_video = 0; buf_clear_all_renders(); break; // DECSCNM
-  	case 6:  modes.DECOM = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
+  	case 6:  buf.origin = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
     case 7:  autowrap = 0; break;
     case 8:  break; // DECARM ignored
     //case 12: break; // comes after \E?25h for ansi_SM
@@ -3153,16 +3153,26 @@ void ansi_POUND(){
   state = ECMA48_STATE_ANSI_POUND;
 }
 
+void ansi_SCS(){
+  /* we would need two states for this '(' and ')'
+   * if we ever implement it */
+  state = ECMA48_STATE_ANSI_SCS;
+}
+
 void ansi_FUNCKEY(){
   ecma48_NOT_IMPLEMENTED("FUNCKEY");
 }
 
 void xterm_SC(){
-  ecma48_NOT_IMPLEMENTED("SC");
+  ecma48_PRINT_CONTROL_SEQUENCE("SC");
+  saved_buf = buf;
+  ecma48_end_control();
 }
 
 void xterm_RC(){
-  ecma48_NOT_IMPLEMENTED("RC");
+  ecma48_PRINT_CONTROL_SEQUENCE("RC");
+  buf = saved_buf;
+  ecma48_end_control();
 }
 
 /* Fill the screen with 'E', and set the cursor to the home position */
@@ -3183,7 +3193,7 @@ void ansi_DECALN(){
 			buf_free_char(sc);
 			/* write new one */
 			sc->c = pattern;
-			sc->style = current_style;
+			sc->style = buf.current_style;
 		}
 	}
 	buf.top_line = 0;
@@ -3241,6 +3251,8 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
       case ECMA48_STATE_C1:
         switch(tbuf[i]){
           case 0x23: ansi_POUND(); break;
+          case 0x28: ansi_SCS(); break;
+          case 0x29: ansi_SCS(); break;
           case 0x37: xterm_SC(); break;
           case 0x38: xterm_RC(); break;
           case 0x41: ansi_CUU(); break;
@@ -3401,6 +3413,10 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
         switch(tbuf[i]){
           case 0x38: ansi_DECALN(); break;
           default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
+        }; break;
+      case ECMA48_STATE_ANSI_SCS:
+        switch(tbuf[i]){
+          default: ecma48_NOT_IMPLEMENTED("SCS");
         }; break;
     }
   }

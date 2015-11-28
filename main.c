@@ -1021,6 +1021,7 @@ int init() {
     buf_erase_line(buf.text[i], (size_t)MAX_COLS);
   }
   buf.inverse_video = 0;
+  buf.origin = 0;
 
   /* initialize the scroll_region */
   sr.top = 1;
