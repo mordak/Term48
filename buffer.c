@@ -400,3 +400,11 @@ void buf_clear_all_renders(){
   }
 }
 
+void buf_save_text(){
+  buf.text = buf.screens[1];
+}
+
+void buf_restore_text(){
+  buf.text = buf.screens[0];
+}
+

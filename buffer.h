@@ -19,6 +19,8 @@
 
 #include <unicode/utf.h>
 
+#define NUM_BUFFERS 2
+
 struct font_style {
   SDL_Color fg_color;
   SDL_Color bg_color;
@@ -34,13 +36,13 @@ struct screenchar {
 
 struct text {
   struct screenchar** text;
+  struct screenchar** screens[NUM_BUFFERS];
   int line;
   int col;
   int top_line;
   char inverse_video;
   char origin;
   struct font_style current_style;
-
 };
 typedef struct text buf_t;
 
@@ -97,4 +99,8 @@ void clear_char_tabstop_at(int row, int col);
 void clear_char_tabstops_on_row(int row);
 void clear_all_char_tabstops();
 void buf_clear_all_renders();
+
+void buf_save_text();
+void buf_restore_text();
+
 #endif /* BUFFER_H_ */

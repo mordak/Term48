@@ -214,6 +214,10 @@ void ecma48_add_char(UChar c){
 				buf.col = cols -1;
 			}
 		}
+  	if(modes.IRM){
+  	  /* INSERT Mode - insert a blank before doing the usual thing */
+  	  buf_insert_character(1);
+  	}
     struct screenchar *sc = &(buf.text[buf.line][buf.col++]);
 
     /* free old char */
@@ -3080,25 +3084,37 @@ void ecma48_ANSI(){
  */
 void ansi_SM(){
   ecma48_PRINT_CONTROL_SEQUENCE("ansi_SM");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
-  switch(Pn){
-    case 1:  break; // DECCKM ignored
-    //case 2:  break; // DECANM
-  	case 3:  ecma48_clear_display(); // Clear the screen and set 132 chars
-  	         ecma48_set_cursor_home();
-  	         set_screen_cols(132);
-  	         break;
-    case 4:  break; // DECSCLM ignored
-    case 5:  buf.inverse_video = 1; buf_clear_all_renders(); break; // DECSCNM
-  	case 6:  buf.origin = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
-    case 7:  autowrap = 1; break;
-    case 8:  break; // DECARM ignored
-    //case 12: break;
-    case 25: draw_cursor = 1; break;
-    //case 40: break; /* Enable 80/132 switch (xterm) */
-    //case 45: break; /* Enable reverse wrap (xterm) */
-    default: fprintf(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn); break;
-  };
+  int Pn[NUM_ESCAPE_ARGS];
+  int i;
+  // set the default
+  Pn[0] = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : -1;
+  // now process anything else
+  for(i=1; i < NUM_ESCAPE_ARGS; ++i){
+    Pn[i] = escape_args.args[i][0] != '\0' ? (int)strtol(escape_args.args[i], NULL, 10) : -1;
+  }
+  for(i=0; i < NUM_ESCAPE_ARGS; ++i){
+    if(Pn[i] >= 0){
+      switch(Pn[i]){
+        case 1:  break; // DECCKM ignored
+        //case 2:  break; // DECANM
+        case 3:  ecma48_clear_display(); // Clear the screen and set 132 chars
+        ecma48_set_cursor_home();
+        set_screen_cols(132);
+        break;
+        case 4:  break; // DECSCLM ignored
+        case 5:  buf.inverse_video = 1; buf_clear_all_renders(); break; // DECSCNM
+        case 6:  buf.origin = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
+        case 7:  autowrap = 1; break;
+        case 8:  break; // DECARM ignored
+        //case 12: break;
+        case 25: draw_cursor = 1; break;
+        //case 40: break; /* Enable 80/132 switch (xterm) */
+        //case 45: break; /* Enable reverse wrap (xterm) */
+        case 47: buf_save_text(); break; /* xterm alternate screen */
+        default: fprintf(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn[i]); break;
+      };
+    }
+  }
   ecma48_end_control();
 }
 
@@ -3107,24 +3123,36 @@ void ansi_SM(){
  */
 void ansi_RM(){
   ecma48_PRINT_CONTROL_SEQUENCE("ansi_RM");
-  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
-  switch(Pn){
-    case 1:  break; // DECCKM ignored
-  	case 3:  ecma48_clear_display(); // Clear the screen and set 80 chars
-  	         ecma48_set_cursor_home();
-             set_screen_cols(80);
-  	         break;
-    case 4:  break; // DECSCLM ignored
-    case 5:  buf.inverse_video = 0; buf_clear_all_renders(); break; // DECSCNM
-  	case 6:  buf.origin = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
-    case 7:  autowrap = 0; break;
-    case 8:  break; // DECARM ignored
-    //case 12: break; // comes after \E?25h for ansi_SM
-    case 25: draw_cursor = 0; break;
-    //case 40: break; /* Disable 80/132 switch (xterm) */
-    //case 45: break; /* Disable reverse wrap (xterm) */
-    default: fprintf(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn); break;
-  };
+  int Pn[NUM_ESCAPE_ARGS];
+  int i;
+  // set the default
+  Pn[0] = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : -1;
+  // now process anything else
+  for(i=1; i < NUM_ESCAPE_ARGS; ++i){
+    Pn[i] = escape_args.args[i][0] != '\0' ? (int)strtol(escape_args.args[i], NULL, 10) : -1;
+  }
+  for(i=0; i < NUM_ESCAPE_ARGS; ++i){
+    if(Pn[i] >= 0){
+      switch(Pn[i]){
+        case 1:  break; // DECCKM ignored
+        case 3:  ecma48_clear_display(); // Clear the screen and set 80 chars
+        ecma48_set_cursor_home();
+        set_screen_cols(80);
+        break;
+        case 4:  break; // DECSCLM ignored
+        case 5:  buf.inverse_video = 0; buf_clear_all_renders(); break; // DECSCNM
+        case 6:  buf.origin = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
+        case 7:  autowrap = 0; break;
+        case 8:  break; // DECARM ignored
+        //case 12: break; // comes after \E?25h for ansi_SM
+        case 25: draw_cursor = 0; break;
+        //case 40: break; /* Disable 80/132 switch (xterm) */
+        //case 45: break; /* Disable reverse wrap (xterm) */
+        case 47: buf_restore_text(); break; /* xterm alternate screen */
+        default: fprintf(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn[i]); break;
+      };
+    }
+  }
   ecma48_end_control();
 }
 void ansi_CSR(){

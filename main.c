@@ -1010,16 +1010,21 @@ int init() {
   int largest_dimension = screen->w > screen->h ? screen->w : screen->h;
   MAX_ROWS = largest_dimension / MIN_FONT_SIZE;
   MAX_COLS = largest_dimension / MIN_FONT_SIZE;
-  TEXT_BUFFER_SIZE = MAX_ROWS * 4;
+  TEXT_BUFFER_SIZE = MAX_ROWS * 2 + 1;
 
   fprintf(stderr, "Allocating %d rows and %d cols\n",TEXT_BUFFER_SIZE, MAX_COLS);
 
   /* malloc the text buf structures */
-  buf.text = (struct screenchar**)calloc(TEXT_BUFFER_SIZE + 1, sizeof(struct screenchar*));
-  for(i=0; i< TEXT_BUFFER_SIZE + 1;++i){
-    buf.text[i] = (struct screenchar*)calloc(MAX_COLS+1, sizeof(struct screenchar));
-    buf_erase_line(buf.text[i], (size_t)MAX_COLS);
+  int n = 0;
+  for(n = 0; n < NUM_BUFFERS; ++n){
+    buf.screens[n] = (struct screenchar**)calloc(TEXT_BUFFER_SIZE + 1, sizeof(struct screenchar*));
+    buf.text = buf.screens[n];
+    for(i=0; i< TEXT_BUFFER_SIZE + 1;++i){
+      buf.text[i] = (struct screenchar*)calloc(MAX_COLS+1, sizeof(struct screenchar));
+      buf_erase_line(buf.text[i], (size_t)MAX_COLS);
+    }
   }
+  buf.text = buf.screens[0];
   buf.inverse_video = 0;
   buf.origin = 0;
 
