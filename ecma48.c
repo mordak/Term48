@@ -84,14 +84,17 @@ struct ecma48_modes {
 static struct ecma48_modes modes;
 static UChar last_char;
 
-extern buf_t buf;
+/* from buffer.c */
+extern buf_t* buf;
 extern int rows;
 extern int cols;
-extern struct font_style default_text_style;
 extern struct scroll_region sr;
+extern char ** tabs;
+
+/* from main.c */
 extern char draw_cursor;
 extern char flash;
-extern char ** tabs;
+extern struct font_style default_text_style;
 
 void ecma48_escape_args_init(){
   int i = 0;
@@ -119,7 +122,7 @@ void ecma48_parameter_arg_next(){
 void ecma48_clear_display(){
 	int i = 0;
 	for(i=0; i<rows; ++i){
-		buf_erase_line(buf.text[buf.top_line + i], cols);
+		buf_erase_line(buf->text[buf->top_line + i], cols);
 	}
 }
 
@@ -161,9 +164,6 @@ void ecma48_init(){
   modes.VEM = 0;
   modes.ZDM = 0;
   modes.SIMD = 0;
-
-  buf.current_style = default_text_style;
-  buf_save_cursor();
 }
 
 void ecma48_uninit(){
@@ -206,26 +206,26 @@ void ecma48_add_char(UChar c){
   if(writing_buffer == BUFFER_NORMAL){
     // check if we are being asked to write beyond the screen
     // if so, the program is not handling wrapping, so we wrap
-  	if(buf.col == cols) {
+  	if(buf->col == cols) {
 			if(autowrap){ // wrap
 				buf_increment_line();
-				buf.col = 0;
+				buf->col = 0;
 			} else { // no autowrap means no wrapping
 				// overwrite last char
-				buf.col = cols -1;
+				buf->col = cols -1;
 			}
 		}
   	if(modes.IRM){
   	  /* INSERT Mode - insert a blank before doing the usual thing */
   	  buf_insert_character(0);
   	}
-    struct screenchar *sc = &(buf.text[buf.line][buf.col++]);
+    struct screenchar *sc = &(buf->text[buf->line][buf->col++]);
 
     /* free old char */
     buf_free_char(sc);
     /* write new one */
     sc->c = c;
-    sc->style = buf.current_style;
+    sc->style = buf->current_style;
     /* cache for REP */
     last_char = c;
   } /* else { BUFFER_OSC, etc. -> ignore for now } */
@@ -457,13 +457,13 @@ void ecma48_NOT_IMPLEMENTED(char* function){
 }
 
 void ecma48_reverse_video(){
-  buf.current_style.fg_color = default_text_style.bg_color;
-  buf.current_style.bg_color = default_text_style.fg_color;
+  buf->current_style.fg_color = default_text_style.bg_color;
+  buf->current_style.bg_color = default_text_style.fg_color;
 }
 
 void ecma48_normal_video(){
-  buf.current_style.fg_color = default_text_style.fg_color;
-  buf.current_style.bg_color = default_text_style.bg_color;
+  buf->current_style.fg_color = default_text_style.fg_color;
+  buf->current_style.bg_color = default_text_style.bg_color;
 }
 
 /* NUL - NULL
@@ -579,13 +579,13 @@ IMPLICIT MOVEMENT DIRECTION (SIMD).
 */
 void ecma48_BS_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("BS");
-  if(buf.col == cols){
+  if(buf->col == cols){
     // backup twice, as per vt100 compat
-    buf.col--;
+    buf->col--;
   }
-  buf.col--;
-  if (buf.col < 0) {
-    buf.col = 0;
+  buf->col--;
+  if (buf->col < 0) {
+    buf->col = 0;
   }
 }
 void ecma48_BS(){
@@ -610,7 +610,7 @@ is indicated by the next occurrence of HT or CARRIAGE RETURN (CR) or NEXT LINE
 void ecma48_HT_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("HT");
   int x = screen_next_tab_x();
-  buf.col = screen_to_buf_col(x);
+  buf->col = screen_to_buf_col(x);
 }
 void ecma48_HT(){
   ecma48_HT_INTER();
@@ -630,7 +630,7 @@ following line in the data component.
 */
 void ecma48_LF_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("LF");
-  if(buf.col < cols){
+  if(buf->col < cols){
     // emulate xenl/xn newline glitch at the right margin
     buf_increment_line();
   }
@@ -656,7 +656,7 @@ void ecma48_VT_INTER(){
   int row = buf_to_screen_row(-1);
   int next_vtab = buf_next_vtab(row);
   if(next_vtab > 0){
-    buf.line = screen_to_buf_row(next_vtab);
+    buf->line = screen_to_buf_row(next_vtab);
   }
   */
 }
@@ -710,7 +710,7 @@ line limit position is established by the parameter value of SET LINE LIMIT
 */
 void ecma48_CR_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("CR");
-  buf.col = 0;
+  buf->col = 0;
 }
 void ecma48_CR(){
   ecma48_CR_INTER();
@@ -996,7 +996,7 @@ LINE LIMIT (SLL).
 */
 void ecma48_NEL(){
   ecma48_PRINT_CONTROL_SEQUENCE("NEL");
-  buf.col = 0;
+  buf->col = 0;
   buf_increment_line();
   ecma48_end_control();
 }
@@ -1552,7 +1552,7 @@ the value of Pn.
 void ecma48_CUU(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUU");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
-  int top = buf.top_line;
+  int top = buf->top_line;
   if(Pn == 0){
   	// VT100 Compat
   	Pn = 1;
@@ -1560,9 +1560,9 @@ void ecma48_CUU(){
   if(buf_in_scroll_region()){
     top = screen_to_buf_row(sr.top);
   }
-  buf.line -= Pn;
-  if (buf.line < top) {
-    buf.line = top;
+  buf->line -= Pn;
+  if (buf->line < top) {
+    buf->line = top;
   }
   ecma48_end_control();
 }
@@ -1588,9 +1588,9 @@ void ecma48_CUD(){
   if(buf_in_scroll_region()){
     bot = screen_to_buf_row(sr.bottom);
   }
-  buf.line += Pn;
-  if (buf.line > bot) {
-    buf.line = bot;
+  buf->line += Pn;
+  if (buf->line > bot) {
+    buf->line = bot;
   }
   ecma48_end_control();
 }
@@ -1612,9 +1612,9 @@ void ecma48_CUF(){
   	// VT100 Compat
   	Pn = 1;
   }
-  buf.col += Pn;
-    if (buf.col > cols) {
-      buf.col = cols - 1;
+  buf->col += Pn;
+    if (buf->col > cols) {
+      buf->col = cols - 1;
   }
   ecma48_end_control();
 }
@@ -1636,9 +1636,9 @@ void ecma48_CUB(){
   	// VT100 Compat
   	Pn = 1;
   }
-  buf.col -= Pn;
-    if (buf.col < 0) {
-      buf.col = 0;
+  buf->col -= Pn;
+    if (buf->col < 0) {
+      buf->col = 0;
   }
   ecma48_end_control();
 }
@@ -1655,11 +1655,11 @@ equals the value of Pn.
 void ecma48_CNL(){
   ecma48_PRINT_CONTROL_SEQUENCE("CNL");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
-  buf.line += Pn;
-  if (buf.line > buf.top_line + rows - 1) {
-    buf.line = buf.top_line + rows - 1;
+  buf->line += Pn;
+  if (buf->line > buf->top_line + rows - 1) {
+    buf->line = buf->top_line + rows - 1;
   }
-  buf.col = 0;
+  buf->col = 0;
   ecma48_end_control();
 }
 
@@ -1675,11 +1675,11 @@ equals the value of Pn.
 void ecma48_CPL(){
   ecma48_PRINT_CONTROL_SEQUENCE("CPL");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
-  buf.line -= Pn;
-  if (buf.line < buf.top_line) {
-    buf.line = buf.top_line;
+  buf->line -= Pn;
+  if (buf->line < buf->top_line) {
+    buf->line = buf->top_line;
   }
-  buf.col = 0;
+  buf->col = 0;
   ecma48_end_control();
 }
 
@@ -1696,7 +1696,7 @@ void ecma48_CHA(){
   ecma48_PRINT_CONTROL_SEQUENCE("CHA");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   if(Pn > 0 && Pn <= cols){
-    buf.col = Pn - 1;
+    buf->col = Pn - 1;
   }
   ecma48_end_control();
 }
@@ -1715,34 +1715,34 @@ void ecma48_CUP(){
   ecma48_PRINT_CONTROL_SEQUENCE("CUP");
   int Pn1 = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0],NULL, 10) : 1;
   int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 10) : 1;
-  buf.line = buf.top_line + Pn1 - 1;
-  buf.col = Pn2 - 1;
+  buf->line = buf->top_line + Pn1 - 1;
+  buf->col = Pn2 - 1;
   // sanity check
-  PRINT(stderr, "Got move to buf.line %d buf.col %d - arg[0]=%d, arg[1]=%d\n",
-        buf.line,
-        buf.col,
+  PRINT(stderr, "Got move to buf->line %d buf->col %d - arg[0]=%d, arg[1]=%d\n",
+        buf->line,
+        buf->col,
         Pn1,
         Pn2);
-  if(buf.line < 0){
-    buf.line = 0;
+  if(buf->line < 0){
+    buf->line = 0;
   }
-  if((buf.line - buf.top_line) >= rows){
-    buf.line = buf.top_line + rows - 1;
+  if((buf->line - buf->top_line) >= rows){
+    buf->line = buf->top_line + rows - 1;
   }
-  if(buf.origin){
+  if(buf->origin){
   	// DEC ORIGIN MODE - coordinates are relative to scroll region.
-  	// We increment buf.line + (sr.top - 1).
-  	buf.line += (sr.top - 1);
-  	PRINT(stderr, "Moving within origin mode - buf.line = %d\n", buf.line);
+  	// We increment buf->line + (sr.top - 1).
+  	buf->line += (sr.top - 1);
+  	PRINT(stderr, "Moving within origin mode - buf->line = %d\n", buf->line);
   }
-  if(buf.col < 0){
-    buf.col = 0;
+  if(buf->col < 0){
+    buf->col = 0;
   }
-  if(buf.col >= cols){
-    buf.col = cols -1;
+  if(buf->col >= cols){
+    buf->col = cols -1;
   }
-  PRINT(stderr, "Moving cursor to line %d, column %d\n", buf.line, buf.col);
-  PRINT(stderr, "buf.top_line is %d\n", buf.top_line);
+  PRINT(stderr, "Moving cursor to line %d, column %d\n", buf->line, buf->col);
+  PRINT(stderr, "buf->top_line is %d\n", buf->top_line);
   ecma48_end_control();
 }
 
@@ -1799,15 +1799,15 @@ void ecma48_ED(){
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   switch (Pn) {
     case 0: // from cursor to end of screen
-      buf_erase_line(&buf.text[buf.line][buf.col], (cols-buf.col));
-      for(i=(buf.line-buf.top_line + 1); i < rows; ++i){
-        buf_erase_line(buf.text[buf.top_line + i], cols );
+      buf_erase_line(&buf->text[buf->line][buf->col], (cols-buf->col));
+      for(i=(buf->line-buf->top_line + 1); i < rows; ++i){
+        buf_erase_line(buf->text[buf->top_line + i], cols );
       }
       break;
     case 1: // from top of screen to cursor
-      buf_erase_line(buf.text[buf.line], (buf.col+1));
-      for(i= 0; i < (buf.line-buf.top_line); ++i){
-        buf_erase_line(buf.text[buf.top_line + i], cols);
+      buf_erase_line(buf->text[buf->line], (buf->col+1));
+      for(i= 0; i < (buf->line-buf->top_line); ++i){
+        buf_erase_line(buf->text[buf->top_line + i], cols);
       }
       break;
     case 2: // entire screen
@@ -1852,14 +1852,14 @@ void ecma48_EL(){
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   switch (Pn) {
     case 0: // from cursor to end of line
-      buf_erase_line(&buf.text[buf.line][buf.col], (cols-buf.col));
+      buf_erase_line(&buf->text[buf->line][buf->col], (cols-buf->col));
       break;
     case 1: // from start of line to cursor
-      buf_erase_line(buf.text[buf.line], (buf.col+1));
+      buf_erase_line(buf->text[buf->line], (buf->col+1));
       break;
     case 2: // entire line
-      buf_erase_line(buf.text[buf.line], cols);
-      //buf.col = 0;
+      buf_erase_line(buf->text[buf->line], cols);
+      //buf->col = 0;
       break;
   };
   ecma48_end_control();
@@ -1903,17 +1903,17 @@ void ecma48_IL(){
   do {
     /* swap the last line (which will scroll off) into the new line */
     // cache
-    tmp = buf.text[buf.top_line + sr.bottom - 1];
+    tmp = buf->text[buf->top_line + sr.bottom - 1];
     // scroll
-    for(j= buf.top_line + sr.bottom - 2; j >= buf.line ; --j){
-      buf.text[j+1] = buf.text[j];
+    for(j= buf->top_line + sr.bottom - 2; j >= buf->line ; --j){
+      buf->text[j+1] = buf->text[j];
     }
     // and insert blank line
-    buf.text[buf.line] = tmp;
-    buf_erase_line(buf.text[buf.line], cols);
+    buf->text[buf->line] = tmp;
+    buf_erase_line(buf->text[buf->line], cols);
     ++i;
   } while (i < Pn);
-  buf.col = 0;
+  buf->col = 0;
   ecma48_end_control();
 }
 
@@ -1955,17 +1955,17 @@ void ecma48_DL(){
   do {
     /* grab the line being deleted, and move it into the bottom of the screen */
     // cache
-    tmp = buf.text[buf.line];
+    tmp = buf->text[buf->line];
     // scroll
-    for(j= buf.line; j < buf.top_line + sr.bottom - 1 ; ++j){
-      buf.text[j] = buf.text[j+1];
+    for(j= buf->line; j < buf->top_line + sr.bottom - 1 ; ++j){
+      buf->text[j] = buf->text[j+1];
     }
     // and insert blank line
-    buf.text[buf.top_line + sr.bottom - 1] = tmp;
-    buf_erase_line(buf.text[buf.top_line + sr.bottom - 1], cols);
+    buf->text[buf->top_line + sr.bottom - 1] = tmp;
+    buf_erase_line(buf->text[buf->top_line + sr.bottom - 1], cols);
     ++i;
   } while (i < Pn);
-  buf.col = 0;
+  buf->col = 0;
   ecma48_end_control();
 }
 
@@ -2128,14 +2128,14 @@ void ecma48_SU(){
   do {
     /* swap the top line (which will scroll off) into the new line */
     // cache
-    tmp = buf.text[buf.top_line + sr.top - 1];
+    tmp = buf->text[buf->top_line + sr.top - 1];
     // scroll
-    for(j= buf.top_line + sr.top -1; j <= buf.top_line + sr.bottom -1 ; ++j){
-      buf.text[j] = buf.text[j+1];
+    for(j= buf->top_line + sr.top -1; j <= buf->top_line + sr.bottom -1 ; ++j){
+      buf->text[j] = buf->text[j+1];
     }
     // and insert blank line
-    buf.text[buf.top_line + sr.bottom -1] = tmp;
-    buf_erase_line(buf.text[buf.top_line + sr.bottom -1], cols);
+    buf->text[buf->top_line + sr.bottom -1] = tmp;
+    buf_erase_line(buf->text[buf->top_line + sr.bottom -1], cols);
     ++i;
   } while (i < Pn);
   ecma48_end_control();
@@ -2168,14 +2168,14 @@ void ecma48_SD(){
   do {
     /* swap the last line (which will scroll off) into the new line */
     // cache
-    tmp = buf.text[buf.top_line + sr.bottom - 1];
+    tmp = buf->text[buf->top_line + sr.bottom - 1];
     // scroll
-    for(j= buf.top_line + sr.bottom - 2; j >= buf.top_line + sr.top -1; --j){
-      buf.text[j+1] = buf.text[j];
+    for(j= buf->top_line + sr.bottom - 2; j >= buf->top_line + sr.top -1; --j){
+      buf->text[j+1] = buf->text[j];
     }
     // and insert blank line
-    buf.text[buf.top_line + sr.top -1] = tmp;
-    buf_erase_line(buf.text[buf.top_line + sr.top -1], cols);
+    buf->text[buf->top_line + sr.top -1] = tmp;
+    buf_erase_line(buf->text[buf->top_line + sr.top -1], cols);
     ++i;
   } while (i < Pn);
   ecma48_end_control();
@@ -2250,9 +2250,9 @@ void ecma48_ECH(){
   ecma48_PRINT_CONTROL_SEQUENCE("SD");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   /* Make sure not to overrun the end of the line */
-  int max = cols - buf.col;
+  int max = cols - buf->col;
   Pn = Pn > max ? max : Pn;
-  buf_erase_line(&buf.text[buf.line][buf.col], Pn);
+  buf_erase_line(&buf->text[buf->line][buf->col], Pn);
   ecma48_end_control();
 }
 
@@ -2285,7 +2285,7 @@ void ecma48_CBT(){
   int i, x;
   for(i = 1; i <= Pn1; ++i){
     x = screen_prev_tab_x();
-    buf.col = screen_to_buf_col(x);
+    buf->col = screen_to_buf_col(x);
   }
   ecma48_end_control();
 }
@@ -2858,18 +2858,18 @@ void ecma48_SGR(){
       //fprintf(stderr, "SGR: %u\n", Pn[i]);
       switch (Pn[i]){
         case 0: // 0 default rendition
-          buf.current_style = default_text_style;
+          buf->current_style = default_text_style;
           break;
         case 1: // 1 bold or increased intensity
-          buf.current_style.style |= TTF_STYLE_BOLD;
+          buf->current_style.style |= TTF_STYLE_BOLD;
           break;
         case 2: // 2 faint, decreased intensity or second colour
           break;
         case 3: // 3 italicized
-          buf.current_style.style |= TTF_STYLE_ITALIC;
+          buf->current_style.style |= TTF_STYLE_ITALIC;
           break;
         case 4: // 4 singly underlined
-          buf.current_style.style |= TTF_STYLE_UNDERLINE;
+          buf->current_style.style |= TTF_STYLE_UNDERLINE;
           break;
         case 5: // 5 slowly blinking (less then 150 per minute)
           break;
@@ -2881,7 +2881,7 @@ void ecma48_SGR(){
         case 8: // 8 concealed characters
           break;
         case 9: // 9 crossed-out
-          buf.current_style.style |= TTF_STYLE_STRIKETHROUGH;
+          buf->current_style.style |= TTF_STYLE_STRIKETHROUGH;
           break;
         case 10: // 10 primary (default) font
           ecma48_SI();
@@ -2910,13 +2910,13 @@ void ecma48_SGR(){
         case 21: // 21 doubly underlined
           break;
         case 22: // 22 normal colour or normal intensity (neither bold nor faint)
-          buf.current_style.style ^= TTF_STYLE_BOLD;
+          buf->current_style.style ^= TTF_STYLE_BOLD;
           break;
         case 23: // 23 not italicized, not fraktur
-          buf.current_style.style ^= TTF_STYLE_ITALIC;
+          buf->current_style.style ^= TTF_STYLE_ITALIC;
           break;
         case 24: // 24 not underlined (neither singly nor doubly)
-          buf.current_style.style ^= TTF_STYLE_UNDERLINE;
+          buf->current_style.style ^= TTF_STYLE_UNDERLINE;
           break;
         case 25: // 25 steady (not blinking)
           break;
@@ -2927,63 +2927,63 @@ void ecma48_SGR(){
         case 28: // 28 revealed characters
           break;
         case 29: // 29 not crossed out
-          buf.current_style.style ^= TTF_STYLE_STRIKETHROUGH;
+          buf->current_style.style ^= TTF_STYLE_STRIKETHROUGH;
           break;
         case 30: // 30 black display [0,0,0] b [127,127,127]
-          buf.current_style.fg_color = (SDL_Color)BLACK;
+          buf->current_style.fg_color = (SDL_Color)BLACK;
           break;
         case 31: // 31 red display [205,0,0] b [255,0,0]
-          buf.current_style.fg_color = (SDL_Color)RED;
+          buf->current_style.fg_color = (SDL_Color)RED;
           break;
         case 32: // 32 green display [0,205,0] b [0,255,0]
-          buf.current_style.fg_color = (SDL_Color)GREEN;
+          buf->current_style.fg_color = (SDL_Color)GREEN;
           break;
         case 33: // 33 yellow display [205,205,0] b [255,255,0]
-          buf.current_style.fg_color = (SDL_Color)YELLOW;
+          buf->current_style.fg_color = (SDL_Color)YELLOW;
           break;
         case 34: // 34 blue display [0,0,238] b [92,92,255]
-          buf.current_style.fg_color = (SDL_Color)BLUE;
+          buf->current_style.fg_color = (SDL_Color)BLUE;
           break;
         case 35: // 35 magenta display [205,0,205] b [255,0,255]
-          buf.current_style.fg_color = (SDL_Color)MAGENTA;
+          buf->current_style.fg_color = (SDL_Color)MAGENTA;
           break;
         case 36: // 36 cyan display [0,205,205] b [0,255,255]
-          buf.current_style.fg_color = (SDL_Color)CYAN;
+          buf->current_style.fg_color = (SDL_Color)CYAN;
           break;
         case 37: // 37 white display [229,229,229] b [255,255,255]
-          buf.current_style.fg_color = (SDL_Color)WHITE;
+          buf->current_style.fg_color = (SDL_Color)WHITE;
           break;
         case 38: break;
         case 39: // 39 default display colour [255,255,255]
-          buf.current_style.fg_color = default_text_style.fg_color;
+          buf->current_style.fg_color = default_text_style.fg_color;
           break;
         case 40: // 40 black background [0,0,0]
-          buf.current_style.bg_color = (SDL_Color)BLACK;
+          buf->current_style.bg_color = (SDL_Color)BLACK;
           break;
         case 41: // 41 red background [205,0,0]
-          buf.current_style.bg_color = (SDL_Color)RED;
+          buf->current_style.bg_color = (SDL_Color)RED;
           break;
         case 42: // 42 green background [0,205,0]
-          buf.current_style.bg_color = (SDL_Color)GREEN;
+          buf->current_style.bg_color = (SDL_Color)GREEN;
           break;
         case 43: // 43 yellow background [205,205,0]
-          buf.current_style.bg_color = (SDL_Color)YELLOW;
+          buf->current_style.bg_color = (SDL_Color)YELLOW;
           break;
         case 44: // 44 blue background [0,0,238]
-          buf.current_style.bg_color = (SDL_Color)BLUE;
+          buf->current_style.bg_color = (SDL_Color)BLUE;
           break;
         case 45: // 45 magenta background [205,0,205]
-          buf.current_style.bg_color = (SDL_Color)MAGENTA;
+          buf->current_style.bg_color = (SDL_Color)MAGENTA;
           break;
         case 46: // 46 cyan background [0,205,205]
-          buf.current_style.bg_color = (SDL_Color)CYAN;
+          buf->current_style.bg_color = (SDL_Color)CYAN;
           break;
         case 47: // 47 white background [255,225,255]
-          buf.current_style.bg_color = (SDL_Color)WHITE;
+          buf->current_style.bg_color = (SDL_Color)WHITE;
           break;
         case 48: break;
         case 49: // 49 default background colour
-          buf.current_style.bg_color = default_text_style.bg_color;
+          buf->current_style.bg_color = default_text_style.bg_color;
           break;
         case 50: break;
         case 51: // 51 framed
@@ -3143,8 +3143,8 @@ void ansi_SM(){
                 set_screen_cols(132);
                 break;
         case 4:  break; // DECSCLM ignored
-        case 5:  buf.inverse_video = 1; buf_clear_all_renders(); break; // DECSCNM
-        case 6:  buf.origin = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
+        case 5:  buf->inverse_video = 1; buf_clear_all_renders(); break; // DECSCNM
+        case 6:  buf->origin = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
         case 7:  autowrap = 1; break;
         case 8:  break; // DECARM ignored
         //case 12: break;
@@ -3181,8 +3181,8 @@ void ansi_RM(){
                 set_screen_cols(80);
                 break;
         case 4:  break; // DECSCLM ignored
-        case 5:  buf.inverse_video = 0; buf_clear_all_renders(); break; // DECSCNM
-        case 6:  buf.origin = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
+        case 5:  buf->inverse_video = 0; buf_clear_all_renders(); break; // DECSCNM
+        case 6:  buf->origin = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
         case 7:  autowrap = 0; break;
         case 8:  break; // DECARM ignored
         //case 12: break; // comes after \E?25h for ansi_SM
@@ -3261,25 +3261,25 @@ void ansi_DECALN(){
 
   ecma48_PRINT_CONTROL_SEQUENCE("ansi_DECALN");
   /* hard set the cursor back to the zero position */
-  buf.top_line = 0;
-  buf.line = 0;
-  buf.col = 0;
+  buf->top_line = 0;
+  buf->line = 0;
+  buf->col = 0;
 	int x, y;
 	struct screenchar *sc;
 	UChar pattern = 'E';
 	for(x = 0; x < cols; ++x){
 		for(y = 0; y < rows; ++y){
-			sc = &(buf.text[y][x]);
+			sc = &(buf->text[y][x]);
 			/* free old char */
 			buf_free_char(sc);
 			/* write new one */
 			sc->c = pattern;
-			sc->style = buf.current_style;
+			sc->style = buf->current_style;
 		}
 	}
-	buf.top_line = 0;
-	buf.line = 0;
-	buf.col = 0;
+	buf->top_line = 0;
+	buf->line = 0;
+	buf->col = 0;
 
 	ecma48_end_control();
 }

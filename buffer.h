@@ -26,7 +26,6 @@ struct font_style {
   SDL_Color bg_color;
   int style;
 };
-extern struct font_style default_text_style;
 
 struct screenchar {
   UChar c;
@@ -36,7 +35,6 @@ struct screenchar {
 
 struct text {
   struct screenchar** text;
-  struct screenchar** screens[NUM_BUFFERS];
   int line;
   int col;
   int top_line;
@@ -46,15 +44,25 @@ struct text {
 };
 typedef struct text buf_t;
 
+struct saved_text {
+  int row;
+  int col;
+  char origin;
+  char inverse_video;
+  struct font_style current_style;
+};
+typedef struct saved_text saved_buf_t;
+
 struct scroll_region {
   int top;
   int bottom;
 };
-struct scroll_region sr;
 
 #define TAB_WIDTH 8
 #define TAB_HEIGHT 2
 
+int buf_init();
+void buf_uninit();
 int buf_bottom_line();
 void buf_erase_line(struct screenchar* sc, size_t n);
 void buf_erase_lines(int start_line, int num);
@@ -89,6 +97,7 @@ void clear_char_tabstop_at(int row, int col);
 void clear_char_tabstops_on_row(int row);
 void clear_all_char_tabstops();
 void buf_clear_all_renders();
+void buf_reset_text_buffer(buf_t* toclear);
 
 void buf_save_text();
 void buf_restore_text();

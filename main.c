@@ -91,17 +91,17 @@ static char key_repeat_done = 0;
 
 static SDL_mutex *input_mutex = NULL;
 
-int MAX_COLS;
-int MAX_ROWS;
-int TEXT_BUFFER_SIZE;
-
 static int event_pipe[2];
 
 /* from buffer.c */
 extern int rows;
 extern int cols;
-extern buf_t buf;
-extern char ** tabs;
+extern buf_t* buf;
+extern int MAX_COLS;
+extern int MAX_ROWS;
+extern int TEXT_BUFFER_SIZE;
+extern struct scroll_region sr;
+
 
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
@@ -854,16 +854,16 @@ void setup_screen_size(int s_w, int s_h){
   PRINT(stderr, "Rows: %d Cols: %d\n", rows, cols);
 
   /* calculate where we should start drawing */
-  if(buf.line && old_rows > rows){ // new size smaller
-    buf.top_line = buf.line - buf.top_line + 1 > rows ? buf.line - rows + 1 : buf.top_line;
+  if(buf->line && old_rows > rows){ // new size smaller
+    buf->top_line = buf->line - buf->top_line + 1 > rows ? buf->line - rows + 1 : buf->top_line;
     // clear covered up lines that are below the cursor
     int toclear = old_bottom_line - buf_bottom_line();
     PRINT(stderr, "new rows: %d, new bottom: %d, old rows: %d, old_bottom: %d, clearing %d lines (SIZE: %d)\n",
         rows, buf_bottom_line(), old_rows, old_bottom_line, toclear, TEXT_BUFFER_SIZE);
     buf_erase_lines(buf_bottom_line() + 1, toclear);
-  } else if (buf.line && old_rows < rows){ // new size bigger
-    //buf.top_line = buf.line - rows + 1 < 0 ? 0 : buf.line - rows + 1;
-    buf.top_line = buf.top_line - diff_rows < 0 ? 0 : buf.top_line - diff_rows;
+  } else if (buf->line && old_rows < rows){ // new size bigger
+    //buf->top_line = buf->line - rows + 1 < 0 ? 0 : buf->line - rows + 1;
+    buf->top_line = buf->top_line - diff_rows < 0 ? 0 : buf->top_line - diff_rows;
     // clear newly revealed lines of artifacts
     int toclear = buf_bottom_line() < TEXT_BUFFER_SIZE ?
         buf_bottom_line() - old_bottom_line :
@@ -1009,51 +1009,25 @@ int init() {
   /* Don't show the mouse icon */
   SDL_ShowCursor(SDL_DISABLE);
 
-  /* init our cursor position */
-  buf.line = 0;
-  buf.col = 0;
-  buf.top_line = 0;
-  /* Calculate rows and cols, etc. */
-  setup_screen_size(screen->w, screen->h);
-
   /* we allocate as much buffer as we will ever need */
   int largest_dimension = screen->w > screen->h ? screen->w : screen->h;
   MAX_ROWS = largest_dimension / MIN_FONT_SIZE;
   MAX_COLS = largest_dimension / MIN_FONT_SIZE;
   TEXT_BUFFER_SIZE = MAX_ROWS * 2;
-
   fprintf(stderr, "Allocating %d rows and %d cols\n",TEXT_BUFFER_SIZE, MAX_COLS);
 
-  /* malloc the text buf structures */
-  int n = 0;
-  for(n = 0; n < NUM_BUFFERS; ++n){
-    buf.screens[n] = (struct screenchar**)calloc(TEXT_BUFFER_SIZE + 1, sizeof(struct screenchar*));
-    buf.text = buf.screens[n];
-    for(i=0; i< TEXT_BUFFER_SIZE + 1;++i){
-      buf.text[i] = (struct screenchar*)calloc(MAX_COLS+1, sizeof(struct screenchar));
-      buf_erase_line(buf.text[i], (size_t)MAX_COLS);
-    }
-  }
-  buf.text = buf.screens[0];
-  buf.inverse_video = 0;
-  buf.origin = 0;
+  /* initialize the number of rows and columns */
+  rows = screen->h / text_height;
+  cols = screen->w / text_width;
 
-  /* initialize the scroll_region */
-  sr.top = 1;
-  sr.bottom = rows;
-
-  /* initialize the tab stops
-   * tab stops are in screen coords (1,1)->(cols,rows)
-   * We use the extra column for vertical tabs
-   * */
-  tabs = (char**)calloc((MAX_ROWS+1), sizeof(char*));
-  for(i=1; i <= MAX_ROWS; ++i){
-    tabs[i] = (char*)calloc((MAX_COLS+1), sizeof(char));
-    buf_init_tabstops(tabs[i]);
-    if(i % TAB_HEIGHT == 0){
-      buf_init_vtab(i);
-    }
+  if(buf_init() == TERM_FAILURE){
+    PRINT(stderr, "Couldn't initialize font\n");
+    TTF_Quit();
+    SDL_Quit();
+    return TERM_FAILURE;
   }
+
+  setup_screen_size(screen->w, screen->h);
 
   /* initialize the metamode key */
   metamode_doubletap_key = preferences_get_int(preference_keys.metamode_doubletap_key);
@@ -1080,18 +1054,7 @@ int init() {
 
 void uninit(){
 
-  int i, n;
-  for(n = 0; n < NUM_BUFFERS; ++n){
-    buf.screens[n] = (struct screenchar**)calloc(TEXT_BUFFER_SIZE + 1, sizeof(struct screenchar*));
-    buf.text = buf.screens[n];
-    for(i=0; i< TEXT_BUFFER_SIZE + 1;++i){
-      if(buf.text[i] != NULL){
-        buf_erase_line(buf.text[i], (size_t)MAX_COLS);
-        free(buf.text[i]);
-      }
-    }
-    free(buf.text);
-  }
+  buf_uninit();
 
   SDL_DestroyMutex(input_mutex);
 
@@ -1130,12 +1093,12 @@ void render() {
     for(j=0; j < cols; ++j){
       /* guard against screen rotations that push the bottom of the screen past the
        * bottom of the buffer. */
-      sc = i+buf.top_line < TEXT_BUFFER_SIZE ? &buf.text[i+buf.top_line][j] : &blank_sc;
+      sc = i+buf->top_line < TEXT_BUFFER_SIZE ? &buf->text[i+buf->top_line][j] : &blank_sc;
       if((sc->surface == NULL) && (sc->c != 0)){
         // we have added a new char, but not rendered it yet
         str[0] = sc->c;
         TTF_SetFontStyle(font, sc->style.style);
-        if(buf.inverse_video){
+        if(buf->inverse_video){
           sc->surface = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
         } else {
           sc->surface = TTF_RenderUNICODE_Shaded(font, str, sc->style.fg_color, sc->style.bg_color);
@@ -1146,7 +1109,7 @@ void render() {
       }
       if(sc->surface == NULL || flash){
         // no glyph here - render blank
-        if(buf.inverse_video){
+        if(buf->inverse_video){
           torender = flash ? blank_surface : flash_surface;
         } else {
           torender = flash ? flash_surface : blank_surface;
@@ -1172,17 +1135,17 @@ void render() {
     inv_cursor = NULL;
     /* Get the character under the cursor */
 
-    int drawcols = buf.col;
-    if(buf.col == cols){
+    int drawcols = buf->col;
+    if(buf->col == cols){
     	// Don't draw off the edge - also make backspace from the right margin work 'right'
     	drawcols -= 1;
     }
 
-    sc = &buf.text[buf.line][drawcols];
+    sc = &buf->text[buf->line][drawcols];
     if(sc->c){
       str[0] = sc->c;
       TTF_SetFontStyle(font, sc->style.style);
-      if(buf.inverse_video){
+      if(buf->inverse_video){
         inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.fg_color, sc->style.bg_color);
       } else {
         inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
@@ -1192,7 +1155,7 @@ void render() {
       }
     }
     cursor_x = drawcols;
-    cursor_y = buf.line - buf.top_line;
+    cursor_y = buf->line - buf->top_line;
     destrect.x = cursor_x * advance;
     destrect.y = cursor_y * text_height;
     destrect.w = cursor->w;
@@ -1200,7 +1163,7 @@ void render() {
     if(inv_cursor != NULL){
       SDL_BlitSurface(inv_cursor, NULL, screen, &destrect);
     } else {
-      SDL_BlitSurface(buf.inverse_video ? blank_surface: cursor, NULL, screen, &destrect);
+      SDL_BlitSurface(buf->inverse_video ? blank_surface: cursor, NULL, screen, &destrect);
     }
   }
 
