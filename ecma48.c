@@ -673,10 +673,13 @@ character position of the line at the page home position of the next form or
 page in the presentation component. The page home position is established by the
 parameter value of SET PAGE HOME (SPH).
 */
-void ecma48_FF(){
+void ecma48_FF_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("FF");
   // Treat the same as LF
   ecma48_LF_INTER();
+}
+void ecma48_FF(){
+  ecma48_FF_INTER();
   ecma48_end_control();
 }
 
@@ -1531,7 +1534,7 @@ void ecma48_ICH(){
   } else {
     buf_insert_character_preceding(Pn);
   }
-  /* FIXME: What to do about moving the cursor to the line home position? Seems wrong.. */
+  /* FIXME: Handle SLH and SEE? */
   ecma48_end_control();
 }
 
@@ -3368,6 +3371,7 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x09: ecma48_HT_INTER(); break;
           case 0x0a: ecma48_LF_INTER(); break;
           case 0x0b: ecma48_VT_INTER(); break;
+          case 0x0c: ecma48_FF_INTER(); break;
           case 0x0d: ecma48_CR_INTER(); break;
           /* intermediate bytes */
           case 0x20:
