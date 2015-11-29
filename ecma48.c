@@ -629,7 +629,6 @@ following line in the data component.
 */
 void ecma48_LF_INTER(){
   ecma48_PRINT_CONTROL_SEQUENCE("LF");
-
   if(buf.col < cols){
     // emulate xenl/xn newline glitch at the right margin
     buf_increment_line();
@@ -649,12 +648,16 @@ component to the corresponding character position on the line at which the
 following line tabulation stop is set.
 */
 void ecma48_VT_INTER(){
-  ecma48_PRINT_CONTROL_SEQUENCE("LF");
+  ecma48_PRINT_CONTROL_SEQUENCE("VT");
+  // xterm treats the same as LF..
+  ecma48_LF_INTER();
+  /*
   int row = buf_to_screen_row(-1);
   int next_vtab = buf_next_vtab(row);
   if(next_vtab > 0){
     buf.line = screen_to_buf_row(next_vtab);
   }
+  */
 }
 void ecma48_VT(){
   ecma48_VT_INTER();
@@ -671,7 +674,10 @@ page in the presentation component. The page home position is established by the
 parameter value of SET PAGE HOME (SPH).
 */
 void ecma48_FF(){
-  ecma48_NOT_IMPLEMENTED("FF");
+  ecma48_PRINT_CONTROL_SEQUENCE("FF");
+  // Treat the same as LF
+  ecma48_LF_INTER();
+  ecma48_end_control();
 }
 
 /*
