@@ -189,11 +189,12 @@ void ecma48_setenv(){
     }
   }
   setenv("TERM", "xterm-color", 1);
-  /*
-  if(system("/base/bin/stty +sane term=xterm-color erase=^H") == -1){
+
+  //if(system("/base/bin/stty +sane term=xterm-color erase=^H") == -1){
+  if(system("/base/bin/stty +sane erase=^H") == -1){
     PRINT(stderr, "Error invoking system(stty..)\n");
   }
-  */
+
 }
 
 void ecma48_end_control(){
