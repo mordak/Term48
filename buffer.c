@@ -279,6 +279,8 @@ void buf_check_screen_scroll(){
     // if the buffer last line is now behind the writing line
     // increment the buffer top line
     buf->top_line = buf->line - (rows - 1);
+    // and erase the newly revealed line
+    buf_erase_line(buf->text[buf->line], cols);
   }
   // and check if we are out of buffer
   if(buf->line >= TEXT_BUFFER_SIZE - 1) { // better not be greater than..
@@ -308,6 +310,8 @@ void buf_check_screen_rscroll(){
     // if the buffer writing line is now above the top line
     // move the top line to the writing line
     buf->top_line = buf->line;
+    // and erase the newly revealed line
+    buf_erase_line(buf->text[buf->line], cols);
   }
   // and check if we are out of buffer
   if(buf->line < 0) {
