@@ -22,6 +22,18 @@
 
 #include "buffer.h"
 
+
+buf_t buf;
+buf_t saved_buf;
+int rows;
+int cols;
+char ** tabs;
+
+/* from main.c */
+extern SDL_Surface* blank_surface;
+extern int MAX_COLS;
+extern int TEXT_BUFFER_SIZE;
+
 /* returns the bottom buffer line showing on the screen */
 int buf_bottom_line(){
   return buf.top_line + rows - 1;
@@ -421,3 +433,10 @@ void buf_restore_text(){
   buf.text = buf.screens[0];
 }
 
+void buf_save_cursor(){
+  saved_buf = buf;
+}
+
+void buf_restore_cursor(){
+  buf = saved_buf;
+}

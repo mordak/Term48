@@ -38,6 +38,7 @@
 #define ECMA48_STATE_ANSI 3
 #define ECMA48_STATE_ANSI_POUND 4
 #define ECMA48_STATE_ANSI_SCS 5
+#define ECMA48_STATE_ANSI_RANG 6
 static char state = ECMA48_STATE_NORMAL;
 
 #define BUFFER_NORMAL 0
@@ -45,7 +46,6 @@ static char state = ECMA48_STATE_NORMAL;
 static char writing_buffer = BUFFER_NORMAL;
 
 static char autowrap = 1;
-//static int tabstop = 8;
 
 #define NUM_ESCAPE_ARGS 16
 struct escape_arguments {
@@ -91,6 +91,7 @@ extern struct font_style default_text_style;
 extern struct scroll_region sr;
 extern char draw_cursor;
 extern char flash;
+extern char ** tabs;
 
 void ecma48_escape_args_init(){
   int i = 0;
@@ -162,7 +163,7 @@ void ecma48_init(){
   modes.SIMD = 0;
 
   buf.current_style = default_text_style;
-  saved_buf = buf;
+  buf_save_cursor();
 }
 
 void ecma48_uninit(){
@@ -1812,6 +1813,9 @@ void ecma48_ED(){
     case 2: // entire screen
       ecma48_clear_display();
       break;
+    case 3: // Erase saved lines (xterm)
+      // FIXME: Implment
+      break;
   };
   ecma48_end_control();
 }
@@ -2153,6 +2157,14 @@ void ecma48_SD(){
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
   int i = 0, j = 0;
   struct screenchar* tmp;
+  if(escape_args.args[1][0] != '\0'){
+    /* CSI Ps ; Ps ; Ps ; Ps ; Ps T
+          Initiate highlight mouse tracking.  Parameters are
+          [func;startx;starty;firstrow;lastrow].
+    */
+    ecma48_end_control();
+    return;
+  }
   do {
     /* swap the last line (which will scroll off) into the new line */
     // cache
@@ -3103,6 +3115,11 @@ void ecma48_ANSI(){
   state = ECMA48_STATE_ANSI;
 }
 
+void ecma48_ANSI_RANG(){
+  state = ECMA48_STATE_ANSI_RANG;
+}
+
+
 /* ansi_SM (set mode)
  * Handles all of the ESC[? Pn h codes
  */
@@ -3221,13 +3238,13 @@ void ansi_LINE_SIZE(){
 
 void ansi_SC(){
   ecma48_PRINT_CONTROL_SEQUENCE("SC");
-  saved_buf = buf;
+  buf_save_cursor();
   ecma48_end_control();
 }
 
 void ansi_RC(){
   ecma48_PRINT_CONTROL_SEQUENCE("RC");
-  buf = saved_buf;
+  buf_restore_cursor();
   ecma48_end_control();
 }
 
@@ -3404,6 +3421,7 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x3a: ecma48_parameter_arg_add((char)tbuf[i]); break;
           case 0x3b: ecma48_parameter_arg_next(); break;
           /* ANSI compatibility */
+          case 0x3e: ecma48_ANSI_RANG(); break;
           case 0x3f: ecma48_ANSI(); break;
           /* final bytes */
           case 0x40: ecma48_ICH(); break;
@@ -3473,6 +3491,8 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x3a: ecma48_parameter_arg_add((char)tbuf[i]); break;
           case 0x3b: ecma48_parameter_arg_next(); break;
           /* final bytes */
+          //case 0x4a: ansi_DECSED(); break; // Selective Erase in Display (vt220/DECSCA)
+          //case 0x4b: ansi_DECSEL(); break; // Selective Erase in Line (vt220/DECSCA)
           case 0x68: ansi_SM(); break;
           case 0x6c: ansi_RM(); break;
           default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
@@ -3489,6 +3509,24 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
       case ECMA48_STATE_ANSI_SCS:
         switch(tbuf[i]){
           default: ecma48_NOT_IMPLEMENTED("SCS");
+        }; break;
+      case ECMA48_STATE_ANSI_RANG:
+        switch(tbuf[i]){
+          /* parameter bytes */
+          case 0x30:
+          case 0x31:
+          case 0x32:
+          case 0x33:
+          case 0x34:
+          case 0x35:
+          case 0x36:
+          case 0x37:
+          case 0x38:
+          case 0x39:
+          case 0x3a: ecma48_parameter_arg_add((char)tbuf[i]); break;
+          case 0x3b: ecma48_parameter_arg_next(); break;
+          /* final bytes */
+          default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
         }; break;
     }
   }

@@ -73,7 +73,6 @@ static SDL_Color default_text_color = (SDL_Color)WHITE;
 static SDL_Color default_bg_color = (SDL_Color)BLACK;
 struct font_style default_text_style;
 
-extern SDL_Surface* blank_surface;
 struct screenchar blank_sc;
 static SDL_Surface* flash_surface;
 static SDL_Surface* cursor;
@@ -82,6 +81,7 @@ static SDL_Surface* screen;
 static SDL_Surface* ctrl_key_indicator;
 static SDL_Surface* alt_key_indicator;
 static SDL_Surface* shift_key_indicator;
+SDL_Surface* blank_surface;
 
 static pid_t child_pid = -1;
 
@@ -91,7 +91,17 @@ static char key_repeat_done = 0;
 
 static SDL_mutex *input_mutex = NULL;
 
+int MAX_COLS;
+int MAX_ROWS;
+int TEXT_BUFFER_SIZE;
+
 static int event_pipe[2];
+
+/* from buffer.c */
+extern int rows;
+extern int cols;
+extern buf_t buf;
+extern char ** tabs;
 
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
@@ -1070,15 +1080,16 @@ int init() {
 
 void uninit(){
 
-  int i;
-
-  for(i=0; i< TEXT_BUFFER_SIZE + 1;++i){
-    if(buf.text[i] != NULL){
-      buf_erase_line(buf.text[i], (size_t)MAX_COLS);
-      free(buf.text[i]);
+  int i, n;
+  for(n = 0; n < NUM_BUFFERS; ++n){
+    buf.screens[n] = (struct screenchar**)calloc(TEXT_BUFFER_SIZE + 1, sizeof(struct screenchar*));
+    buf.text = buf.screens[n];
+    for(i=0; i< TEXT_BUFFER_SIZE + 1;++i){
+      if(buf.text[i] != NULL){
+        buf_erase_line(buf.text[i], (size_t)MAX_COLS);
+        free(buf.text[i]);
+      }
     }
-  }
-  if(buf.text != NULL){
     free(buf.text);
   }
 

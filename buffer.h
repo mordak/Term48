@@ -52,18 +52,6 @@ struct scroll_region {
 };
 struct scroll_region sr;
 
-buf_t buf;
-buf_t saved_buf;
-int rows;
-int cols;
-char ** tabs;
-
-SDL_Surface* blank_surface;
-
-int MAX_COLS;
-int MAX_ROWS;
-int TEXT_BUFFER_SIZE;
-
 #define TAB_WIDTH 8
 #define TAB_HEIGHT 2
 
@@ -104,5 +92,7 @@ void buf_clear_all_renders();
 
 void buf_save_text();
 void buf_restore_text();
+void buf_save_cursor();
+void buf_restore_cursor();
 
 #endif /* BUFFER_H_ */
