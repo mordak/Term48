@@ -1010,7 +1010,7 @@ int init() {
   int largest_dimension = screen->w > screen->h ? screen->w : screen->h;
   MAX_ROWS = largest_dimension / MIN_FONT_SIZE;
   MAX_COLS = largest_dimension / MIN_FONT_SIZE;
-  TEXT_BUFFER_SIZE = MAX_ROWS * 2 + 1;
+  TEXT_BUFFER_SIZE = MAX_ROWS * 2;
 
   fprintf(stderr, "Allocating %d rows and %d cols\n",TEXT_BUFFER_SIZE, MAX_COLS);
 

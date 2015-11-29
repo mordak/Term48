@@ -532,7 +532,9 @@ ENQ is transmitted by a sender as a request for a response from a receiver.
 The use of ENQ is defined in ISO 1745.
 */
 void ecma48_ENQ(){
-  ecma48_NOT_IMPLEMENTED("ENQ");
+  ecma48_PRINT_CONTROL_SEQUENCE("ENQ");
+  io_write_master_char(ANSWERBACK, strlen(ANSWERBACK));
+  ecma48_end_control();
 }
 
 /*

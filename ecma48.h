@@ -19,6 +19,7 @@
 
 #define TERMID "\033[?6c"
 #define DSROK "\033[0n"
+#define ANSWERBACK "Term48"
 #define OUTBUF_LEN 30
 
 void ecma48_init();
