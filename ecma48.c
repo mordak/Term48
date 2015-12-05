@@ -80,6 +80,7 @@ struct ecma48_modes {
   char ZDM;
   char SIMD;
   char DECCKM;
+  char DECCOLM;
 };
 
 static struct ecma48_modes modes;
@@ -166,6 +167,7 @@ void ecma48_init(){
   modes.ZDM = 0;
   modes.SIMD = 0;
   modes.DECCKM = 0;
+  modes.DECCOLM = 0;
 }
 
 void ecma48_uninit(){
@@ -3190,10 +3192,11 @@ void ansi_SM(){
     if(Pn[i] >= 0){
       switch(Pn[i]){
         case 1: modes.DECCKM = 1; break;
-        //case 2:  break; // DECANM
-        case 3: ecma48_clear_display(); // Clear the screen and set 132 chars
+        case 2: ansi_DECANM(); break;
+        case 3: if(modes.DECCOLM) { // Clear the screen and set 132 chars
+                ecma48_clear_display();
                 ecma48_set_cursor_home();
-                set_screen_cols(132);
+                set_screen_cols(132); }
                 break;
         case 4:  break; // DECSCLM ignored
         case 5:  buf->inverse_video = 1; buf_clear_all_renders(); break; // DECSCNM
@@ -3202,7 +3205,7 @@ void ansi_SM(){
         case 8:  break; // DECARM ignored
         //case 12: break;
         case 25: draw_cursor = 1; break;
-        //case 40: break; /* Enable 80/132 switch (xterm) */
+        case 40: modes.DECCOLM = 1; break;
         //case 45: break; /* Enable reverse wrap (xterm) */
         case 47: buf_save_text(); break; /* xterm alternate screen */
         default: fprintf(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn[i]); break;
@@ -3229,6 +3232,7 @@ void ansi_RM(){
     if(Pn[i] >= 0){
       switch(Pn[i]){
         case 1: modes.DECCKM = 0; break;
+        case 2: ansi_DECANM(); break;
         case 3: ecma48_clear_display(); // Clear the screen and set 80 chars
                 ecma48_set_cursor_home();
                 set_screen_cols(80);
@@ -3240,7 +3244,7 @@ void ansi_RM(){
         case 8:  break; // DECARM ignored
         //case 12: break; // comes after \E?25h for ansi_SM
         case 25: draw_cursor = 0; break;
-        //case 40: break; /* Disable 80/132 switch (xterm) */
+        case 40: modes.DECCOLM = 0; break;
         //case 45: break; /* Disable reverse wrap (xterm) */
         case 47: buf_restore_text(); break; /* xterm alternate screen */
         default: fprintf(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn[i]); break;
@@ -3301,10 +3305,12 @@ void ansi_RC(){
   ecma48_end_control();
 }
 
+/* Application / Normal Keypad */
 void ansi_DECKPAM(){
   ecma48_NOT_IMPLEMENTED("DECKPAM");
 }
 
+/* Handles VT100 -> VT52 mode */
 void ansi_DECANM(){
   ecma48_NOT_IMPLEMENTED("DECANM");
 }

@@ -146,6 +146,6 @@ void ecma48_RM();
 void ecma48_SGR();
 void ecma48_DSR();
 void ecma48_DAQ();
-
+void ansi_DECANM();
 
 #endif /* ECMA48_H_ */
