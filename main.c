@@ -108,13 +108,49 @@ extern struct scroll_region sr;
 #define README45_FILE_PATH "../app/native/README45"
 #define SYMMENU_KEY_BORDER 2
 
+int is_terminfo_keystrokes(const char* keystrokes){
+  if(keystrokes[0] == 'k'){
+    if(0 == strncmp(keystrokes, "kcub1", 5)){ return KEYCODE_LEFT; }
+    if(0 == strncmp(keystrokes, "kcud1", 5)){ return KEYCODE_DOWN; }
+    if(0 == strncmp(keystrokes, "kcuf1", 5)){ return KEYCODE_RIGHT; }
+    if(0 == strncmp(keystrokes, "kcuu1", 5)){ return KEYCODE_UP; }
+    if(0 == strncmp(keystrokes, "khome", 5)){ return KEYCODE_HOME; }
+    if(0 == strncmp(keystrokes, "kend", 4)){ return KEYCODE_END; }
+    if(0 == strncmp(keystrokes, "kf1", 3)){ return KEYCODE_F1; }
+    if(0 == strncmp(keystrokes, "kf2", 3)){ return KEYCODE_F2; }
+    if(0 == strncmp(keystrokes, "kf3", 3)){ return KEYCODE_F3; }
+    if(0 == strncmp(keystrokes, "kf4", 3)){ return KEYCODE_F4; }
+    if(0 == strncmp(keystrokes, "kf5", 3)){ return KEYCODE_F5; }
+    if(0 == strncmp(keystrokes, "kf6", 3)){ return KEYCODE_F6; }
+    if(0 == strncmp(keystrokes, "kf7", 3)){ return KEYCODE_F7; }
+    if(0 == strncmp(keystrokes, "kf8", 3)){ return KEYCODE_F8; }
+    if(0 == strncmp(keystrokes, "kf9", 3)){ return KEYCODE_F9; }
+    if(0 == strncmp(keystrokes, "kf10", 4)){ return KEYCODE_F10; }
+    if(0 == strncmp(keystrokes, "kf11", 4)){ return KEYCODE_F11; }
+    if(0 == strncmp(keystrokes, "kf12", 4)){ return KEYCODE_F12; }
+  }
+  return 0;
+}
+
 int send_metamode_keystrokes(const char* keystrokes){
 
   UChar* ukeystrokes;
   size_t ukeystrokes_len;
   size_t keystrokes_len;
+  int terminfo_key = 0;
+  UChar terminfo_keystrokes[CHARACTER_BUFFER];
 
   if(keystrokes){
+    terminfo_key = is_terminfo_keystrokes(keystrokes);
+    /* if the keystrokes for this key match a terminfo pattern,
+     * send the appropriate sequence instead of the literal string */
+    if(terminfo_key){
+      ukeystrokes_len = ecma48_parse_control_codes(terminfo_key, 0, terminfo_keystrokes);
+      /* and write out to the tty whatever the keys were */
+      io_write_master(terminfo_keystrokes, ukeystrokes_len);
+      return 1;
+    }
+    // else
     keystrokes_len = strlen(keystrokes);
     /* libconfig will return ascii strings, but we can put utf8 in there too */
     ukeystrokes = (UChar*)calloc(keystrokes_len, sizeof(UChar));
@@ -168,7 +204,9 @@ void first_run(){
   if(rc == 0){
     // stat success!
     if(symlink(readme_path, "./README") == -1){
-      fprintf(stderr, "Error linking README from app to PWD\n");
+      if(errno != EEXIST){
+        fprintf(stderr, "Error linking README from app to PWD\n");
+      }
     }
   }
 }

@@ -27,6 +27,14 @@ config_t* preferences_get(){
 	return preferences;
 }
 
+/* unconditionally replace a string preference */
+config_setting_t* preferences_replace_string(config_setting_t* root, char* key, char* default_value){
+  int type = CONFIG_TYPE_STRING;
+  config_setting_remove(root, key);
+  config_setting_t* setting = config_setting_add(root, key, type);
+  config_setting_set_string(setting, default_value);
+  return setting;
+}
 
 config_setting_t* preferences_init_string(config_setting_t* root, char* key, char* default_value){
   int type = CONFIG_TYPE_STRING;
@@ -126,6 +134,7 @@ void preferences_pad_array_int(config_setting_t* setting, int size, int padding)
 
 int preferences_check_version(config_setting_t* root, char* key){
   int type = CONFIG_TYPE_INT;
+  const char* ms_key;
   config_setting_t* setting = config_setting_get_member(root, key);
   if(!setting /* not found */
   		|| (config_setting_type(setting) != type) /* has been messed with */
@@ -134,6 +143,17 @@ int preferences_check_version(config_setting_t* root, char* key){
   	config_setting_remove(root, key);
 		setting = config_setting_add(root, key, type);
 		config_setting_set_int(setting, PREFS_VERSION);
+
+		/* from prefs v6 to v7, the default value of hjkl changed */
+		setting = config_setting_get_member(root, preference_keys.metamode_sticky_keys);
+		ms_key = preferences_get_metamode_sticky_keys('h');
+		if(0 == strncmp(ms_key, PREFS_V6_KDEF_H, 3)) { preferences_replace_string(setting, "h", PREFS_V7_KDEF_H);}
+		ms_key = preferences_get_metamode_sticky_keys('j');
+		if(0 == strncmp(ms_key, PREFS_V6_KDEF_J, 3)) { preferences_replace_string(setting, "j", PREFS_V7_KDEF_J);}
+		ms_key = preferences_get_metamode_sticky_keys('k');
+		if(0 == strncmp(ms_key, PREFS_V6_KDEF_K, 3)) { preferences_replace_string(setting, "k", PREFS_V7_KDEF_K);}
+		ms_key = preferences_get_metamode_sticky_keys('l');
+		if(0 == strncmp(ms_key, PREFS_V6_KDEF_L, 3)) { preferences_replace_string(setting, "l", PREFS_V7_KDEF_L);}
 		return 1;
   }
   return 0;
@@ -297,7 +317,7 @@ void preferences_init(){
 		}
 	}
 
-  /* initialize the metamode sticky keys */
+  /* initialize the metamode function keys */
   setting = config_setting_get_member(root, preference_keys.metamode_func_keys);
 	if(!setting || config_setting_type(setting) != CONFIG_TYPE_GROUP){
 		/* initialize the keystrokes if there are none defined */

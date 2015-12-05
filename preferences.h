@@ -24,7 +24,16 @@
 #define PREFS_COLOR_NUM_ELEMENTS 3
 #define PREFS_SYMKEYS_DEFAULT_NUM_ROWS 2
 
-static int PREFS_VERSION = 6;
+#define PREFS_V6_KDEF_K "\x1b[A"
+#define PREFS_V6_KDEF_J "\x1b[B"
+#define PREFS_V6_KDEF_L "\x1b[C"
+#define PREFS_V6_KDEF_H "\x1b[D"
+#define PREFS_V7_KDEF_K "kcuu1"
+#define PREFS_V7_KDEF_J "kcud1"
+#define PREFS_V7_KDEF_L "kcuf1"
+#define PREFS_V7_KDEF_H "kcub1"
+
+static int PREFS_VERSION = 7;
 
 struct symkey_entry {
 	const char* name;
@@ -140,10 +149,10 @@ static struct preference_defaults_t {
 		.metamode_keys = {"e", "\x1b",
 		                  "t", "\x09"},
 		/* remember to update array size above when changing */
-		.metamode_sticky_keys = {"k", "\x1b\x5b\x41",
-														 "j", "\x1b\x5b\x42",
-														 "l", "\x1b\x5b\x43",
-														 "h", "\x1b\x5b\x44"},
+		.metamode_sticky_keys = {"k", PREFS_V7_KDEF_K,
+														 "j", PREFS_V7_KDEF_J,
+														 "l", PREFS_V7_KDEF_L,
+														 "h", PREFS_V7_KDEF_H},
 		/* remember to update array size above when changing */
 		.metamode_func_keys = {"a", "alt_down",
 													 "c", "ctrl_down",

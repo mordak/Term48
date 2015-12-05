@@ -79,6 +79,7 @@ struct ecma48_modes {
   char VEM;
   char ZDM;
   char SIMD;
+  char DECCKM;
 };
 
 static struct ecma48_modes modes;
@@ -164,6 +165,7 @@ void ecma48_init(){
   modes.VEM = 0;
   modes.ZDM = 0;
   modes.SIMD = 0;
+  modes.DECCKM = 0;
 }
 
 void ecma48_uninit(){
@@ -246,6 +248,50 @@ int ecma48_KEYPAD(UChar* tbuf, char code){
   return num_chars;
 }
 
+int ecma48_FUNC_KEY(UChar* tbuf, int num){
+  int nc = 3;
+  tbuf[0] = 033;
+  tbuf[1] = 0133;
+  switch(num){
+    case 1: tbuf[2] = '1'; nc = 4; break;
+    case 2: tbuf[2] = '2'; nc = 4; break;
+    case 3: tbuf[2] = '3'; nc = 4; break;
+    case 4: tbuf[2] = '4'; nc = 4; break;
+    case 5: tbuf[2] = '5'; nc = 4; break;
+    case 6: tbuf[2] = '6'; nc = 4; break;
+    case 7: tbuf[2] = '7'; nc = 4; break;
+    case 8: tbuf[2] = '8'; nc = 4; break;
+    case 9: tbuf[2] = '9'; nc = 4; break;
+    case 10: tbuf[2] = '1'; tbuf[3] = '0'; nc = 5; break;
+    case 11: tbuf[2] = '1'; tbuf[3] = '1'; nc = 5; break;
+    case 12: tbuf[2] = '1'; tbuf[3] = '2'; nc = 5; break;
+    case 13: tbuf[2] = '1'; tbuf[3] = '3'; nc = 5; break;
+    case 14: tbuf[2] = '1'; tbuf[3] = '4'; nc = 5; break;
+    case 15: tbuf[2] = '1'; tbuf[3] = '5'; nc = 5; break;
+    case 16: tbuf[2] = '1'; tbuf[3] = '6'; nc = 5; break;
+    case 17: tbuf[2] = '1'; tbuf[3] = '7'; nc = 5; break;
+    case 18: tbuf[2] = '1'; tbuf[3] = '8'; nc = 5; break;
+    case 19: tbuf[2] = '1'; tbuf[3] = '9'; nc = 5; break;
+    case 20: tbuf[2] = '2'; tbuf[3] = '0'; nc = 5; break;
+    case 21: tbuf[2] = '2'; tbuf[3] = '1'; nc = 5; break;
+    case 22: tbuf[2] = '2'; tbuf[3] = '2'; nc = 5; break;
+    case 23: tbuf[2] = '2'; tbuf[3] = '3'; nc = 5; break;
+    case 24: tbuf[2] = '2'; tbuf[3] = '4'; nc = 5; break;
+    case 25: tbuf[2] = '2'; tbuf[3] = '5'; nc = 5; break;
+    case 26: tbuf[2] = '2'; tbuf[3] = '6'; nc = 5; break;
+    case 27: tbuf[2] = '2'; tbuf[3] = '7'; nc = 5; break;
+    case 28: tbuf[2] = '2'; tbuf[3] = '8'; nc = 5; break;
+    case 29: tbuf[2] = '2'; tbuf[3] = '9'; nc = 5; break;
+    case 30: tbuf[2] = '3'; tbuf[3] = '0'; nc = 5; break;
+    case 31: tbuf[2] = '3'; tbuf[3] = '1'; nc = 5; break;
+    case 32: tbuf[2] = '3'; tbuf[3] = '2'; nc = 5; break;
+    case 33: tbuf[2] = '3'; tbuf[3] = '3'; nc = 5; break;
+    case 34: tbuf[2] = '3'; tbuf[3] = '4'; nc = 5; break;
+  }
+  tbuf[nc-1] = '~';
+  return nc;
+}
+
 int ecma48_KEYPAD_ENTER(UChar* tbuf){
   int num_chars;
   num_chars = ecma48_RETURN(tbuf);
@@ -270,6 +316,12 @@ int ecma48_ESC_O_KEY(UChar* tbuf, char code){
     return num_chars;
 }
 
+int ecma48_NORM_APP(UChar* tbuf, char code){
+  if(modes.DECCKM){
+    return ecma48_ESC_O_KEY(tbuf, code);
+  }
+  return ecma48_CSI_KEY(tbuf, code);
+}
 
 int ecma48_parse_control_codes(int sym, int mod, UChar* tbuf){
 
@@ -283,10 +335,10 @@ int ecma48_parse_control_codes(int sym, int mod, UChar* tbuf){
   	case KEYCODE_BACKSPACE:		tbuf[0] = 010; break;
   	case KEYCODE_TAB:					tbuf[0] = 011; break;
   	case KEYCODE_ESCAPE:			tbuf[0] = 033; break;
-    case KEYCODE_UP:          return ecma48_CSI_KEY(tbuf, 0101); break;
-    case KEYCODE_DOWN:        return ecma48_CSI_KEY(tbuf, 0102); break;
-    case KEYCODE_RIGHT:       return ecma48_CSI_KEY(tbuf, 0103); break;
-    case KEYCODE_LEFT:        return ecma48_CSI_KEY(tbuf, 0104); break;
+    case KEYCODE_UP:          return ecma48_NORM_APP(tbuf, 0101); break;
+    case KEYCODE_DOWN:        return ecma48_NORM_APP(tbuf, 0102); break;
+    case KEYCODE_RIGHT:       return ecma48_NORM_APP(tbuf, 0103); break;
+    case KEYCODE_LEFT:        return ecma48_NORM_APP(tbuf, 0104); break;
     case KEYCODE_RETURN:      return ecma48_RETURN(tbuf); break;
     //case KEYCODE_KP_PLUS    :
     //case KEYCODE_KP_MINUS   : return ecma48_KEYPAD(tbuf, 055); break;
@@ -304,25 +356,25 @@ int ecma48_parse_control_codes(int sym, int mod, UChar* tbuf){
 //    case KEYCODE_KP_PG_DOWN : return ecma48_KEYPAD(tbuf, 063); break;
 //    case KEYCODE_KP_INSERT  : return ecma48_KEYPAD(tbuf, 060); break;
 //    case KEYCODE_KP_DELETE  : return ecma48_KEYPAD(tbuf, 056); break;
-    case KEYCODE_DELETE     : return ecma48_CSI_KEY(tbuf, 0120); break;
-    case KEYCODE_INSERT     : return ecma48_CSI_KEY(tbuf, 0100); break;
-    case KEYCODE_HOME       : return ecma48_CSI_KEY(tbuf, 0110); break;
-    case KEYCODE_PG_UP      : return ecma48_CSI_KEY(tbuf, 0126); break;
-    case KEYCODE_PG_DOWN    : return ecma48_CSI_KEY(tbuf, 0125); break;
+    case KEYCODE_DELETE     : return ecma48_FUNC_KEY(tbuf, 3); break;
+    case KEYCODE_INSERT     : return ecma48_FUNC_KEY(tbuf, 2); break;
+    case KEYCODE_HOME       : return ecma48_NORM_APP(tbuf, 0110); break;
+    case KEYCODE_END        : return ecma48_NORM_APP(tbuf, 0106); break;
+    case KEYCODE_PG_UP      : return ecma48_FUNC_KEY(tbuf, 5); break;
+    case KEYCODE_PG_DOWN    : return ecma48_FUNC_KEY(tbuf, 6); break;
     case KEYCODE_BACK_TAB   : return ecma48_CSI_KEY(tbuf, 0132); break;
-    case KEYCODE_F1         : return ecma48_ESC_O_KEY(tbuf, 0120); break;
-    case KEYCODE_F2         : return ecma48_ESC_O_KEY(tbuf, 0121); break;
-    case KEYCODE_F3         : return ecma48_ESC_O_KEY(tbuf, 0122); break;
-    case KEYCODE_F4         : return ecma48_ESC_O_KEY(tbuf, 0123); break;
-    case KEYCODE_F5         : return ecma48_ESC_O_KEY(tbuf, 0124); break;
-    case KEYCODE_F6         : return ecma48_ESC_O_KEY(tbuf, 0125); break;
-    case KEYCODE_F7         : return ecma48_ESC_O_KEY(tbuf, 0126); break;
-    case KEYCODE_F8         : return ecma48_ESC_O_KEY(tbuf, 0127); break;
-    case KEYCODE_F9         : return ecma48_ESC_O_KEY(tbuf, 0130); break;
-    case KEYCODE_F10        : return ecma48_ESC_O_KEY(tbuf, 0131); break;
-    case KEYCODE_F11        : return ecma48_ESC_O_KEY(tbuf, 0132); break;
-    case KEYCODE_F12        : return ecma48_ESC_O_KEY(tbuf, 0101); break;
-
+    case KEYCODE_F1         : return ecma48_FUNC_KEY(tbuf, 11); break;
+    case KEYCODE_F2         : return ecma48_FUNC_KEY(tbuf, 12); break;
+    case KEYCODE_F3         : return ecma48_FUNC_KEY(tbuf, 13); break;
+    case KEYCODE_F4         : return ecma48_FUNC_KEY(tbuf, 14); break;
+    case KEYCODE_F5         : return ecma48_FUNC_KEY(tbuf, 15); break;
+    case KEYCODE_F6         : return ecma48_FUNC_KEY(tbuf, 17); break;
+    case KEYCODE_F7         : return ecma48_FUNC_KEY(tbuf, 18); break;
+    case KEYCODE_F8         : return ecma48_FUNC_KEY(tbuf, 19); break;
+    case KEYCODE_F9         : return ecma48_FUNC_KEY(tbuf, 20); break;
+    case KEYCODE_F10         : return ecma48_FUNC_KEY(tbuf, 21); break;
+    case KEYCODE_F11         : return ecma48_FUNC_KEY(tbuf, 23); break;
+    case KEYCODE_F12         : return ecma48_FUNC_KEY(tbuf, 24); break;
   }
 
   /* handle the shift key being down */
@@ -3137,7 +3189,7 @@ void ansi_SM(){
   for(i=0; i < NUM_ESCAPE_ARGS; ++i){
     if(Pn[i] >= 0){
       switch(Pn[i]){
-        case 1:  break; // DECCKM ignored
+        case 1: modes.DECCKM = 1; break;
         //case 2:  break; // DECANM
         case 3: ecma48_clear_display(); // Clear the screen and set 132 chars
                 ecma48_set_cursor_home();
@@ -3176,7 +3228,7 @@ void ansi_RM(){
   for(i=0; i < NUM_ESCAPE_ARGS; ++i){
     if(Pn[i] >= 0){
       switch(Pn[i]){
-        case 1:  break; // DECCKM ignored
+        case 1: modes.DECCKM = 0; break;
         case 3: ecma48_clear_display(); // Clear the screen and set 80 chars
                 ecma48_set_cursor_home();
                 set_screen_cols(80);
