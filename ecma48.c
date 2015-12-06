@@ -46,6 +46,7 @@ static char state = ECMA48_STATE_NORMAL;
 static char writing_buffer = BUFFER_NORMAL;
 
 static char autowrap = 1;
+static char rautowrap = 0;
 
 #define NUM_ESCAPE_ARGS 16
 struct escape_arguments {
@@ -640,7 +641,12 @@ void ecma48_BS_INTER(){
   }
   buf->col--;
   if (buf->col < 0) {
-    buf->col = 0;
+    if(rautowrap){
+      buf_decrement_line();
+      buf->col = cols - 1;
+    } else {
+      buf->col = 0;
+    }
   }
 }
 void ecma48_BS(){
@@ -3206,7 +3212,7 @@ void ansi_SM(){
         //case 12: break;
         case 25: draw_cursor = 1; break;
         case 40: modes.DECCOLM = 1; break;
-        //case 45: break; /* Enable reverse wrap (xterm) */
+        case 45: rautowrap = 1; break;
         case 47: buf_save_text(); break; /* xterm alternate screen */
         default: fprintf(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn[i]); break;
       };
@@ -3245,7 +3251,7 @@ void ansi_RM(){
         //case 12: break; // comes after \E?25h for ansi_SM
         case 25: draw_cursor = 0; break;
         case 40: modes.DECCOLM = 0; break;
-        //case 45: break; /* Disable reverse wrap (xterm) */
+        case 45: rautowrap = 0; break;
         case 47: buf_restore_text(); break; /* xterm alternate screen */
         default: fprintf(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn[i]); break;
       };
