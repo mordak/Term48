@@ -240,6 +240,10 @@ void ecma48_add_char(UChar c){
 int ecma48_RETURN(UChar* tbuf){
   int num_chars = 1;
   tbuf[0] = 015;
+  if(modes.LNM){
+    tbuf[1] = 012;
+    num_chars = 2;
+  }
   return num_chars;
 }
 
