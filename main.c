@@ -1373,7 +1373,7 @@ int init_pty() {
     /* add in our private binary path */
     char* home = getenv("SANDBOX");
     char* path = getenv("PATH");
-    char* root = "/app/native/root/bin";
+    char* root = "app/native/root/bin";
     char* newpath;
     int err = 0;
     int newpath_len = 0;
