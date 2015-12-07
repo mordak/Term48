@@ -1370,9 +1370,36 @@ int init_pty() {
 
     ecma48_setenv();
 
+    /* add in our private binary path */
+    char* home = getenv("SANDBOX");
+    char* path = getenv("PATH");
+    char* root = "/app/native/root/bin";
+    char* newpath;
+    int err = 0;
+    int newpath_len = 0;
+    if(home == NULL || path == NULL){
+      fprintf(stderr, "Could not get $HOME or $PATH - not setting private bin dir.\n");
+    } else {
+      newpath_len = strlen(home) + strlen(path) + strlen(root) + 10;
+      newpath = calloc(newpath_len, sizeof(char));
+      if(newpath == NULL){
+        fprintf(stderr, "Could not calloc new $PATH - not setting private bin dir..\n");
+      } else {
+        err = snprintf(newpath, newpath_len, "PATH=%s/%s:%s\n", home, root, path);
+        if(err > 0){
+          err = putenv(strdup(newpath));
+          if(err < 0){
+            fprintf(stderr, "Error in putenv: %d\n%s - private bin may not bein $PATH.\n", errno, newpath);
+          }
+        } else {
+          fprintf(stderr, "Error snprintf setting $PATH: %d\n", errno);
+        }
+        free(newpath);
+      }
+    }
+
     /* Set LC_CTYPE=en_US.UTF-8
-     * Which can be overridden in .profile
-     * */
+     * Which can be overridden in .profile */
     setenv("LC_CTYPE", "en_US.UTF-8", 0);
     execl("../app/native/lib/mksh", "mksh", "-l", (char*)0);
     //execl("/bin/sh", "sh", "-l", (char*)0);
