@@ -24,6 +24,9 @@
 #define PRINT(args...)
 #endif
 
+#define NIPRINT(args...)
+//#define NIPRINT(args...) fprintf(args)
+
 #define TERM_SUCCESS 0
 #define TERM_FAILURE 1
 

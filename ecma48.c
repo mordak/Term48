@@ -491,15 +491,15 @@ We use this function to indicate a control sequence we
 do not or have not implemented
 */
 void ecma48_NOT_IMPLEMENTED(char* function){
-  fprintf(stderr, "NOT IMPLEMENTED: ");
+  NIPRINT(stderr, "NOT IMPLEMENTED: ");
   switch (state){
-    case ECMA48_STATE_C1: fprintf(stderr, "ESC "); break;
-    case ECMA48_STATE_CSI: fprintf(stderr, "ESC [ "); break;
-    case ECMA48_STATE_ANSI: fprintf(stderr, "ESC [ ? "); break;
-    case ECMA48_STATE_ANSI_POUND: fprintf(stderr, "ESC # "); break;
+    case ECMA48_STATE_C1: NIPRINT(stderr, "ESC "); break;
+    case ECMA48_STATE_CSI: NIPRINT(stderr, "ESC [ "); break;
+    case ECMA48_STATE_ANSI: NIPRINT(stderr, "ESC [ ? "); break;
+    case ECMA48_STATE_ANSI_POUND: NIPRINT(stderr, "ESC # "); break;
   }
 
-  fprintf(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
+  NIPRINT(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
                     function,
                     escape_args.args[0],
                     escape_args.args[1],
@@ -2569,7 +2569,7 @@ void ecma48_DA(){
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   switch(Pn){
     case 0:  io_write_master_char(TERMID, sizeof(TERMID)); break;
-    default: fprintf(stderr, "-- Unhandled code in ecma48_DA: %d\n", Pn); break;
+    default: NIPRINT(stderr, "-- Unhandled code in ecma48_DA: %d\n", Pn); break;
   };
   ecma48_end_control();
 }
@@ -3114,7 +3114,7 @@ void ecma48_DSR(){
                 buf_to_screen_col(-1));
             io_write_master_char(cpr, sizeof(cpr));
             break;
-    default: fprintf(stderr, "-- Unhandled code in ecma48_DSR: %d\n", Pn); break;
+    default: NIPRINT(stderr, "-- Unhandled code in ecma48_DSR: %d\n", Pn); break;
   }
   ecma48_end_control();
 }
@@ -3157,7 +3157,7 @@ void ecma48_DAQ(){
 }
 
 void ecma48_UNRECOGNIZED_CONTROL(char terminator){
-  fprintf(stderr, "** UNRECOGNIZED control sequence ESC %s;%s;%s;%s;%s;%s;%s;%s;%s;%s %c (0x%x) - NumArgs=%d, state=%d\n",
+  NIPRINT(stderr, "** UNRECOGNIZED control sequence ESC %s;%s;%s;%s;%s;%s;%s;%s;%s;%s %c (0x%x) - NumArgs=%d, state=%d\n",
                   escape_args.args[0],
                   escape_args.args[1],
                   escape_args.args[2],
@@ -3218,7 +3218,7 @@ void ansi_SM(){
         case 40: modes.DECCOLM = 1; break;
         case 45: rautowrap = 1; break;
         case 47: buf_save_text(); break; /* xterm alternate screen */
-        default: fprintf(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn[i]); break;
+        default: NIPRINT(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn[i]); break;
       };
     }
   }
@@ -3257,7 +3257,7 @@ void ansi_RM(){
         case 40: modes.DECCOLM = 0; break;
         case 45: rautowrap = 0; break;
         case 47: buf_restore_text(); break; /* xterm alternate screen */
-        default: fprintf(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn[i]); break;
+        default: NIPRINT(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn[i]); break;
       };
     }
   }
