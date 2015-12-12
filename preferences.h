@@ -33,7 +33,7 @@
 #define PREFS_V7_KDEF_L "kcuf1"
 #define PREFS_V7_KDEF_H "kcub1"
 
-static int PREFS_VERSION = 7;
+static int PREFS_VERSION = 8;
 
 struct symkey_entry {
 	const char* name;
@@ -74,6 +74,7 @@ static struct preferences_keys_t {
 	char* sticky_shift_key;
 	char* sticky_alt_key;
 	char* tty_encoding;
+	char* allow_resize_columns;
 	char* prefs_version;
 } preference_keys = {
 		.font_path = "font_path",
@@ -102,6 +103,7 @@ static struct preferences_keys_t {
 		.sticky_shift_key = "sticky_shift_key",
 		.sticky_alt_key = "sticky_alt_key",
 		.tty_encoding = "tty_encoding",
+		.allow_resize_columns = "allow_resize_columns",
 		.prefs_version = "prefs_version"
 };
 
@@ -116,6 +118,7 @@ static struct preference_defaults_t {
 	int metamode_doubletap_delay;
 	int keyhold_actions;
 	int metamode_hold_key;
+  int allow_resize_columns;
 	struct hitbox_t {
 		int x;
 		int y;
@@ -143,6 +146,7 @@ static struct preference_defaults_t {
 		.metamode_doubletap_delay = 500000000,
 		.keyhold_actions = 1,
 		.metamode_hold_key = KEYCODE_SPACE,
+		.allow_resize_columns = 0,
 		.hitbox = {0,0,100,100},
 		.tty_encoding = "UTF-8",
 		/* remember to update array size above when changing */

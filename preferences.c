@@ -241,6 +241,7 @@ void preferences_init(){
   preferences_init_int(root, preference_keys.font_size, preferences_guess_best_font_size(default_font_columns));
   preferences_init_bool(root, preference_keys.screen_idle_awake, preference_defaults.screen_idle_awake);
   preferences_init_bool(root, preference_keys.auto_show_vkb, preference_defaults.auto_show_vkb);
+  preferences_init_bool(root, preference_keys.allow_resize_columns, preference_defaults.allow_resize_columns);
   preferences_init_bool(root, preference_keys.keyhold_actions, preference_defaults.keyhold_actions);
   preferences_init_bool(root, preference_keys.sticky_sym_key, preference_defaults.sticky_sym_key);
   preferences_init_bool(root, preference_keys.sticky_shift_key, preference_defaults.sticky_shift_key);

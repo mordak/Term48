@@ -946,17 +946,19 @@ void indicate_event_input(){
  * colums after app init */
 void set_screen_cols(int ncols){
   /* the user wants this number of columns */
-  int new_fontsize = preferences_guess_best_font_size(ncols);
-  font_uninit();
-  buf_clear_all_renders();
-  if(font_init(new_fontsize) == TERM_FAILURE){
-    fprintf(stderr, "Error setting new font size\n");
-    exit_application = 1;
-  } else {
-    setup_screen_size(screen->w, screen->h);
-    /* and force the number of columns */
-    cols = ncols;
-    set_tty_window_size();
+  if(preferences_get_bool(preference_keys.allow_resize_columns)){
+    int new_fontsize = preferences_guess_best_font_size(ncols);
+    font_uninit();
+    buf_clear_all_renders();
+    if(font_init(new_fontsize) == TERM_FAILURE){
+      fprintf(stderr, "Error setting new font size\n");
+      exit_application = 1;
+    } else {
+      setup_screen_size(screen->w, screen->h);
+      /* and force the number of columns */
+      cols = ncols;
+      set_tty_window_size();
+    }
   }
 }
 
