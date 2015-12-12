@@ -274,16 +274,8 @@ void buf_check_screen_scroll(){
 
   struct screenchar* tmp;
 
-  // check if we have scrolled the screen
-  if(buf->line - buf->top_line >= rows){
-    // if the buffer last line is now behind the writing line
-    // increment the buffer top line
-    buf->top_line = buf->line - (rows - 1);
-    // and erase the newly revealed line
-    buf_erase_line(buf->text[buf->line], cols);
-  }
-  // and check if we are out of buffer
-  if(buf->line >= TEXT_BUFFER_SIZE - 1) { // better not be greater than..
+  // check if we are out of buffer
+  if(buf->line >= TEXT_BUFFER_SIZE - 1) {
     // then rotate the buffer space
     // top half of the buffer is pushed into the bottom
     int shift = TEXT_BUFFER_SIZE / 2;
@@ -298,6 +290,16 @@ void buf_check_screen_scroll(){
     buf->top_line -= shift;
     buf->line -= shift;
   }
+
+  // and check if we have scrolled the screen
+  if(buf->line - buf->top_line >= rows){
+    // if the buffer last line is now behind the writing line
+    // increment the buffer top line
+    buf->top_line = buf->line - (rows - 1);
+    // and erase the newly revealed line
+    buf_erase_line(buf->text[buf->line], cols);
+  }
+
   PRINT(stderr, "top line = %d, text_line = %d\n", buf->top_line, buf->line);
 }
 
@@ -305,15 +307,7 @@ void buf_check_screen_rscroll(){
 
   struct screenchar* tmp;
 
-  // check if we have scrolled the screen upwards
-  if(buf->line < buf->top_line){
-    // if the buffer writing line is now above the top line
-    // move the top line to the writing line
-    buf->top_line = buf->line;
-    // and erase the newly revealed line
-    buf_erase_line(buf->text[buf->line], cols);
-  }
-  // and check if we are out of buffer
+  // check if we are out of buffer
   if(buf->line < 0) {
     int shift = TEXT_BUFFER_SIZE / 2;
     int i = 0;
@@ -327,6 +321,16 @@ void buf_check_screen_rscroll(){
     buf->top_line += shift;
     buf->line += shift;
   }
+
+  // and check if we have scrolled the screen upwards
+  if(buf->line < buf->top_line){
+    // if the buffer writing line is now above the top line
+    // move the top line to the writing line
+    buf->top_line = buf->line;
+    // and erase the newly revealed line
+    buf_erase_line(buf->text[buf->line], cols);
+  }
+
   PRINT(stderr, "top line = %d, text_line = %d\n", buf->top_line, buf->line);
 }
 
