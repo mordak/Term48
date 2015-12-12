@@ -147,13 +147,13 @@ int preferences_check_version(config_setting_t* root, char* key){
 		/* from prefs v6 to v7, the default value of hjkl changed */
 		setting = config_setting_get_member(root, preference_keys.metamode_sticky_keys);
 		ms_key = preferences_get_metamode_sticky_keys('h');
-		if(0 == strncmp(ms_key, PREFS_V6_KDEF_H, 3)) { preferences_replace_string(setting, "h", PREFS_V7_KDEF_H);}
+		if((ms_key != NULL) && 0 == strncmp(ms_key, PREFS_V6_KDEF_H, 3)) { preferences_replace_string(setting, "h", PREFS_V7_KDEF_H);}
 		ms_key = preferences_get_metamode_sticky_keys('j');
-		if(0 == strncmp(ms_key, PREFS_V6_KDEF_J, 3)) { preferences_replace_string(setting, "j", PREFS_V7_KDEF_J);}
+		if((ms_key != NULL) && 0 == strncmp(ms_key, PREFS_V6_KDEF_J, 3)) { preferences_replace_string(setting, "j", PREFS_V7_KDEF_J);}
 		ms_key = preferences_get_metamode_sticky_keys('k');
-		if(0 == strncmp(ms_key, PREFS_V6_KDEF_K, 3)) { preferences_replace_string(setting, "k", PREFS_V7_KDEF_K);}
+		if((ms_key != NULL) && 0 == strncmp(ms_key, PREFS_V6_KDEF_K, 3)) { preferences_replace_string(setting, "k", PREFS_V7_KDEF_K);}
 		ms_key = preferences_get_metamode_sticky_keys('l');
-		if(0 == strncmp(ms_key, PREFS_V6_KDEF_L, 3)) { preferences_replace_string(setting, "l", PREFS_V7_KDEF_L);}
+		if((ms_key != NULL) && 0 == strncmp(ms_key, PREFS_V6_KDEF_L, 3)) { preferences_replace_string(setting, "l", PREFS_V7_KDEF_L);}
 		return 1;
   }
   return 0;
