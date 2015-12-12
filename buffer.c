@@ -22,7 +22,7 @@
 
 #include "buffer.h"
 
-static int saved_buf_p;
+static uint saved_buf_p;
 static saved_buf_t* saved_buf;
 static buf_t* screens;
 
