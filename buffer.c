@@ -548,27 +548,27 @@ void buf_restore_text(){
 }
 
 void buf_save_cursor(){
-  //fprintf(stderr, "Printing buffer variables: top_line: %d, line: %d\n", buf->top_line, buf->line);
+  PRINT(stderr, "\nSaving buffer variables: top_line: %d, line: %d\n", buf->top_line, buf->line);
   saved_buf_t *sb = &(saved_buf[saved_buf_p]);
   sb->row = buf_to_screen_row(buf->line);
   sb->col = buf_to_screen_col(buf->col);
   sb->origin = buf->origin;
   sb->current_style = buf->current_style;
   sb->inverse_video = buf->inverse_video;
-  //fprintf(stderr, "Printing saved_buf_stuff: saved_buf_p: %d, row:%d, sb_mem:%x\n", saved_buf_p, sb->row, (uint)sb);
+  PRINT(stderr, "\nSaved_buf_stuff: saved_buf_p: %d, row:%d, sb_mem:%x\n", saved_buf_p, sb->row, (uint)sb);
 }
 
 void buf_restore_cursor(){
   saved_buf_t *sb = &(saved_buf[saved_buf_p]);
-  //fprintf(stderr, "Printing saved_buf_stuff: saved_buf_p: %d, row:%d, sb_mem:%x\n", saved_buf_p, sb->row, (uint)sb);
+  PRINT(stderr, "\nRestoring saved_buf_stuff: saved_buf_p: %d, row:%d, sb_mem:%x\n", saved_buf_p, sb->row, (uint)sb);
   buf->line = screen_to_buf_row(sb->row);
   buf->col  = screen_to_buf_col(sb->col);
   buf->origin = sb->origin;
   buf->current_style = sb->current_style;
   buf->inverse_video = sb->inverse_video;
-  //fprintf(stderr, "Printing buffer variables: top_line: %d, line: %d\n", buf->top_line, buf->line);
+  PRINT(stderr, "\n Restored buffer variables: top_line: %d, line: %d\n", buf->top_line, buf->line);
   if(buf->line < 0){
-    fprintf(stderr, "Error - buf->line was < 0, this shouldn't happen");
+    PRINT(stderr, " --- Error - buf->line was < 0, this shouldn't happen\n");
     buf->line = buf->top_line;
   }
 }

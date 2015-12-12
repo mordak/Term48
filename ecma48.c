@@ -43,6 +43,10 @@ static char state = ECMA48_STATE_NORMAL;
 
 #define BUFFER_NORMAL 0
 #define BUFFER_OSC 1
+#define BUFFER_DCS 2
+#define BUFFER_APC 3
+#define BUFFER_PM 4
+
 static char writing_buffer = BUFFER_NORMAL;
 
 static char autowrap = 1;
@@ -462,15 +466,15 @@ int ecma48_parse_control_codes(int sym, int mod, UChar* tbuf){
  * prints the control sequence and escape arg buffers
  */
 void ecma48_PRINT_CONTROL_SEQUENCE(char* terminator){
-  PRINT(stderr, "Control Sequence: ");
+  NIPRINT(stderr, "Control Sequence: ");
   switch (state){
-    case ECMA48_STATE_C1: PRINT(stderr, "ESC "); break;
-    case ECMA48_STATE_CSI: PRINT(stderr, "ESC [ "); break;
-    case ECMA48_STATE_ANSI: PRINT(stderr, "ESC [ ? "); break;
-    case ECMA48_STATE_ANSI_POUND: PRINT(stderr, "ESC # "); break;
+    case ECMA48_STATE_C1: NIPRINT(stderr, "ESC "); break;
+    case ECMA48_STATE_CSI: NIPRINT(stderr, "ESC [ "); break;
+    case ECMA48_STATE_ANSI: NIPRINT(stderr, "ESC [ ? "); break;
+    case ECMA48_STATE_ANSI_POUND: NIPRINT(stderr, "ESC # "); break;
   }
 
-  	PRINT(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
+  NIPRINT(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
   									terminator,
                     escape_args.args[0],
                     escape_args.args[1],
@@ -958,7 +962,7 @@ number of bit combinations following it in the data stream to be changed.
 The use of ESC is defined in Standard ECMA-35.
 */
 void ecma48_ESC(){
-  ecma48_PRINT_CONTROL_SEQUENCE("ESC");
+  //ecma48_PRINT_CONTROL_SEQUENCE("ESC");
   //ecma48_escape_args_init();
   state = ECMA48_STATE_C1;
 }
@@ -1239,7 +1243,9 @@ IDENTIFY DEVICE CONTROL STRING (IDCS), if any, or depend on the sending and/or
 the receiving device.
 */
 void ecma48_DCS(){
-  ecma48_NOT_IMPLEMENTED("DCS");
+  ecma48_PRINT_CONTROL_SEQUENCE("DCS");
+  writing_buffer = BUFFER_DCS;
+  ecma48_end_control();
 }
 
 /*
@@ -1424,7 +1430,9 @@ terminating delimiter STRING TERMINATOR (ST). The interpretation of the command
 string depends on the relevant privacy discipline.
 */
 void ecma48_PM(){
-  ecma48_NOT_IMPLEMENTED("PM");
+  ecma48_PRINT_CONTROL_SEQUENCE("PM");
+  writing_buffer = BUFFER_PM;
+  ecma48_end_control();
 }
 
 /*
@@ -1438,7 +1446,9 @@ terminating delimiter STRING TERMINATOR (ST). The interpretation of the command
 string depends on the relevant application program.
 */
 void ecma48_APC(){
-  ecma48_NOT_IMPLEMENTED("APC");
+  ecma48_PRINT_CONTROL_SEQUENCE("APC");
+  writing_buffer = BUFFER_APC;
+  ecma48_end_control();
 }
 
 /*
@@ -3357,7 +3367,6 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
 
   ssize_t i;
 
-  PRINT(stderr, "Got characters:");
   for(i = 0; i < chars; ++i){
     PRINT(stderr, "%x:", tbuf[i]);
 
