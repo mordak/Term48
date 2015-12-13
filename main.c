@@ -1403,7 +1403,7 @@ int init_pty() {
     /* Set LC_CTYPE=en_US.UTF-8
      * Which can be overridden in .profile */
     setenv("LC_CTYPE", "en_US.UTF-8", 0);
-    if(execl("../app/native/lib/mksh", "mksh", "-l", (char*)0) == -1){
+    if(execl("../app/native/root/bin/mksh", "mksh", "-l", (char*)0) == -1){
       execl("/bin/sh", "sh", "-l", (char*)0);
     }
   }
