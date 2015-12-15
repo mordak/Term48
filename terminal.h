@@ -27,6 +27,8 @@
 #define NIPRINT(args...)
 //#define NIPRINT(args...) fprintf(args)
 
+#define BETWEEN(x, low, high) ((x) >= (low) && (x) <= (high))
+
 #define TERM_SUCCESS 0
 #define TERM_FAILURE 1
 

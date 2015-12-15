@@ -28,6 +28,7 @@
 #include "terminal.h"
 #include "buffer.h"
 #include "io.h"
+#include "colors.h"
 
 #include "ecma48.h"
 
@@ -3028,7 +3029,29 @@ void ecma48_SGR(){
         case 37: // 37 white display [229,229,229] b [255,255,255]
           buf->current_style.fg_color = (SDL_Color)WHITE;
           break;
-        case 38: break;
+        case 38: // extended colour support
+          if (i+1 < NUM_ESCAPE_ARGS) { //don't overflow
+            switch(Pn[i+1]){
+              case 2: // literal color
+                if((((i+2) < NUM_ESCAPE_ARGS) && (BETWEEN(Pn[i+2], 0, 255))) &&
+                   (((i+3) < NUM_ESCAPE_ARGS) && (BETWEEN(Pn[i+3], 0, 255))) &&
+                   (((i+4) < NUM_ESCAPE_ARGS) && (BETWEEN(Pn[i+4], 0, 255)))){
+                  buf->current_style.fg_color = (SDL_Color){Pn[i+2], Pn[i+3], Pn[i+4], 0};
+                  i += 4;
+                }
+                break;
+              case 5: // indexed color
+                if((i+2 < NUM_ESCAPE_ARGS) && (BETWEEN(Pn[i+2], 0, 255))){
+                  buf->current_style.fg_color = (SDL_Color)term_colors[Pn[i+2]];
+                  i += 2;
+                }
+                break;
+              default: // invalid
+                PRINT(stderr, "-- Invalid option passed to SGR 38: %d", Pn[i]);
+                break;
+            }
+          }
+          break;
         case 39: // 39 default display colour [255,255,255]
           buf->current_style.fg_color = default_text_style.fg_color;
           break;
@@ -3056,7 +3079,29 @@ void ecma48_SGR(){
         case 47: // 47 white background [255,225,255]
           buf->current_style.bg_color = (SDL_Color)WHITE;
           break;
-        case 48: break;
+        case 48: // extended colour support
+          if (i+1 < NUM_ESCAPE_ARGS) { //don't overflow
+            switch(Pn[i+1]){
+              case 2: // literal color
+                if((((i+2) < NUM_ESCAPE_ARGS) && (BETWEEN(Pn[i+2], 0, 255))) &&
+                   (((i+3) < NUM_ESCAPE_ARGS) && (BETWEEN(Pn[i+3], 0, 255))) &&
+                   (((i+4) < NUM_ESCAPE_ARGS) && (BETWEEN(Pn[i+4], 0, 255)))){
+                  buf->current_style.bg_color = (SDL_Color){Pn[i+2], Pn[i+3], Pn[i+4], 0};
+                  i += 4;
+                }
+                break;
+              case 5: // indexed color
+                if((i+2 < NUM_ESCAPE_ARGS) && (BETWEEN(Pn[i+2], 0, 255))){
+                  buf->current_style.bg_color = (SDL_Color)term_colors[Pn[i+2]];
+                  i += 2;
+                }
+                break;
+              default: // invalid
+                PRINT(stderr, "-- Invalid option passed to SGR 48: %d", Pn[i]);
+                break;
+            }
+          }
+          break;
         case 49: // 49 default background colour
           buf->current_style.bg_color = default_text_style.bg_color;
           break;
