@@ -40,6 +40,7 @@
 #define ECMA48_STATE_ANSI_POUND 4
 #define ECMA48_STATE_ANSI_SCS 5
 #define ECMA48_STATE_ANSI_RANG 6
+#define ECMA48_STATE_CONFORMANCE 7
 static char state = ECMA48_STATE_NORMAL;
 
 #define BUFFER_NORMAL 0
@@ -3344,9 +3345,14 @@ void ansi_POUND(){
   state = ECMA48_STATE_ANSI_POUND;
 }
 
+void ansi_CONFORMANCE(){
+  state = ECMA48_STATE_CONFORMANCE;
+}
+
 void ansi_SCS(){
-  /* we would need two states for this '(' and ')'
-   * if we ever implement it */
+  /* in order to properly do this, add a parameter
+   * that handles the byte used %()*+-./ before the
+   * final byte C@G */
   state = ECMA48_STATE_ANSI_SCS;
 }
 
@@ -3454,11 +3460,20 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
         }; break;
       case ECMA48_STATE_C1:
         switch(tbuf[i]){
+          case 0x20: ansi_CONFORMANCE(); break;
           case 0x23: ansi_POUND(); break;
+          case 0x25: ansi_SCS(); break;
           case 0x28: ansi_SCS(); break;
           case 0x29: ansi_SCS(); break;
+          case 0x2a: ansi_SCS(); break;
+          case 0x2b: ansi_SCS(); break;
+          case 0x2d: ansi_SCS(); break;
+          case 0x2e: ansi_SCS(); break;
+          case 0x2f: ansi_SCS(); break;
+          //case 0x36: ansi_DECBI(); break;
           case 0x37: ansi_SC(); break;
           case 0x38: ansi_RC(); break;
+          // case 0x39: ansi_DECFI(); break;
           case 0x3c: ansi_DECANM(); break;
           case 0x3d: // 0x3d/3e turn on / off cursor mode
           case 0x3e: ansi_DECKPAM(); break;
@@ -3650,6 +3665,10 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x3b: ecma48_parameter_arg_next(); break;
           /* final bytes */
           default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
+        }; break;
+      case ECMA48_STATE_CONFORMANCE:
+        switch(tbuf[i]){
+          default: ecma48_NOT_IMPLEMENTED("CONFORMANCE");
         }; break;
     }
   }
