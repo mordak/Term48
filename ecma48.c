@@ -41,6 +41,7 @@
 #define ECMA48_STATE_ANSI_SCS 5
 #define ECMA48_STATE_ANSI_RANG 6
 #define ECMA48_STATE_CONFORMANCE 7
+#define ECMA48_STATE_EXCLAIM 8
 static char state = ECMA48_STATE_NORMAL;
 
 #define BUFFER_NORMAL 0
@@ -3414,6 +3415,30 @@ void ansi_DECALN(){
 	ecma48_end_control();
 }
 
+/* soft terminal reset */
+void dec_DECSTR(){
+  draw_cursor = 1; // enable cursor
+  modes.IRM = 0; // replace mode (IRM)
+  buf->origin = 0; // origin absolute
+  autowrap = 0; // autowrap off
+  // DECNRCM Multinational
+  // Keyboard action unlocked (KAM)
+  // DECNKM numeric
+  modes.DECCKM = 0; // DECCKM normal (arrow keys)
+  sr.top = 1; sr.bottom = rows; // unset top and bottom margins
+  // character settings default
+  buf->current_style = default_text_style; // SGR Normal
+  // DECSCA normal (character attributes)
+  buf_save_cursor(); // save cursor state
+  ecma48_set_cursor_home(); // set home position
+  // DECAUPSS Set selected
+  // DECSASD Main display
+  // DECKPM charactrer codes
+  // DECRLM left to right
+  // DECPCTERM reset
+}
+
+
 void ecma48_filter_text(UChar* tbuf, ssize_t chars){
 
   ssize_t i;
@@ -3669,6 +3694,11 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
       case ECMA48_STATE_CONFORMANCE:
         switch(tbuf[i]){
           default: ecma48_NOT_IMPLEMENTED("CONFORMANCE");
+        }; break;
+      case ECMA48_STATE_EXCLAIM:
+        switch(tbuf[i]){
+          case 0x70: dec_DECSTR(); break;
+          default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]);
         }; break;
     }
   }
