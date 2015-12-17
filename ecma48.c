@@ -41,8 +41,8 @@
 #define ECMA48_STATE_ANSI_SCS 5
 #define ECMA48_STATE_ANSI_RANG 6
 #define ECMA48_STATE_CONFORMANCE 7
-#define ECMA48_STATE_EXCLAIM 8
 static char state = ECMA48_STATE_NORMAL;
+static char csi_byte = '\0';
 
 #define BUFFER_NORMAL 0
 #define BUFFER_OSC 1
@@ -60,6 +60,7 @@ struct escape_arguments {
   char** args;
   int num;
   int pos;
+  char pbyte;
 };
 
 static struct escape_arguments escape_args;
@@ -113,6 +114,8 @@ void ecma48_escape_args_init(){
   }
   escape_args.num = 0;
   escape_args.pos = 0;
+  escape_args.pbyte = '\0';
+
 }
 
 void ecma48_parameter_arg_add(char c){
@@ -3369,10 +3372,6 @@ void setstate_CONFORMANCE(){
   state = ECMA48_STATE_CONFORMANCE;
 }
 
-void setstate_EXCLAIM(){
-  state = ECMA48_STATE_EXCLAIM;
-}
-
 void setstate_SCS(){
   /* in order to properly do this, add a parameter
    * that handles the byte used %()*+-./ before the
@@ -3438,6 +3437,10 @@ void ansi_DECALN(){
 	ecma48_end_control();
 }
 
+void set_CSI_BYTE(char b){
+  escape_args.pbyte = b;
+}
+
 /* soft terminal reset */
 void dec_DECSTR(){
   draw_cursor = 1; // enable cursor
@@ -3461,6 +3464,20 @@ void dec_DECSTR(){
   // DECPCTERM reset
 }
 
+void dec_MODE(){
+  ecma48_PRINT_CONTROL_SEQUENCE("dec_MODE");
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
+  int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 10) : 0;
+  switch(escape_args.pbyte){
+    case '!': dec_DECSTR(); break;
+    default: NIPRINT(stderr, "dec_MODE not implemented: %d;%d %x\n", Pn, Pn2, escape_args.pbyte);
+  }
+  ecma48_end_control();
+}
+
+void dec_LED_ATTRIB(){
+  ecma48_NOT_IMPLEMENTED("LED_ATTRIB");
+}
 
 void ecma48_filter_text(UChar* tbuf, ssize_t chars){
 
@@ -3509,7 +3526,6 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
       case ECMA48_STATE_C1:
         switch(tbuf[i]){
           case 0x20: setstate_CONFORMANCE(); break;
-          case 0x21: setstate_EXCLAIM(); break;
           case 0x23: setstate_POUND(); break;
           case 0x25: setstate_SCS(); break;
           case 0x28: setstate_SCS(); break;
@@ -3578,17 +3594,17 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x0c: ecma48_FF_INTER(); break;
           case 0x0d: ecma48_CR_INTER(); break;
           /* intermediate bytes */
-          case 0x20:
-          case 0x21:
-          case 0x22:
+          case 0x20: set_CSI_BYTE(' '); break;
+          case 0x21: set_CSI_BYTE('!'); break;
+          case 0x22: set_CSI_BYTE('"'); break;
           case 0x23:
-          case 0x24:
+          case 0x24: set_CSI_BYTE('#'); break;
           case 0x25:
           case 0x26:
-          case 0x27:
+          case 0x27: set_CSI_BYTE('\''); break;
           case 0x28:
           case 0x29:
-          case 0x2a:
+          case 0x2a: set_CSI_BYTE('*'); break;
           case 0x2b:
           case 0x2c:
           case 0x2d:
@@ -3658,6 +3674,8 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x6d: ecma48_SGR(); break;
           case 0x6e: ecma48_DSR(); break;
           case 0x6f: ecma48_DAQ(); break;
+          case 0x70: dec_MODE(); break;
+          case 0x71: dec_LED_ATTRIB(); break;
           case 0x72: ansi_CSR(); break;
           case 0x7e: ansi_FUNCKEY(); break;
           default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
@@ -3718,11 +3736,6 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
       case ECMA48_STATE_CONFORMANCE:
         switch(tbuf[i]){
           default: ecma48_NOT_IMPLEMENTED("CONFORMANCE");
-        }; break;
-      case ECMA48_STATE_EXCLAIM:
-        switch(tbuf[i]){
-          case 0x70: dec_DECSTR(); break;
-          default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]);
         }; break;
     }
   }
