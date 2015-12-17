@@ -60,7 +60,7 @@ struct escape_arguments {
   char** args;
   int num;
   int pos;
-  char pbyte;
+  char ibyte;
 };
 
 static struct escape_arguments escape_args;
@@ -114,7 +114,7 @@ void ecma48_escape_args_init(){
   }
   escape_args.num = 0;
   escape_args.pos = 0;
-  escape_args.pbyte = '\0';
+  escape_args.ibyte = '\0';
 
 }
 
@@ -3437,8 +3437,8 @@ void ansi_DECALN(){
 	ecma48_end_control();
 }
 
-void set_CSI_BYTE(char b){
-  escape_args.pbyte = b;
+void set_INTERMEDIATE_BYTE(char b){
+  escape_args.ibyte = b;
 }
 
 /* soft terminal reset */
@@ -3468,9 +3468,9 @@ void dec_MODE(){
   ecma48_PRINT_CONTROL_SEQUENCE("dec_MODE");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   int Pn2 = escape_args.args[1][0] != '\0' ? (int)strtol(escape_args.args[1],NULL, 10) : 0;
-  switch(escape_args.pbyte){
+  switch(escape_args.ibyte){
     case '!': dec_DECSTR(); break;
-    default: NIPRINT(stderr, "dec_MODE not implemented: %d;%d %x\n", Pn, Pn2, escape_args.pbyte);
+    default: NIPRINT(stderr, "dec_MODE not implemented: %d;%d %x\n", Pn, Pn2, escape_args.ibyte);
   }
   ecma48_end_control();
 }
@@ -3594,22 +3594,22 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x0c: ecma48_FF_INTER(); break;
           case 0x0d: ecma48_CR_INTER(); break;
           /* intermediate bytes */
-          case 0x20: set_CSI_BYTE(' '); break;
-          case 0x21: set_CSI_BYTE('!'); break;
-          case 0x22: set_CSI_BYTE('"'); break;
-          case 0x23:
-          case 0x24: set_CSI_BYTE('#'); break;
-          case 0x25:
-          case 0x26:
-          case 0x27: set_CSI_BYTE('\''); break;
-          case 0x28:
-          case 0x29:
-          case 0x2a: set_CSI_BYTE('*'); break;
-          case 0x2b:
-          case 0x2c:
-          case 0x2d:
-          case 0x2e:
-          case 0x2f: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
+          case 0x20: set_INTERMEDIATE_BYTE(' '); break;
+          case 0x21: set_INTERMEDIATE_BYTE('!'); break;
+          case 0x22: set_INTERMEDIATE_BYTE('"'); break;
+          case 0x23: set_INTERMEDIATE_BYTE('#'); break;
+          case 0x24: set_INTERMEDIATE_BYTE('$'); break;
+          case 0x25: set_INTERMEDIATE_BYTE('%'); break;
+          case 0x26: set_INTERMEDIATE_BYTE('&'); break;
+          case 0x27: set_INTERMEDIATE_BYTE('\''); break;
+          case 0x28: set_INTERMEDIATE_BYTE('('); break;
+          case 0x29: set_INTERMEDIATE_BYTE(')'); break;
+          case 0x2a: set_INTERMEDIATE_BYTE('*'); break;
+          case 0x2b: set_INTERMEDIATE_BYTE('+'); break;
+          case 0x2c: set_INTERMEDIATE_BYTE(','); break;
+          case 0x2d: set_INTERMEDIATE_BYTE('-'); break;
+          case 0x2e: set_INTERMEDIATE_BYTE('.'); break;
+          case 0x2f: set_INTERMEDIATE_BYTE('/'); break;
           /* parameter bytes */
           case 0x30:
           case 0x31:
