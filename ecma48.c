@@ -143,15 +143,7 @@ void ecma48_set_cursor_home(){
 	ecma48_CUP();
 }
 
-void ecma48_init(){
-  int i;
-  /* malloc the escape code arguments */
-  escape_args.args = (char**)calloc(NUM_ESCAPE_ARGS, sizeof(char*));
-  for(i=0; i< NUM_ESCAPE_ARGS;++i){
-    escape_args.args[i] = (char*)calloc(NUM_ESCAPE_ARGS, sizeof(char));
-  }
-
-  /* set the initial modes */
+void ecma48_resetModes(){
   modes.BDSM = 0;
   modes.CRM = 0;
   modes.DCSM = 0;
@@ -176,6 +168,18 @@ void ecma48_init(){
   modes.SIMD = 0;
   modes.DECCKM = 0;
   modes.DECCOLM = 0;
+}
+
+void ecma48_init(){
+  int i;
+  /* malloc the escape code arguments */
+  escape_args.args = (char**)calloc(NUM_ESCAPE_ARGS, sizeof(char*));
+  for(i=0; i< NUM_ESCAPE_ARGS;++i){
+    escape_args.args[i] = (char*)calloc(NUM_ESCAPE_ARGS, sizeof(char));
+  }
+
+  /* set the initial modes */
+  ecma48_resetModes();
 }
 
 void ecma48_uninit(){
@@ -377,10 +381,10 @@ int ecma48_parse_control_codes(int sym, int mod, UChar* tbuf){
     case KEYCODE_PG_UP      : return ecma48_FUNC_KEY(tbuf, 5); break;
     case KEYCODE_PG_DOWN    : return ecma48_FUNC_KEY(tbuf, 6); break;
     case KEYCODE_BACK_TAB   : return ecma48_CSI_KEY(tbuf, 0132); break;
-    case KEYCODE_F1         : return ecma48_FUNC_KEY(tbuf, 11); break;
-    case KEYCODE_F2         : return ecma48_FUNC_KEY(tbuf, 12); break;
-    case KEYCODE_F3         : return ecma48_FUNC_KEY(tbuf, 13); break;
-    case KEYCODE_F4         : return ecma48_FUNC_KEY(tbuf, 14); break;
+    case KEYCODE_F1         : return ecma48_ESC_O_KEY(tbuf, 'P'); break;
+    case KEYCODE_F2         : return ecma48_ESC_O_KEY(tbuf, 'Q'); break;
+    case KEYCODE_F3         : return ecma48_ESC_O_KEY(tbuf, 'R'); break;
+    case KEYCODE_F4         : return ecma48_ESC_O_KEY(tbuf, 'S'); break;
     case KEYCODE_F5         : return ecma48_FUNC_KEY(tbuf, 15); break;
     case KEYCODE_F6         : return ecma48_FUNC_KEY(tbuf, 17); break;
     case KEYCODE_F7         : return ecma48_FUNC_KEY(tbuf, 18); break;
@@ -964,7 +968,7 @@ ESC is used for code extension purposes. It causes the meanings of a limited
 number of bit combinations following it in the data stream to be changed.
 The use of ESC is defined in Standard ECMA-35.
 */
-void ecma48_ESC(){
+void setstate_ESC(){
   //ecma48_PRINT_CONTROL_SEQUENCE("ESC");
   //ecma48_escape_args_init();
   state = ECMA48_STATE_C1;
@@ -1387,7 +1391,7 @@ Notation: (C1)
 Representation: 09/11 or ESC 05/11
 CSI is used as the first character of a control sequence, see 5.4.
 */
-void ecma48_CSI(){
+void setstate_CSI(){
   state = ECMA48_STATE_CSI;
 }
 
@@ -1403,7 +1407,6 @@ void ecma48_ST(){
   ecma48_PRINT_CONTROL_SEQUENCE("ST");
   writing_buffer = BUFFER_NORMAL;
   ecma48_end_control();
-
 }
 
 /*
@@ -1499,7 +1502,14 @@ data position to the first character position of the first line in the data
 component, set the modes into the reset state, etc.
 */
 void ecma48_RIS(){
-  ecma48_NOT_IMPLEMENTED("RIS");
+  ecma48_PRINT_CONTROL_SEQUENCE("RIS");
+  ecma48_resetModes();
+  buf_reset_text_buffer(buf);
+  clear_all_char_tabstops();
+  buf_clear_all_vtabs();
+  sr.top = 1;
+  sr.bottom = rows;
+  ecma48_end_control();
 }
 
 /*
@@ -2597,7 +2607,10 @@ component in a direction parallel to the line progression, where n equals the
 value of Pn.
 */
 void ecma48_VPA(){
-  ecma48_NOT_IMPLEMENTED("VPA");
+  ecma48_PRINT_CONTROL_SEQUENCE("VPA");
+  int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 1;
+  buf->line = screen_to_buf_row(Pn);
+  ecma48_end_control();
 }
 
 /*
@@ -2610,7 +2623,9 @@ component in a direction parallel to the line progression, where n equals the
 value of Pn.
 */
 void ecma48_VPR(){
-  ecma48_NOT_IMPLEMENTED("VPR");
+  ecma48_PRINT_CONTROL_SEQUENCE("VPR");
+  ecma48_CUD();
+  //ecma_end_control();
 }
 
 /*
@@ -2624,10 +2639,8 @@ position according to the character progression, where n equals the value of Pn1
 and m equals the value of Pn2.
 */
 void ecma48_HVP(){
-
   ecma48_PRINT_CONTROL_SEQUENCE("HVP");
   ecma48_CUP();
-
   //ecma48_end_control();
 }
 
@@ -3233,11 +3246,11 @@ void ecma48_UNRECOGNIZED_CONTROL(char terminator){
   ecma48_end_control();
 }
 
-void ecma48_ANSI(){
+void setstate_ANSI(){
   state = ECMA48_STATE_ANSI;
 }
 
-void ecma48_ANSI_RANG(){
+void setstate_ANSI_RANG(){
   state = ECMA48_STATE_ANSI_RANG;
 }
 
@@ -3270,11 +3283,14 @@ void ansi_SM(){
         case 6:  buf->origin = 1; ecma48_set_cursor_home();break;// DECOM Set origin relative
         case 7:  autowrap = 1; break;
         case 8:  break; // DECARM ignored
-        //case 12: break;
+        case 12: break; // Enable very visible cursor (blinking)
         case 25: draw_cursor = 1; break;
         case 40: modes.DECCOLM = 1; break;
         case 45: rautowrap = 1; break;
         case 47: buf_save_text(); break; /* xterm alternate screen */
+        case 1047: buf_save_text(); break;
+        case 1048: buf_save_cursor(); break;
+        case 1049: buf_save_cursor(); buf_save_text(); break;
         default: NIPRINT(stderr, "-- Unhandled code in ansi_SM: %d\n", Pn[i]); break;
       };
     }
@@ -3309,11 +3325,14 @@ void ansi_RM(){
         case 6:  buf->origin = 0; ecma48_set_cursor_home(); break; // DECOM Set origin absolute
         case 7:  autowrap = 0; break;
         case 8:  break; // DECARM ignored
-        //case 12: break; // comes after \E?25h for ansi_SM
+        case 12: break; // Disable very visible cursor (blinking)
         case 25: draw_cursor = 0; break;
         case 40: modes.DECCOLM = 0; break;
         case 45: rautowrap = 0; break;
         case 47: buf_restore_text(); break; /* xterm alternate screen */
+        case 1047: buf_restore_text(); break;
+        case 1048: buf_restore_cursor(); break;
+        case 1049: buf_restore_text(); buf_restore_cursor(); break;
         default: NIPRINT(stderr, "-- Unhandled code in ansi_RM: %d\n", Pn[i]); break;
       };
     }
@@ -3342,18 +3361,22 @@ void ansi_CUD(){
   ecma48_CUD();
 }
 
-void ansi_POUND(){
+void setstate_POUND(){
   state = ECMA48_STATE_ANSI_POUND;
 }
 
-void ansi_CONFORMANCE(){
+void setstate_CONFORMANCE(){
   state = ECMA48_STATE_CONFORMANCE;
 }
 
-void ansi_SCS(){
+void setstate_EXCLAIM(){
+  state = ECMA48_STATE_EXCLAIM;
+}
+
+void setstate_SCS(){
   /* in order to properly do this, add a parameter
    * that handles the byte used %()*+-./ before the
-   * final byte C@G */
+   * final byte @G<C> */
   state = ECMA48_STATE_ANSI_SCS;
 }
 
@@ -3476,7 +3499,7 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x18: ecma48_CAN(); break;
           case 0x19: ecma48_EM(); break;
           case 0x1a: ecma48_SUB(); break;
-          case 0x1b: ecma48_ESC(); break;
+          case 0x1b: setstate_ESC(); break;
           case 0x1c: ecma48_IS4(); break;
           case 0x1d: ecma48_IS3(); break;
           case 0x1e: ecma48_IS2(); break;
@@ -3485,16 +3508,17 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
         }; break;
       case ECMA48_STATE_C1:
         switch(tbuf[i]){
-          case 0x20: ansi_CONFORMANCE(); break;
-          case 0x23: ansi_POUND(); break;
-          case 0x25: ansi_SCS(); break;
-          case 0x28: ansi_SCS(); break;
-          case 0x29: ansi_SCS(); break;
-          case 0x2a: ansi_SCS(); break;
-          case 0x2b: ansi_SCS(); break;
-          case 0x2d: ansi_SCS(); break;
-          case 0x2e: ansi_SCS(); break;
-          case 0x2f: ansi_SCS(); break;
+          case 0x20: setstate_CONFORMANCE(); break;
+          case 0x21: setstate_EXCLAIM(); break;
+          case 0x23: setstate_POUND(); break;
+          case 0x25: setstate_SCS(); break;
+          case 0x28: setstate_SCS(); break;
+          case 0x29: setstate_SCS(); break;
+          case 0x2a: setstate_SCS(); break;
+          case 0x2b: setstate_SCS(); break;
+          case 0x2d: setstate_SCS(); break;
+          case 0x2e: setstate_SCS(); break;
+          case 0x2f: setstate_SCS(); break;
           //case 0x36: ansi_DECBI(); break;
           case 0x37: ansi_SC(); break;
           case 0x38: ansi_RC(); break;
@@ -3527,7 +3551,7 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x57: ecma48_EPA(); break;
           case 0x58: ecma48_SOS(); break;
           case 0x5a: ecma48_SCI(); break;
-          case 0x5b: ecma48_CSI(); break;
+          case 0x5b: setstate_CSI(); break;
           case 0x5c: ecma48_ST(); break;
           case 0x5d: ecma48_OSC(); break;
           case 0x5e: ecma48_PM(); break;
@@ -3584,8 +3608,8 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x3a: ecma48_parameter_arg_add((char)tbuf[i]); break;
           case 0x3b: ecma48_parameter_arg_next(); break;
           /* ANSI compatibility */
-          case 0x3e: ecma48_ANSI_RANG(); break;
-          case 0x3f: ecma48_ANSI(); break;
+          case 0x3e: setstate_ANSI_RANG(); break;
+          case 0x3f: setstate_ANSI(); break;
           /* final bytes */
           case 0x40: ecma48_ICH(); break;
           case 0x41: ecma48_CUU(); break;
