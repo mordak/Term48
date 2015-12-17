@@ -204,7 +204,7 @@ void ecma48_setenv(){
       fprintf(stderr, "Error linking terminfo database - terminal may be non-functional\n");
     }
   }
-  setenv("TERM", "xterm-color", 1);
+  setenv("TERM", "xterm-256color", 1);
 
   //if(system("/base/bin/stty +sane term=xterm-color erase=^H") == -1){
   if(system("/base/bin/stty +sane erase=^H") == -1){
