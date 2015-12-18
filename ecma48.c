@@ -42,7 +42,6 @@
 #define ECMA48_STATE_ANSI_RANG 6
 #define ECMA48_STATE_CONFORMANCE 7
 static char state = ECMA48_STATE_NORMAL;
-static char csi_byte = '\0';
 
 #define BUFFER_NORMAL 0
 #define BUFFER_OSC 1
@@ -476,15 +475,18 @@ int ecma48_parse_control_codes(int sym, int mod, UChar* tbuf){
  * prints the control sequence and escape arg buffers
  */
 void ecma48_PRINT_CONTROL_SEQUENCE(char* terminator){
-  NIPRINT(stderr, "Control Sequence: ");
+  PRINT(stderr, "Control Sequence: ");
   switch (state){
-    case ECMA48_STATE_C1: NIPRINT(stderr, "ESC "); break;
-    case ECMA48_STATE_CSI: NIPRINT(stderr, "ESC [ "); break;
-    case ECMA48_STATE_ANSI: NIPRINT(stderr, "ESC [ ? "); break;
-    case ECMA48_STATE_ANSI_POUND: NIPRINT(stderr, "ESC # "); break;
+    case ECMA48_STATE_C1: PRINT(stderr, "ESC "); break;
+    case ECMA48_STATE_CSI: PRINT(stderr, "ESC [ "); break;
+    case ECMA48_STATE_ANSI: PRINT(stderr, "ESC [ ? "); break;
+    case ECMA48_STATE_ANSI_POUND: PRINT(stderr, "ESC # "); break;
+    case ECMA48_STATE_CONFORMANCE: PRINT(stderr, "ESC <SP> "); break;
+    case ECMA48_STATE_ANSI_RANG: PRINT(stderr, "ESC [ > "); break;
+    case ECMA48_STATE_ANSI_SCS: PRINT(stderr, "ESC <SCS> "); break;
   }
 
-  NIPRINT(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
+  PRINT(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
   									terminator,
                     escape_args.args[0],
                     escape_args.args[1],
@@ -511,6 +513,9 @@ void ecma48_NOT_IMPLEMENTED(char* function){
     case ECMA48_STATE_CSI: NIPRINT(stderr, "ESC [ "); break;
     case ECMA48_STATE_ANSI: NIPRINT(stderr, "ESC [ ? "); break;
     case ECMA48_STATE_ANSI_POUND: NIPRINT(stderr, "ESC # "); break;
+    case ECMA48_STATE_CONFORMANCE: NIPRINT(stderr, "ESC <SP> "); break;
+    case ECMA48_STATE_ANSI_RANG: NIPRINT(stderr, "ESC [ > "); break;
+    case ECMA48_STATE_ANSI_SCS: NIPRINT(stderr, "ESC <SCS> "); break;
   }
 
   NIPRINT(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
@@ -2590,12 +2595,18 @@ sends the DA. The parameter value is a device type identification code according
 to a register which is to be established. If the parameter value is 0, DA is
 used to request an identifying DA from a device.
 */
-void ecma48_DA(){
+void ecma48_DA(int type){
   ecma48_PRINT_CONTROL_SEQUENCE("DA");
   int Pn = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
-  switch(Pn){
-    case 0:  io_write_master_char(TERMID, sizeof(TERMID)); break;
-    default: NIPRINT(stderr, "-- Unhandled code in ecma48_DA: %d\n", Pn); break;
+  switch(type){
+    case 1: switch(Pn){ // Primary DA
+      case 0:  io_write_master_char(PRIDA, sizeof(PRIDA)); break;
+      default: NIPRINT(stderr, "-- Unhandled code in ecma48_DA: %d (type %d)\n", Pn, type); break;
+    }; break;
+    case 2: switch(Pn){ // Secondary DA
+      case 0: io_write_master_char(SECDA, sizeof(SECDA)); break;
+      default: NIPRINT(stderr, "-- Unhandled code in ecma48_DA: %d (type %d)\n", Pn, type); break;
+    }; break;
   };
   ecma48_end_control();
 }
@@ -3124,32 +3135,38 @@ void ecma48_SGR(){
           buf->current_style.bg_color = default_text_style.bg_color;
           break;
         case 50: break;
-        case 51: // 51 framed
-          break;
-        case 52: // 52 encircled
-          break;
-        case 53: // 53 overlined
-          break;
-        case 54: // 54 not framed, not encircled
-          break;
-        case 55: // 55 not overlined
-          break;
+        case 51: break; // 51 framed
+        case 52: break; // 52 encircled
+        case 53: break; // 53 overlined
+        case 54: break; // 54 not framed, not encircled
+        case 55: break; // 55 not overlined
         case 56: break;
         case 57: break;
         case 58: break;
         case 59: break;
-        case 60: // 60 ideogram underline or right side line
-          break;
-        case 61: // 61 ideogram double underline or double line on the right side
-          break;
-        case 62: // 62 ideogram overline or left side line
-          break;
-        case 63: // 63 ideogram double overline or double line on the left side
-          break;
-        case 64: // 64 ideogram stress marking
-          break;
-        case 65: // 65 cancels the effect parameter values 60 to 64
-          break;
+        case 60: break; // 60 ideogram underline or right side line
+        case 61: break; // 61 ideogram double underline or double line on the right side
+        case 62: break; // 62 ideogram overline or left side line
+        case 63: break; // 63 ideogram double overline or double line on the left side
+        case 64: break; // 64 ideogram stress marking
+        case 65: break; // 65 cancels the effect parameter values 60 to 64
+        case 90: buf->current_style.fg_color = (SDL_Color)BLACK; break;
+        case 91: buf->current_style.fg_color = (SDL_Color)RED; break;
+        case 92: buf->current_style.fg_color = (SDL_Color)GREEN; break;
+        case 93: buf->current_style.fg_color = (SDL_Color)YELLOW; break;
+        case 94: buf->current_style.fg_color = (SDL_Color)BLUE; break;
+        case 95: buf->current_style.fg_color = (SDL_Color)MAGENTA; break;
+        case 96: buf->current_style.fg_color = (SDL_Color)CYAN; break;
+        case 97: buf->current_style.fg_color = (SDL_Color)WHITE; break;
+        case 100: buf->current_style.bg_color = (SDL_Color)BLACK; break;
+        case 101: buf->current_style.bg_color = (SDL_Color)RED; break;
+        case 102: buf->current_style.bg_color = (SDL_Color)GREEN; break;
+        case 103: buf->current_style.bg_color = (SDL_Color)YELLOW; break;
+        case 104: buf->current_style.bg_color = (SDL_Color)BLUE; break;
+        case 105: buf->current_style.bg_color = (SDL_Color)MAGENTA; break;
+        case 106: buf->current_style.bg_color = (SDL_Color)CYAN; break;
+        case 107: buf->current_style.bg_color = (SDL_Color)WHITE; break;
+        default: NIPRINT(stderr, " -- Unhandled SGR param: %d\n", Pn[i]);
       };
     }
   }
@@ -3661,7 +3678,7 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x60: ecma48_HPA(); break;
           case 0x61: ecma48_HPR(); break;
           case 0x62: ecma48_REP(); break;
-          case 0x63: ecma48_DA(); break;
+          case 0x63: ecma48_DA(1); break;
           case 0x64: ecma48_VPA(); break;
           case 0x65: ecma48_VPR(); break;
           case 0x66: ecma48_HVP(); break;
@@ -3731,6 +3748,7 @@ void ecma48_filter_text(UChar* tbuf, ssize_t chars){
           case 0x3a: ecma48_parameter_arg_add((char)tbuf[i]); break;
           case 0x3b: ecma48_parameter_arg_next(); break;
           /* final bytes */
+          case 0x63: ecma48_DA(2); break;
           default: ecma48_UNRECOGNIZED_CONTROL(tbuf[i]); break;
         }; break;
       case ECMA48_STATE_CONFORMANCE:

@@ -17,7 +17,9 @@
 #ifndef ECMA48_H_
 #define ECMA48_H_
 
-#define TERMID "\033[?6c"
+#define PRIDA "\033[?1;2c"    /* VT100 with advanced video option */
+#define SECDA "\033[>1;95;0c" /* VT220 */
+
 #define DSROK "\033[0n"
 #define ANSWERBACK "Term48"
 #define OUTBUF_LEN 30
