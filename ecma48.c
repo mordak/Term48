@@ -245,6 +245,12 @@ void ecma48_add_char(UChar c){
     /* write new one */
     sc->c = c;
     sc->style = buf->current_style;
+    if(buf->current_style.reverse){
+      /* reverse the fg and bg */
+      SDL_Color temp = sc->style.fg_color;
+      sc->style.fg_color = sc->style.bg_color;
+      sc->style.bg_color = temp;
+    }
     /* cache for REP */
     last_char = c;
   } /* else { BUFFER_OSC, etc. -> ignore for now } */
@@ -475,18 +481,18 @@ int ecma48_parse_control_codes(int sym, int mod, UChar* tbuf){
  * prints the control sequence and escape arg buffers
  */
 void ecma48_PRINT_CONTROL_SEQUENCE(char* terminator){
-  PRINT(stderr, "Control Sequence: ");
+  NIPRINT(stderr, "Control Sequence: ");
   switch (state){
-    case ECMA48_STATE_C1: PRINT(stderr, "ESC "); break;
-    case ECMA48_STATE_CSI: PRINT(stderr, "ESC [ "); break;
-    case ECMA48_STATE_ANSI: PRINT(stderr, "ESC [ ? "); break;
-    case ECMA48_STATE_ANSI_POUND: PRINT(stderr, "ESC # "); break;
-    case ECMA48_STATE_CONFORMANCE: PRINT(stderr, "ESC <SP> "); break;
-    case ECMA48_STATE_ANSI_RANG: PRINT(stderr, "ESC [ > "); break;
-    case ECMA48_STATE_ANSI_SCS: PRINT(stderr, "ESC <SCS> "); break;
+    case ECMA48_STATE_C1: NIPRINT(stderr, "ESC "); break;
+    case ECMA48_STATE_CSI: NIPRINT(stderr, "ESC [ "); break;
+    case ECMA48_STATE_ANSI: NIPRINT(stderr, "ESC [ ? "); break;
+    case ECMA48_STATE_ANSI_POUND: NIPRINT(stderr, "ESC # "); break;
+    case ECMA48_STATE_CONFORMANCE: NIPRINT(stderr, "ESC <SP> "); break;
+    case ECMA48_STATE_ANSI_RANG: NIPRINT(stderr, "ESC [ > "); break;
+    case ECMA48_STATE_ANSI_SCS: NIPRINT(stderr, "ESC <SCS> "); break;
   }
 
-  PRINT(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
+  NIPRINT(stderr, "%s -- args: %s;%s;%s;%s;%s;%s;%s;%s;%s;%s (state=%d)\n",
   									terminator,
                     escape_args.args[0],
                     escape_args.args[1],
@@ -536,13 +542,15 @@ void ecma48_NOT_IMPLEMENTED(char* function){
 }
 
 void ecma48_reverse_video(){
-  buf->current_style.fg_color = default_text_style.bg_color;
-  buf->current_style.bg_color = default_text_style.fg_color;
+  //buf->current_style.fg_color = default_text_style.bg_color;
+  //buf->current_style.bg_color = default_text_style.fg_color;
+  buf->current_style.reverse = 1;
 }
 
 void ecma48_normal_video(){
-  buf->current_style.fg_color = default_text_style.fg_color;
-  buf->current_style.bg_color = default_text_style.bg_color;
+  //buf->current_style.fg_color = default_text_style.fg_color;
+  //buf->current_style.bg_color = default_text_style.bg_color;
+  buf->current_style.reverse = 1;
 }
 
 /* NUL - NULL

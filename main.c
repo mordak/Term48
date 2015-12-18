@@ -418,6 +418,7 @@ int font_init(int font_size){
   default_text_style.fg_color = default_text_color;
   default_text_style.bg_color = default_bg_color;
   default_text_style.style = TTF_STYLE_NORMAL;
+  default_text_style.reverse = 0;
 
   /* initialize special characters */
   UChar str[2] = {' ', NULL};

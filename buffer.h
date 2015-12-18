@@ -25,6 +25,7 @@ struct font_style {
   SDL_Color fg_color;
   SDL_Color bg_color;
   int style;
+  char reverse;
 };
 
 struct screenchar {
