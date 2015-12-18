@@ -550,7 +550,7 @@ void ecma48_reverse_video(){
 void ecma48_normal_video(){
   //buf->current_style.fg_color = default_text_style.fg_color;
   //buf->current_style.bg_color = default_text_style.bg_color;
-  buf->current_style.reverse = 1;
+  buf->current_style.reverse = 0;
 }
 
 /* NUL - NULL
