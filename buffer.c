@@ -52,6 +52,7 @@ int buf_init(){
     buf->top_line = 0;
     buf->inverse_video = 0;
     buf->origin = 0;
+    buf->current_style = default_text_style;
     /* malloc the text buf structures */
     buf->text = (struct screenchar**)calloc(TEXT_BUFFER_SIZE + 1, sizeof(struct screenchar*));
     if(buf->text == NULL){ return TERM_FAILURE;}
@@ -91,7 +92,6 @@ int buf_init(){
   /* if we restore without ever saving, then we should
    * get good values. Note that this assumes current_style
    * is valid, which means font_init comes before buf_init */
-  buf->current_style = default_text_style;
   for(i = 0; i < NUM_BUFFERS; ++i){
     saved_buf_p = i;
     buf_save_cursor();
@@ -187,8 +187,8 @@ void buf_erase_line(struct screenchar* sc, size_t n){
   size_t i;
   for(i = 0; i < n; ++i){
     buf_free_char(&sc[i]);
-    sc[i].c = 0;
-    sc[i].style = default_text_style;
+    sc[i].c = ' ';
+    sc[i].style = buf->current_style;
   }
 }
 
