@@ -17,7 +17,7 @@
 #ifndef COLORS_H_
 #define COLORS_H_
 
-SDL_Color term_colors[256] = {
+static SDL_Color term_colors[256] = {
     {0,   0,    0,    0},
     {205, 0,    0,    0},
     {0,   205,  0,    0},

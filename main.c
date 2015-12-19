@@ -34,6 +34,7 @@
 #include "preferences.h"
 #include "buffer.h"
 #include "io.h"
+#include "colors.h"
 
 static int exit_application = 0;
 
@@ -1113,6 +1114,21 @@ void uninit(){
   io_uninit();
 }
 
+SDL_Color adjust_color(SDL_Color in, struct font_style sty){
+  int i;
+  if(sty.style & TTF_STYLE_BOLD){
+    for(i = 0; i < 8; ++i){
+      if((in.b == term_colors[i].b) &&
+         (in.g == term_colors[i].g) &&
+         (in.r == term_colors[i].r)){
+        in = term_colors[i+8];
+        break;
+      }
+    }
+  }
+  return in;
+}
+
 void render() {
 
   int i, j, offset;
@@ -1140,9 +1156,9 @@ void render() {
         str[0] = sc->c;
         TTF_SetFontStyle(font, sc->style.style);
         if(buf->inverse_video){
-          sc->surface = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
+          sc->surface = TTF_RenderUNICODE_Shaded(font, str, adjust_color(sc->style.bg_color, sc->style), sc->style.fg_color);
         } else {
-          sc->surface = TTF_RenderUNICODE_Shaded(font, str, sc->style.fg_color, sc->style.bg_color);
+          sc->surface = TTF_RenderUNICODE_Shaded(font, str, adjust_color(sc->style.fg_color, sc->style), sc->style.bg_color);
         }
         if(sc->surface == NULL){
           PRINT(stderr, "Rendering failed for char %d\n", (int)sc->c);
@@ -1187,9 +1203,9 @@ void render() {
       str[0] = sc->c;
       TTF_SetFontStyle(font, sc->style.style);
       if(buf->inverse_video){
-        inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.fg_color, sc->style.bg_color);
+        inv_cursor = TTF_RenderUNICODE_Shaded(font, str, adjust_color(sc->style.fg_color, sc->style), sc->style.bg_color);
       } else {
-        inv_cursor = TTF_RenderUNICODE_Shaded(font, str, sc->style.bg_color, sc->style.fg_color);
+        inv_cursor = TTF_RenderUNICODE_Shaded(font, str, adjust_color(sc->style.bg_color, sc->style), sc->style.fg_color);
       }
       if(inv_cursor == NULL){
         PRINT(stderr, "Rendering failed for char %d\n", (int)sc->c);
