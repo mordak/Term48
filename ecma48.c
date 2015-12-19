@@ -2963,10 +2963,10 @@ void ecma48_SGR(){
   // set the default
   Pn[0] = escape_args.args[0][0] != '\0' ? (int)strtol(escape_args.args[0], NULL, 10) : 0;
   // now process anything else
-  for(i=1; i < NUM_ESCAPE_ARGS; ++i){
-    Pn[i] = escape_args.args[i][0] != '\0' ? (int)strtol(escape_args.args[i], NULL, 10) : -1;
+  for(i=1; i <= escape_args.num; ++i){
+    Pn[i] = escape_args.args[i][0] != '\0' ? (int)strtol(escape_args.args[i], NULL, 10) : 0;
   }
-  for(i=0; i < NUM_ESCAPE_ARGS; ++i){
+  for(i=0; i <= escape_args.num; ++i){
     if(Pn[i] >= 0){
       //fprintf(stderr, "SGR: %u\n", Pn[i]);
       switch (Pn[i]){
