@@ -1,0 +1,9 @@
+[submodule "SDL"]
+	path = SDL
+	url = https://github.com/mordak/SDL.git
+[submodule "TouchControlOverlay"]
+	path = TouchControlOverlay
+	url = https://github.com/blackberry/TouchControlOverlay.git
+[submodule "libconfig"]
+	path = libconfig
+	url = https://github.com/hyperrealm/libconfig.git
