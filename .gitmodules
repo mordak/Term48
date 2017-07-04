@@ -7,3 +7,4 @@
 [submodule "libconfig"]
 	path = libconfig
 	url = https://github.com/hyperrealm/libconfig.git
+    tag = f9f23d7
