@@ -17,8 +17,8 @@ Prebuilt versions of these shared libraries are available in `external/lib` (see
 You can build and deploy Term48 without using Momentics IDE:
 
 * Load the proper `bbndk-env` file
-* Set the `BBPASS` environment variable for your device password (or write it to `./bbpass` if on Windows)
-* Optionally set the `BBIP` environment variable to your device's dev-mode IP address if non-default
+* Copy your debug token to `signing/debugtoken.bar` (or see section below on generating a debug token)
+* Populate the `BBIP` and `BBPASS` fields in `signing/bbpass` with your device's dev-mode IP address and device password
 * `make`
 * `make deploy`
 
@@ -31,8 +31,14 @@ As this is a work in progress, pull requests or feature requests are welcome. Pl
 [tco]: https://github.com/blackberry/TouchControlOverlay
 [libconfig]: http://www.hyperrealm.com/libconfig/
 
+# Generating a Debug Token
 
+* Use this form to obtain your `bbidtoken.csk` file: https://developer.blackberry.com/codesigning/
+* Copy `bbidtoken.csk` to `signing/bbidtoken.csk`
+* In `signing/bbpass`, fill in:
+  - `CNNAME`: the Common Name for your signing cert (usually your name)
+  - `KEYSTOREPASS`: CSK password you entered in step 1 signup
+  - `BBPIN`: target device's PIN
+  - `BBPASS`: target device's password
 
-
-
-
+Important: any symbols need to be escaped according to bash / Makefile rules e.g. backslashes before symbols `\!` and double dollar signs `\$$`.
