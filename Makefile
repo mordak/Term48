@@ -27,7 +27,9 @@ BINARY	:= Term48-dev
 SRCS  	:= $(wildcard src/*.c)
 OBJS  	:= $(SRCS:.c=.o )
 
-all: package
+include ./signing/bbpass
+
+all: debug
 
 $(BINARY): $(OBJS)
 	mkdir -p $(ASSET)
@@ -40,18 +42,12 @@ clean:
 	@rm -fv src/*.o
 	@rm -fv $(ASSET)/$(BINARY)
 
-package: $(BINARY)
-	blackberry-nativepackager -package $(BINARY).bar bar-descriptor.xml -devMode -debugToken ./token.bar
+signing/debugtoken.bar:
+	$(error Debug token error: place debug token in signing/debugtoken.bar or see signing/Makefile))
+debug: $(BINARY) signing/debugtoken.bar
+	blackberry-nativepackager -package $(BINARY).bar bar-descriptor.xml -devMode -debugToken signing/debugtoken.bar
 
-ifndef $(BBPASS)
-BBPASS := `cat ./bbpass`
-endif
-ifndef $(BBIP)
-BBIP := 169.254.0.1
-endif
+BBIP ?= 169.254.0.1
 
-deploy: package
-ifeq ($(BBPASS),"")
-	$(error Set BBPASS env var or write it to ./bbpass))
-endif
+deploy: debug
 	blackberry-deploy -installApp $(BBIP) -password $(BBPASS) $(BINARY).bar

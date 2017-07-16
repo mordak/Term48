@@ -1,0 +1,16 @@
+# How to generate a debug token:
+# 1. Use this form to obtain your `bbidtoken.csk` file:
+#    https://developer.blackberry.com/codesigning/
+# 2. Fill in:
+#    CNNAME: the Common Name for your signing cert
+#    KEYSTOREPASS: CSK password you entered in step 1 signup
+#    BBPIN: target device's PIN
+#    BBPASS: target device's password
+# Important: any symbols need to be escaped according to bash / Makefile rules
+#            e.g. backslashes before symbols "\!" and double dollar signs "\$$"
+
+CNNAME       := ""
+KEYSTOREPASS := ""
+BBPIN        := BLACKBRY
+BBPASS       := ""
+BBIP         := 169.254.0.1
