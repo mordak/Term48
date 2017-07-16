@@ -40,5 +40,6 @@ As this is a work in progress, pull requests or feature requests are welcome. Pl
   - `KEYSTOREPASS`: CSK password you entered in step 1 signup
   - `BBPIN`: target device's PIN
   - `BBPASS`: target device's password
+* Run `make` in `signing/Makefile` to request and deploy the token to your device.
 
 Important: any symbols need to be escaped according to bash / Makefile rules e.g. backslashes before symbols `\!` and double dollar signs `\$$`.
