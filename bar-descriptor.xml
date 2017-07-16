@@ -37,9 +37,9 @@
     <description>The Term48-dev application</description>
 
     <!--  Must match the developer name of your developer certificate. -->
-    <author>Andrew D'Angelo</author>
+    <author>Package-Author</author>
     <!--  Unique author ID assigned by signing authority. Required if using debug tokens. -->
-    <authorId>gYAAgETubYUOy5snI5ZQYRcUl0M</authorId>
+    <authorId>Package-Author-Id</authorId>
 
     <initialWindow>
         <systemChrome>none</systemChrome>
