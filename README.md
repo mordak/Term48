@@ -19,6 +19,7 @@ You can build and deploy Term48 without using Momentics IDE:
 * Load the proper `bbndk-env` file
 * Copy your debug token to `signing/debugtoken.bar` (or see section below on generating a debug token)
 * Populate the `BBIP` and `BBPASS` fields in `signing/bbpass` with your device's dev-mode IP address and device password
+* Update the `<author>` and `<authorId>` tags in `bar-descriptor` to match the `Package-Author` and `Package-Author-Id` for your debug token: `unzip -p signing/debugtoken.bar META-INF/MANIFEST.MF | grep 'Package-Author:\|Package-Author-Id:'`
 * `make`
 * `make deploy`
 
