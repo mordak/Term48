@@ -11,9 +11,8 @@ ifeq ($(BBPASS),"")
 	$(error Debug token error: fill in the necessary fields in ./signing/bbpass))
 endif
 	@echo Generating keypairs and writing to keystore...
-	@echo blackberry-keytool -genkeypair -keystore $(KEYSTORE) -storepass $(KEYSTOREPASS) -author $(CNNAME)
-	@echo Requesting debug token...
-	@echo blackberry-debugtokenrequest -keystore $(KEYSTORE) -bbidtoken $(BBIDTOKEN) -storepass $(KEYSTOREPASS) -deviceID 0x$(BBPIN) $(DEBUGTOKEN)
+	blackberry-keytool -genkeypair -keystore $(KEYSTORE) -storepass $(KEYSTOREPASS) -author $(CNNAME)
+	blackberry-debugtokenrequest -keystore $(KEYSTORE) -bbidtoken $(BBIDTOKEN) -storepass $(KEYSTOREPASS) -deviceID 0x$(BBPIN) $(DEBUGTOKEN)
 
 author-info: $(DEBUGTOKEN)
 	@echo
@@ -22,5 +21,4 @@ author-info: $(DEBUGTOKEN)
 	@echo
 
 deploy-token: $(DEBUGTOKEN) author-info
-	@echo Deploying debugtoken.bar...
-	@echo blackberry-deploy -installDebugToken $(DEBUGTOKEN) $(BBIP) -password $(BBPASS)
+	blackberry-deploy -installDebugToken $(DEBUGTOKEN) $(BBIP) -password $(BBPASS)
