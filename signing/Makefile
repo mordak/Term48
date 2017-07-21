@@ -12,8 +12,7 @@ ifeq ($(BBPASS),"")
 endif
 	@echo Generating keypairs and writing to keystore...
 	@echo blackberry-keytool -genkeypair -keystore $(KEYSTORE) -storepass $(KEYSTOREPASS) -author $(CNNAME)
-	@echo Requesting debug token...
-	@echo blackberry-debugtokenrequest -keystore $(KEYSTORE) -bbidtoken $(BBIDTOKEN) -storepass $(KEYSTOREPASS) -deviceID 0x$(BBPIN) $(DEBUGTOKEN)
+	blackberry-debugtokenrequest -keystore $(KEYSTORE) -bbidtoken $(BBIDTOKEN) -storepass $(KEYSTOREPASS) -deviceID 0x$(BBPIN) $(DEBUGTOKEN)
 
 author-info: $(DEBUGTOKEN)
 	@echo

@@ -41,13 +41,15 @@ $(BINARY): $(OBJS)
 clean:
 	@rm -fv src/*.o
 	@rm -fv $(ASSET)/$(BINARY)
+	@rmdir -v $(ASSET)
+	@rm -fv $(BINARY).bar
 
 signing/debugtoken.bar:
 	$(error Debug token error: place debug token in signing/debugtoken.bar or see signing/Makefile))
-debug: $(BINARY) signing/debugtoken.bar
+package-debug: $(BINARY) signing/debugtoken.bar
 	blackberry-nativepackager -package $(BINARY).bar bar-descriptor.xml -devMode -debugToken signing/debugtoken.bar
 
 BBIP ?= 169.254.0.1
 
-deploy: debug
+deploy: package-debug
 	blackberry-deploy -installApp $(BBIP) -password $(BBPASS) $(BINARY).bar
