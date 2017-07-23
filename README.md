@@ -12,35 +12,18 @@ To compile Term48, you will need some additional libraries:
 * [Touch Control Overlay][tco]
 * [libconfig][libconfig]
 
-Once these have been downloaded and compiled with the BlackBerry dev tools, you can build Term48 like so:
+Prebuilt versions of these shared libraries are available in `external/lib` (see Makefile); to build from source you will need to check out the submodules (call `git clone` with the `--recursive` option) and build them with the Momentics IDE.
 
-* Create a new C/C++ project in Momentics
-* Pull down the source from this repo into the src directory of your project
-* Add libSDL12.so, libTouchControlOverlay.so, and libconfig.so.10 as assets in bar-descriptor.xml
-* In the project Properties, under C/C++ Build/Settings:
-    * Add the following include directories to the QCC Compiler Preprocessor:
-        * SDL/include
-        * TouchControlOverlay/inc
-        * libconfig/include
-    * Under the QCC Compiler Preprocessor Defines, add `__PLAYBOOK__`
-    * Under the QCC Linker Libraries, add the following Library Paths:
-        * SDL12/Device-Release
-        * TouchControlOverlay/Device-Release
-        * libconfig/lib
-    * Under the QCC Linker Libraries, add the following Libraries:
-        * bps
-        * icui18n
-        * icuuc
-        * SDL12
-        * screen
-        * m
-        * freetype
-        * TouchControlOverlay
-        * config
-        * clipboard
-* In the project Properties, under Project References, you can check the boxes for SDL12 and TouchControlOverlay if you like.
+You can build and deploy Term48 without using Momentics IDE:
 
-Once this is done, the Term48 source should compile and link. You can set whatever PackageID and whatnot that you like in the bar-descriptor.xml file. If you want to be able to access shared files on the device, check the 'Files' box under Application/Permissions.
+* Load the proper `bbndk-env` file
+* Copy your debug token to `signing/debugtoken.bar` (or see section below on generating a debug token)
+* Populate the `BBIP` and `BBPASS` fields in `signing/bbpass` with your device's dev-mode IP address and device password
+* Update the `<author>` and `<authorId>` tags in `bar-descriptor.xml` to match the `Package-Author` and `Package-Author-Id` for your debug token: `unzip -p signing/debugtoken.bar META-INF/MANIFEST.MF | grep 'Package-Author:\|Package-Author-Id:'`
+* `make`
+* `make deploy`
+
+You can set whatever PackageID and whatnot that you like in the bar-descriptor.xml file. If you want to be able to access shared files on the device, check the 'Files' box under `Application/Permissions`.
 
 As this is a work in progress, pull requests or feature requests are welcome. Please report any bugs with an Issue.
 
@@ -49,8 +32,15 @@ As this is a work in progress, pull requests or feature requests are welcome. Pl
 [tco]: https://github.com/blackberry/TouchControlOverlay
 [libconfig]: http://www.hyperrealm.com/libconfig/
 
+# Generating a Debug Token
 
+* Use this form to obtain your `bbidtoken.csk` file: https://developer.blackberry.com/codesigning/
+* Copy `bbidtoken.csk` to `signing/bbidtoken.csk`
+* In `signing/bbpass`, fill in:
+  - `CNNAME`: the Common Name for your signing cert (usually your name)
+  - `KEYSTOREPASS`: CSK password you entered in step 1 signup
+  - `BBPIN`: target device's PIN
+  - `BBPASS`: target device's password
+* Run `make` in `signing/Makefile` to request and deploy the token to your device.
 
-
-
-
+Important: any symbols need to be escaped according to bash / Makefile rules e.g. backslashes before symbols `\!` and double dollar signs `\$$`.

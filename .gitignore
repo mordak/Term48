@@ -1,0 +1,7 @@
+*.bar
+Device-Debug
+src/*.o
+signing/bbpass
+signing/*.csk
+signing/*.bar
+signing/*.p12
