@@ -29,7 +29,7 @@ OBJS  	:= $(SRCS:.c=.o )
 
 include ./signing/bbpass
 
-all: debug
+all: package-debug
 
 $(BINARY): $(OBJS)
 	mkdir -p $(ASSET)
