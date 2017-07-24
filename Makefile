@@ -18,29 +18,32 @@ LIBPATHS	+= -L./external/lib
 LIBS    	+= -lconfig -lSDL12 -lTouchControlOverlay
 
 # change these as needed (debug right now)
-CFLAGS 	:= $(INCLUDE) -V4.6.3,gcc_ntoarmv7le -O2 -g
+CFLAGS 	:= $(INCLUDE) -V4.6.3,gcc_ntoarmv7le -O2 -g -DDEBUG
 LDFLAGS	:= $(LIBPATHS) $(LIBS)
 
 ASSET 	:= Device-Debug
 BINARY	:= Term48-dev
+BINARY_PATH := $(ASSET)/$(BINARY)
 
 SRCS  	:= $(wildcard src/*.c)
 OBJS  	:= $(SRCS:.c=.o )
 
 include ./signing/bbpass
 
-all: debug
+.PHONY: all clean package-debug deploy launch-debug
+
+all: package-debug
 
 $(BINARY): $(OBJS)
 	mkdir -p $(ASSET)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $(ASSET)/$(BINARY)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $(BINARY_PATH)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	@rm -fv src/*.o
-	@rm -fv $(ASSET)/$(BINARY)
+	@rm -fv $(BINARY_PATH)
 	@rmdir -v $(ASSET)
 	@rm -fv $(BINARY).bar
 
@@ -53,3 +56,7 @@ BBIP ?= 169.254.0.1
 
 deploy: package-debug
 	blackberry-deploy -installApp $(BBIP) -password $(BBPASS) $(BINARY).bar
+
+launch-debug: deploy
+	blackberry-deploy -debugNative -device $(BBIP) -password $(BBPASS) -launchApp $(BINARY).bar
+	trap '' SIGINT; BINARY_PATH=$(BINARY_PATH) BBIP=$(BBIP) ntoarm-gdb -x scripts/gdb-debug-setup.py
