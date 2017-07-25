@@ -44,3 +44,19 @@ As this is a work in progress, pull requests or feature requests are welcome. Pl
 * Run `make` in `signing/Makefile` to request and deploy the token to your device.
 
 Important: any symbols need to be escaped according to bash / Makefile rules e.g. backslashes before symbols `\!` and double dollar signs `\$$`.
+
+# Debugging with GDB
+
+To connect to the target device and enable debug tools such as GDB, the `blackberry-connect` tool must be started with the right arguments. For this, two terminals must have the correct `bbndk-env` environment loaded (or run the `make connect` command in the background).
+
+## Terminal 1: `blackberry-connect`
+* Start in the Term48 root directory.
+* `cd signing`
+* If the SSH key hasn't been generated yet, run `make ssh-key`.
+* `make connect`
+* Leave terminal running until done debugging.
+
+## Terminal 2: `gdb`
+* Start in the Term48 root directory.
+* `make launch-debug`
+* The package will be built, deployed to target device, and launched stopped. On host, `ntoarm-gdb` will start, connect to target device, and attach to the application process. To continue execution, run the GDB command `continue`. Further information on GDB can be found online.

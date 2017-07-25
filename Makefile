@@ -52,6 +52,11 @@ signing/debugtoken.bar:
 package-debug: $(BINARY) signing/debugtoken.bar
 	blackberry-nativepackager -package $(BINARY).bar bar-descriptor.xml -devMode -debugToken signing/debugtoken.bar
 
+signing/ssh-key:
+	$(error SSH key error: signing/ssh-key not found. `cd signing` and `make ssh-key`))
+connect: signing/ssh-key
+	blackberry-connect $(BBIP) -password $(BBPASS) -sshPublicKey signing/ssh-key.pub
+
 BBIP ?= 169.254.0.1
 
 deploy: package-debug
