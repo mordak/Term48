@@ -3,6 +3,9 @@ include ./bbpass
 KEYSTORE   := ./author.p12
 BBIDTOKEN  := ./bbidtoken.csk
 DEBUGTOKEN := ./debugtoken.bar
+SSHKEY     := ./ssh-key
+
+.PHONY: all author-info deploy-token connect
 
 all: deploy-token
 
@@ -13,6 +16,10 @@ endif
 	@echo Generating keypairs and writing to keystore...
 	blackberry-keytool -genkeypair -keystore $(KEYSTORE) -storepass $(KEYSTOREPASS) -author $(CNNAME)
 	blackberry-debugtokenrequest -keystore $(KEYSTORE) -bbidtoken $(BBIDTOKEN) -storepass $(KEYSTOREPASS) -deviceID 0x$(BBPIN) $(DEBUGTOKEN)
+
+$(SSHKEY):
+	@echo Generating SSH key...
+	ssh-keygen -b 4096 -t rsa -f $(SSHKEY) -q -N ""
 
 author-info: $(DEBUGTOKEN)
 	@echo
