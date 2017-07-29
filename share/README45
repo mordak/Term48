@@ -1,0 +1,399 @@
+Welcome!
+
+This file gives an overview of the Term48
+shell, and is broken down into topics:
+
+1. QUICK START 
+2. PREFERENCES 
+3. WHAT'S INSTALLED 
+4. FOR DEVELOPERS
+
+============================================
+
+1. QUICK START
+
+You can access the various special keys
+(Crtl, Alt, arrows, etc.) by touching the top
+left corner of the screen, and then pressing
+special keys on the keyboard. When you touch
+the top left corner of the screen, you will
+enter 'metamode', which remaps the keyboard
+keys to other functions. You can tell when
+you are in metamode by the green 'M' in the
+top right corner of the screen. Touching the
+top left corner of the screen will toggle
+metamode on and off. The default metamode
+keys are:
+
+  h: left arrow 
+  j: down arrow 
+  k: up arrow 
+  l: right arrow 
+  t: tab 
+  e: escape 
+  c: control 
+  a: alt 
+  v: paste
+
+After pressing a key in metamode you will be
+returned to normal input, excepting the arrow
+keys, which leave you in metamode so you can
+move the cursor around easily. 
+
+For example, if you wanted to type Ctrl-C
+(^C), then you would touch the top left
+corner of the screen to enter metamode, press
+'c' to hold down control, and then 'c' again
+to send ^C. If you wanted to move the cursor
+left, you would touch the top left corner of
+the screen to enter metamode, then 'h' to
+move the cursor left (perhaps several times).
+Once you have the cursor where you want it,
+you can start typing again by touching
+the top left corner of the screen
+(exiting metamode). Typing any key that
+is not bound to a metamode function will
+simply exit metamode.
+
+If you have a physical keyboard on your
+device, you can hold the space key to toggle
+metamode on, and also hold down ordinary keys
+to get uppercase letters.
+
+If your device has a physical shift key, or
+you are using a bluetooth keyboard, you can
+also doubletap the right shift key to toggle
+metamode on and off. Note that some keyboards
+may not send right shift when you press the
+right shift key (it may send left shift), but
+this can be addressed in preferences.
+
+The metamode keys are all configurable, as
+described below.
+
+============================================
+
+2. PREFERENCES
+
+Preferences are read from the .term48rc file
+in $HOME. If this file does not exist at
+startup it will be created at launch time
+with the default settings (along with this
+README). Term48 uses libconfig for
+preferences, so the syntax of the .term48rc
+file is as per libconfig. If there is an
+error reading the preference file it will be
+ignored and Term48 will launch with the
+defaults.
+
+Each of the preference options and their
+default is shown below:
+
+font_path = "/usr/fonts/font_repository/monotype/cour.ttf";
+/* The path to the Unicode TTF font file to
+ * use in the shell. This can be an absolute
+ * or relative path. */
+
+font_size = 16;
+/* The font size for the shell. Term48 will
+ * try to guess a reasonable size for your
+ * screen, but otherwise defaults to this
+ * value. */
+
+text_color = [255, 255, 255];
+/* The color for text, in RGB format. If you
+ * would like classic green text on black
+ * background, you can change this to [0,
+ * 255, 0]. */
+
+background_color = [0, 0, 0];
+/* The background color, in RGB format. */
+
+screen_idle_awake = false;
+/* If set to true, Term48 will force the
+ * screen to stay awake when idle instead
+ * of dimming and eventually turning off as
+ * usual. */
+
+auto_show_vkb = true;
+/* When set to true, will automatically
+ * display the virtual keyboard at launch
+ * time unless you have a Bluetooth
+ * keyboard. Set to false to disable. On
+ * a Passport, this is always true so the
+ * symbol keys can be accessed. */
+
+metamode_doubletap_key = 61666;
+/* Which key to double tap in order to
+ * toggle metamode on and off. This is an
+ * integer corresponding to the key symbol
+ * and defaults to KEYCODE_RIGHT_SHIFT.  */
+
+metamode_doubletap_delay = 500000000;
+/* When double tapping to invoke metamode,
+ * the time in which to double tap, in
+ * nanoseconds. Defaults to 0.5 seconds. */
+
+keyhold_actions = true;
+/* Enables special actions when holding down
+ * a key. By default, Term48 will upcase
+ * letters if you hold them, and will toggle
+ * metamode on if you hold space. */
+
+keyhold_actions_exempt = [KEYCODE_BACKSPACE,
+                          KEYCODE_RETURN];
+/* These keys do not trigger special
+ * handling when held down, so they will
+ * repeat as usual. */
+
+metamode_hold_key = 32;
+/* If keyhold_actions is true, then
+ * holding this key will toggle metamode
+ * on. Defaults to KEYCODE_SPACE. */
+
+tty_encoding = "UTF-8";
+/* Term48 uses 16 bit Unicode internally,
+ * but when doing IO with the tty / shell,
+ * will convert between Unicode and the
+ * tty_encoding. Defaults to UTF-8,
+ * but can be any encoding that the
+ * International Components for Unicode
+ * (ICU) understands. */
+
+metamode_hitbox : { x = 0; y = 0; 
+                    w = 100; h = 100; };
+/* This is the area of the screen that you
+ * touch to toggle metamode on and off,
+ * specified from the top left corner of
+ * the screen. Defaults to a 100x100 pixel
+ * box in the top left corner, but you can
+ * move it somewhere else if you like by
+ * specifying the top left corner of the box
+ * (x from the left, y from the top) and the
+ * witdh (w) and height (h) in pixels. */
+
+metamode_keys : { 
+    e = "\x1B"; 
+    t = "\t"; 
+  };
+/* When in metamode, pressing the given key
+ * will send the specified string into the
+ * shell and then turn off metamode. Strings
+ * are read according to the rules for
+ * string parsing in libconfig. You can
+ * specify hex characters using \x and
+ * exactly two characters. Term48 uses this
+ * mechanism to send control sequences into
+ * the shell, but you could specify any
+ * character string you want, including
+ * UTF-8 sequences. 
+ *
+ * Term48 supports terminfo aliases for some
+ * common escape sequences. Specifically, if
+ * a metamode key is set to one of kcuu1,
+ * kcud1, kcuf1, kcub1, khome, kend, or kf1
+ * through kf12, then the correct escape
+ * sequence will be sent for cursor up, down,
+ * right, left, home, end or the
+ * corresponding function key. */
+
+metamode_sticky_keys : { 
+    k = "kcuu1"; 
+    j = "kcud1"; 
+    l = "kcuf1"; 
+    h = "kcub1"; 
+  };
+/* Like metamode_keys above, but leaves
+ * metamode on afterwards, so you can press
+ * another metamode key immediately. */
+
+metamode_func_keys : { 
+    a = "alt_down"; 
+    c = "ctrl_down"; 
+    s = "rescreen"; 
+    v = "paste_clipboard"; 
+  };
+/* These keys map to special functions in 
+   Term48:
+
+  alt_down: Will 'hold down' the alt key and
+  send it as a modifier with the next
+  keypress.  
+
+  ctrl_down: Will 'hold down' the ctrl key.  
+
+  rescreen: Will reinitialize the screen
+  surface and fonts, including font size. You
+  may want this is you have
+  allow_resize_columns = true.
+
+  paste_clipboard: Will paste the contents of
+  the system keyboard. Handy for pasting URLs
+  into the shell. Note that no character
+  encoding or conversion will be done. 
+*/
+
+sym_keys : ( {
+    a = "=";
+    s = "-";
+    d = "*";
+    f = "/";
+    g = "\\";
+    h = "|";
+    j = "&";
+    k = "'";
+    l = "\"";
+  }, 
+  {
+    q = "~";
+    w = "`";
+    e = "{";
+    r = "}";
+    t = "[";
+    y = "]";
+    u = "<";
+    i = ">";
+    o = "^";
+    p = "%";
+  } );
+/* For devices with a Sym key, this
+ * preference controls the contents of the
+ * symbol menu.
+ *
+ * The sym_keys preference is a list of
+ * key -> symbol groups, one group per
+ * row in the symbol menu. Keys indicate
+ * keyboard shortcuts, and symbols can
+ * be any character string, including
+ * UTF-8 strings. Hex characters can be
+ * represented with a \x and exactly two
+ * hexadecimal digits.
+ *
+ * The symbol menu is drawn from the
+ * bottom of the screen to the top, so the
+ * first group in sym_keys is drawn at the
+ * bottom, the second is drawn above it,
+ * and so on. The size of the symbol menu
+ * is scaled with the number of items in
+ * the largest group in order to fit in
+ * the screen width. Users who prefer to
+ * use the keyboard shortcuts instead of
+ * the touchscreen may want to collapse
+ * the symbol menu into one large group,
+ * which will result in a small symbol menu
+ * along the bottom of the screen. There
+ * is no limit on the number of items in
+ * the symbol menu, but all keys must be
+ * unique and only one key can be bound to
+ * a keyboard shortcut. */
+
+sticky_sym_key = false;
+/* For devices with a Sym key, controls
+ * whether the Sym menu stays open after
+ * hitting a key. */
+
+sticky_shift_key = false;
+/* For devices with physical shift keys,
+ * this setting controls whether the shift
+ * key 'sticks' after being pressed, and
+ * applies to the next keypress. */
+
+allow_resize_columns = false;
+/* This setting controls whether a program
+ * can change the number of columns on the
+ * screen. Defaults to false (no resizing).
+ * When set to true, programs can set the
+ * number of columns (80 or 132), but this
+ * may make the text really small. Use the
+ * metamode 'rescreen' function to reset the
+ * font size to your preference. */
+
+prefs_version = <int>
+/* This is the current version of the
+ * preferences file, according to Term48. If
+ * it is different than the app version,
+ * then Term48 will update the preferences
+ * file to the new version. You don't need
+ * to worry about this. */
+
+============================================
+
+3. WHAT'S INSTALLED
+
+The default userland that comes with your
+device is pretty sparse, and some of the
+versions are somewhat old. You have the basic
+file utilities (ls, less, mv, cp, etc.), but
+no compiler and no man pages. Some commands
+have 'use' information available (eg. 'use
+/bin/ls') which can help out with the
+flags for the QNX userland tools. You do have
+python so you can get some work done with
+that. You can edit files with elvis, which is
+like vi. 
+
+The default version of ksh is quite old, so
+Term48 bundles mksh, which is better in
+general and much better about unicode in
+particular. Term48 also bundles ssh, scp,
+sftp and ssh-keygen, due to popular demand.
+
+
+It is possible to install other programs and
+round out the userland, as described below in
+FOR DEVELOPERS.
+
+============================================
+
+4. FOR DEVELOPERS
+
+Term48 is Open Source
+
+Term48 is a 'from scratch' terminal emulator
+in that it is not a port of another program.
+It uses SDL to draw to the screen, freetype
+to render fonts, libconfig to manage
+preferences, ICU to convert between character
+encodings, and implements (parts of) the
+xterm specification. It is not by any means
+perfect, and will certainly have bugs or
+missing features.  Because the author enjoyed
+access to so many high quality libraries that
+made the development of Term48 significantly
+easier, Term48 is open source:
+
+https://github.com/mordak/Term48
+
+If you find a bug, missing feature, or
+something else, feel free to bring it up on
+github. Pull requests are welcome. 
+
+Adding Programs to the Userland
+
+Because you have python and sh, and
+BlackBerry provides a cross compiler with
+their dev tools, it is possible to cross
+compile programs and install them into your
+userland.  Because the dev tools use gcc, it
+is possible to cross compile gcc and install
+that into your userland, and then you can
+compile other programs locally. This is not
+trivial, but is also not too hard. The author
+has a very rudimentary bootstraap system that
+will cross compile gcc and some other useful
+tools and then install them over the air onto
+your device - no root required.  You can give
+it a try if you like:
+
+https://github.com/mordak/playbook-dev-tools
+
+This has been tested with a Linux (ubuntu)
+build machine and a Passport target. Again,
+feel free to use github to contribute or
+raise issues. In the long term the goal is
+to port some kind of existing package
+management system and bundle it with
+Term48, but we're not there yet.
+
+Happy hacking!
+
