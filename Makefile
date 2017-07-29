@@ -19,6 +19,7 @@ LIBPATHS	+= -L./external/lib
 LIBS    	+= -lconfig -lSDL12 -lTouchControlOverlay
 
 # change these as needed (debug right now)
+#DEBUGFLAGS 	:= -O2
 DEBUGFLAGS 	:= -O0 -g -DDEBUGMSGS
 CFLAGS 			:= $(INCLUDE) -V4.6.3,gcc_ntoarmv7le $(DEBUGFLAGS)
 LDFLAGS			:= $(LIBPATHS) $(LIBS)
@@ -52,6 +53,7 @@ clean:
 
 signing/debugtoken.bar:
 	$(error Debug token error: place debug token in signing/debugtoken.bar or see signing/Makefile))
+
 package-debug: $(BINARY) signing/debugtoken.bar
 	blackberry-nativepackager -package $(BINARY).bar bar-descriptor.xml -devMode -debugToken signing/debugtoken.bar
 
