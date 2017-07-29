@@ -12,7 +12,7 @@ To compile Term48, you will need some additional libraries:
 * [Touch Control Overlay][tco]
 * [libconfig][libconfig]
 
-Prebuilt versions of these shared libraries are available in `external/lib` (see Makefile); to build from source you will need to check out the submodules (call `git clone` with the `--recursive` option) and build them with the Momentics IDE.
+Prebuilt versions of these shared libraries are available in `external/lib` (see Makefile); to build from source you will need to check out the submodules (call `git clone` with the `--recursive` option) and build them with the Momentics IDE. Note that when compiling SDL, you must define `-D__PLAYBOOK__ -DRAW_KEYBOARD_EVENTS`.
 
 You can build and deploy Term48 without using Momentics IDE:
 
