@@ -26,7 +26,7 @@
     <asset path="icons/term48110x110.png">term48110x110.png</asset>
     <asset path="icons/term48144x144.png">term48144x144.png</asset>
     
-    <asset path="external/lib/libconfig.so" type="Qnx/Elf">lib/libconfig.so.10</asset>
+    <asset path="external/lib/libconfig.so" type="Qnx/Elf">lib/libconfig.so.11</asset>
     <asset path="external/lib/libSDL12.so" type="Qnx/Elf">lib/libSDL12.so</asset>
     <asset path="external/lib/libTouchControlOverlay.so" type="Qnx/Elf">lib/libTouchControlOverlay.so</asset>
     <configuration name="Device-Debug">
