@@ -14,17 +14,21 @@
 
 <qnx xmlns="http://www.qnx.com/schemas/application/1.0">
     <id>com.example.Term48_dev</id>
-    <permission>access_shared</permission>
     <asset path="share/terminfo">terminfo</asset>
     <asset path="share/root">root</asset>
     <asset path="share/NOTICE">NOTICE</asset>
     <asset path="share/LICENSE">LICENSE</asset>
     <asset path="share/README">README</asset>
-    <asset path="icon.png">icon.png</asset>
+    <asset path="share/README45">README45</asset>
+    <asset path="icons/term4886x86.png">term4886x86.png</asset>
+    <asset path="icons/term4890x90.png">term4890x90.png</asset>
+    <asset path="icons/term4896x96.png">term4896x96.png</asset>
+    <asset path="icons/term48110x110.png">term48110x110.png</asset>
+    <asset path="icons/term48144x144.png">term48144x144.png</asset>
     
     <asset path="external/lib/libconfig.so" type="Qnx/Elf">lib/libconfig.so.11</asset>
-    <asset path="external/lib/libSDL12.so" type="Qnx/Elf">lib/libSDL-1.2.so.11</asset>
-    <asset path="external/lib/libTouchControlOverlay.so" type="Qnx/Elf">lib/libTouchControlOverlay.so.1</asset>
+    <asset path="external/lib/libSDL12.so" type="Qnx/Elf">lib/libSDL12.so</asset>
+    <asset path="external/lib/libTouchControlOverlay.so" type="Qnx/Elf">lib/libTouchControlOverlay.so</asset>
     <configuration name="Device-Debug">
        <platformArchitecture>armle-v7</platformArchitecture>
        <asset path="Device-Debug/Term48-dev" entry="true" type="Qnx/Elf">Term48-dev</asset>
@@ -47,12 +51,22 @@
     <authorId>Package-Author-Id</authorId>
 
     <initialWindow>
-        <systemChrome>none</systemChrome>
+      <autoOrients>true</autoOrients>
+      <systemChrome>none</systemChrome>
     </initialWindow>
 
     <icon>
-       <image>icon.png</image>
+      <image>term4886x86.png</image>
+      <image>term4890x90.png</image>
+      <image>term4896x96.png</image>
+      <image>term48110x110.png</image>
+      <image>term48144x144.png</image>
     </icon>
+
+    <!-- Request permission to execute native code.  Required for native applications. -->
+    <permission system="true">run_native</permission>
+    <permission>access_shared</permission>
+    <permission>run_when_backgrounded</permission>
 
     <!-- Ensure that shared libraries in the package are found at run-time. -->
     <env var="LD_LIBRARY_PATH" value="app/native/lib"/>

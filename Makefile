@@ -1,25 +1,29 @@
 CC := qcc
 
-INCLUDE := -I$(QNX_TARGET)/usr/include/qt4/QtOpenGL
 INCLUDE += -I$(QNX_TARGET)/usr/include/freetype2
 INCLUDE += -I$(QNX_TARGET)/usr/include
 INCLUDE += -I./external/include
 
 # BB10 libraries
 LIBPATHS	:= -L$(QNX_TARGET)/armle-v7/lib
-LIBS    	:= -lbps -licui18n -licuuc -lscreen -lm -lfreetype -lconfig -lclipboard
+LIBS    	:= -lbps -licui18n -licuuc -lscreen -lm -lfreetype -lclipboard
+
+# Defines
+DEFINES		:= -D_FORTIFY_SOURCE=2 -D__PLAYBOOK__ -fstack-protector-strong 
 
 # OpenGL libraries
-LIBPATHS	+= -L$(QNX_TARGET)/armle-v7/usr/lib
-LIBS    	+= -lGLESv1_CM -lGLESv2 -lEGL
+#LIBPATHS	+= -L$(QNX_TARGET)/armle-v7/usr/lib
 
-# SDL and related
+# Include bundles libs
 LIBPATHS	+= -L./external/lib
 LIBS    	+= -lconfig -lSDL12 -lTouchControlOverlay
 
 # change these as needed (debug right now)
-CFLAGS 	:= $(INCLUDE) -V4.6.3,gcc_ntoarmv7le -O2 -g -DDEBUG
-LDFLAGS	:= $(LIBPATHS) $(LIBS)
+#DEBUGFLAGS 	:= -O2
+DEBUGFLAGS 	:= -O0 -g -DDEBUGMSGS
+CFLAGS 			:= $(INCLUDE) -V4.6.3,gcc_ntoarmv7le $(DEBUGFLAGS)
+LDFLAGS			:= $(LIBPATHS) $(LIBS)
+LDOPTS			:= -Wl,-z,relro -Wl,-z,now
 
 ASSET 	:= Device-Debug
 BINARY	:= Term48-dev
@@ -36,10 +40,10 @@ all: package-debug
 
 $(BINARY): $(OBJS)
 	mkdir -p $(ASSET)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $(BINARY_PATH)
+	$(CC) $(OBJS) $(CFLAGS) $(LDFLAGS) $(LDOPTS) -o $(BINARY_PATH)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $(DEFINES) $< -o $@
 
 clean:
 	@rm -fv src/*.o
@@ -49,6 +53,7 @@ clean:
 
 signing/debugtoken.bar:
 	$(error Debug token error: place debug token in signing/debugtoken.bar or see signing/Makefile))
+
 package-debug: $(BINARY) signing/debugtoken.bar
 	blackberry-nativepackager -package $(BINARY).bar bar-descriptor.xml -devMode -debugToken signing/debugtoken.bar
 
