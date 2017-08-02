@@ -55,7 +55,6 @@ static symkey_t** symkey_entries;
 static char symmenu_show = 0;
 static char symmenu_lock = 0;
 static int symmenu_num_rows = 0;
-static int symmenu_height = 0;
 
 static char metamode = 0;
 static int metamode_doubletap_key = 0;
@@ -81,6 +80,7 @@ static SDL_Surface* flash_surface;
 static SDL_Surface* cursor;
 static SDL_Surface* inv_cursor;
 static SDL_Surface* screen;
+static SDL_Surface* symmenu_surface = NULL;
 static SDL_Surface* ctrl_key_indicator;
 static SDL_Surface* alt_key_indicator;
 static SDL_Surface* shift_key_indicator;
@@ -225,7 +225,7 @@ void symmenu_toggle(){
 	symmenu_show = symmenu_show ? 0 : 1;
 	if(symmenu_show){
 		// resize to show menu
-		setup_screen_size(screen->w, screen->h - symmenu_height);
+		setup_screen_size(screen->w, screen->h - symmenu_surface->h);
 		if (prefs->sticky_sym_key) {
 			symmenu_stick();
 		}
@@ -238,12 +238,11 @@ void symmenu_toggle(){
 
 const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 	for (int row = 0; row < 3; row++) {
-		for (int col = 0; symkey_entries[row][col].symbol != NULL; col++) {
+		for (int col = 0; symkey_entries[row][col].to != NULL; col++) {
 			symkey_t *sk = &symkey_entries[row][col];
 			
-			if((x > sk->x) && (y > sk->y) &&
-			   (x < (sk->x + sk->background->w)) &&
-			   (y < (sk->y + sk->symbol->h))) {
+			if ((x > sk->from_x) && (y > sk->from_y) &&
+			    (x < sk->to_x)   && (y < sk->to_y)) {
 				if (!symmenu_lock) {
 					symmenu_toggle();
 				} else {
@@ -259,18 +258,13 @@ const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 
 void symmenu_uninit(){
 	for (int row = 0; row < 3; row++) {
-		for (int col = 0; symkey_entries[row][col].symbol != NULL; col++) {
-			symkey_t *sk = &symkey_entries[row][col];
-			
-			SDL_FreeSurface(sk->background);
-			SDL_FreeSurface(sk->flash_symbol);
-			SDL_FreeSurface(sk->key);
-			SDL_FreeSurface(sk->symbol);
-			free(sk->uc);
-			free(sk);
+		for (int col = 0; symkey_entries[row][col].to != NULL; col++) {
+			free(symkey_entries[row][col].uc);
 		}
+		free(symkey_entries[row]);
 	}
 	free(symkey_entries);
+	SDL_FreeSurface(symmenu_surface);
 }
 
 /* Use the preferences struct to initalize all the SDL stuff for symmenu */
@@ -287,13 +281,13 @@ static symkey_t** symmenu_init() {
 			if (row_len > longest_row_len) { longest_row_len = row_len; }
 		}
 		symkey_menu[i] = calloc(row_len + 1, sizeof(symkey_t));
-		symkey_menu[i][row_len].symbol = NULL; /* sentinel for end of row */
+		symkey_menu[i][row_len].to = NULL; /* sentinel for end of row */
 	}
 	
 	if (longest_row_len == 0) {
 		return symkey_menu;
 	}
-
+	
 	UChar* ukeystrokes;
 	size_t ukeystrokes_len;
 	size_t keystrokes_len;
@@ -322,35 +316,55 @@ static symkey_t** symmenu_init() {
 	TTF_SetFontOutline(corner_font, 0);
 	TTF_SetFontKerning(corner_font, 0);
 	TTF_SetFontHinting(corner_font, TTF_HINTING_NORMAL);
+	
+	/* render a test character to set the proper dimenions */
+	UChar testchar;
+	io_read_utf8_string("#", 1, &testchar);
+	SDL_Surface *testsurf = TTF_RenderUNICODE_Shaded(fg_font, &testchar, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
+	int sym_w = testsurf->w;
+	int sym_h = testsurf->h;
+	int bg_w = testsurf->w + (2*SYMMENU_KEY_BORDER);
+	int bg_h = testsurf->h + (2*SYMMENU_KEY_BORDER);
 
-	for (int row = 0; row <= 0; row++) {
-		for(int col = 0; prefs->sym_keys[row][col].to != NULL; ++col){
+	/* fill in the symkey entries from prefs keymap*/
+	for (int row = 0; row <= 0; ++row) {
+		for (int col = 0; prefs->sym_keys[row][col].to != NULL; ++col) {
 			symkey_t *sk = &symkey_menu[row][col];
 			keymap_t *km = &prefs->sym_keys[row][col];
 			
 			sk->flash = '\0';
 			sk->to = km->to;
-
+			
+			/* calculate the background positions */
+			sk->from_x = col * bg_w;
+			sk->from_y = row * bg_h;
+			sk->to_x = sk->from_x + bg_w;
+			sk->to_y = sk->from_y + bg_h;
+			
 			/* init the UChar from prefs keymap */
 			int to_len = strlen(prefs->sym_keys[row][col].to);
 			sk->uc = (UChar*)calloc(to_len + 1, sizeof(UChar));
 			int uc_len = io_read_utf8_string(km->to, to_len, sk->uc);
-
-			/* render the SDL surfaces */
-			sk->background = TTF_RenderUNICODE_Shaded(bg_font, blank_background, (SDL_Color)SYMMENU_BORDER, (SDL_Color)SYMMENU_BORDER);
-			sk->symbol = TTF_RenderUNICODE_Shaded(fg_font, sk->uc, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
-			sk->flash_symbol = TTF_RenderUNICODE_Shaded(fg_font, sk->uc, (SDL_Color)SYMMENU_BACKGROUND, (SDL_Color)SYMMENU_FONT);
-
-			cornerchar[0] = km->from;
-			sk->key = TTF_RenderUNICODE_Shaded(corner_font, cornerchar, (SDL_Color)SYMMENU_CORNER, (SDL_Color)SYMMENU_BACKGROUND);
-
-			/* calculate the surface positions */
-			sk->off_x = (sk->background->w - sk->symbol->w) / 2;
-			sk->off_y = (sk->background->h - sk->symbol->h) / 2;
 		}
 	}
 	
-	symmenu_height = symmenu_num_rows * ((2*SYMMENU_KEY_BORDER) + symkey_menu[0][0].symbol->h);
+	/* initialize the symmenu surface */
+	symmenu_surface = SDL_CreateRGBSurface(0, screen->w, symmenu_num_rows * bg_h, 24, 0, 0, 0, 0);	
+	/* render background color */
+	SDL_Rect destrect;
+	destrect.w = symmenu_surface->w;
+	destrect.h = symmenu_surface->h;
+	destrect.x = 0; destrect.y = 0;
+	
+	SDL_Color bgc = (SDL_Color)SYMMENU_BACKGROUND;
+	Uint32 bg_fill_color = SDL_MapRGB(screen->format, bgc.r, bgc.b, bgc.g);
+	
+	if (SDL_FillRect(symmenu_surface, &destrect, bg_fill_color) != 0) {
+		fprintf(stderr, "Symmenu bgfill failed: %s\n", SDL_GetError());
+		return NULL;
+	}
+
+	/* TODO: render the UChars */
 	
 	TTF_CloseFont(fg_font);
 	TTF_CloseFont(corner_font);
@@ -782,6 +796,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
 				keys = keystroke_lookup((char)screen_val, prefs->sym_keys[i]);
 				if (keys != NULL){
 					send_metamode_keystrokes(keys);
+					symmenu_toggle();
 					return;
 				}
 			}
@@ -1230,56 +1245,16 @@ void render() {
 	}
 
 	if (symmenu_show && (symmenu_num_rows > 0)) {
-		for (int row = 0; row < 3; row++) {
-			for (int col = 0; symkey_entries[row][col].symbol != NULL; col++) {
-				SDL_Rect destrect, symmenu_srcrect;
-				symkey_t *sk = &symkey_entries[row][col];
-				
-				// Draw the background box
-				destrect.w = sk->background->w;
-				destrect.h = sk->symbol->h + (2 * SYMMENU_KEY_BORDER); // be just bigger than the symbol
-				destrect.x = row * sk->background->w;
-				destrect.y = screen->h - ((col + 1) * (destrect.h));
-				symmenu_srcrect.x = 0;
-				symmenu_srcrect.y = 0;
-				symmenu_srcrect.w = destrect.w;
-				symmenu_srcrect.h = destrect.h;
-				sk->x = destrect.x;
-				sk->y = destrect.y;
-				if(SDL_BlitSurface(sk->background, &symmenu_srcrect, screen, &destrect) != 0){
-					PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
-				}
-
-				// Fill the background of the symbol
-				destrect.w = sk->background->w - (2 * SYMMENU_KEY_BORDER);
-				destrect.h = sk->symbol->h;
-				destrect.x += SYMMENU_KEY_BORDER;
-				destrect.y += SYMMENU_KEY_BORDER;
-				SDL_FillRect(screen, &destrect, SDL_MapRGB(screen->format, symmenu_background.r, symmenu_background.g, symmenu_background.b));
-
-				// Draw the symbol
-				destrect.x = (row * sk->background->w) + sk->off_x;
-				destrect.w = sk->symbol->w;
-				destrect.h = sk->symbol->h;
-				if(sk->flash){
-					sk->flash = 0;
-					if(SDL_BlitSurface(sk->flash_symbol, NULL, screen, &destrect) != 0){
-						PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
-					}
-				} else {
-					if(SDL_BlitSurface(sk->symbol, NULL, screen, &destrect) != 0){
-						PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
-					}
-				}
-
-				// Draw the key
-				destrect.x = row * sk->background->w + SYMMENU_KEY_BORDER;
-				destrect.w = sk->key->w;
-				destrect.h = sk->key->h;
-				if(SDL_BlitSurface(sk->key, NULL, screen, &destrect) != 0){
-					PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
-				}
-			}
+		/* blit symmenu_surface */
+		SDL_Rect destrect;
+		destrect.w = symmenu_surface->w;
+		destrect.h = symmenu_surface->h;
+		destrect.x = 0;
+		destrect.y = screen->h - symmenu_surface->h;;
+	
+		if (SDL_BlitSurface(symmenu_surface, NULL, screen, &destrect) != 0) {
+			PRINT(stderr, "Symmenu blit failed: %s\n", SDL_GetError());
+			return;
 		}
 	}
 

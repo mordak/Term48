@@ -34,9 +34,8 @@ typedef struct _keymap_t {
 
 typedef struct _symkey_t {
 	char flash; char const *to;
-	int x, y, off_x, off_y;
+	int from_x, to_x, from_y, to_y; // used for mousedown
 	UChar *uc;
-	SDL_Surface *background, *symbol, *flash_symbol, *key;
 } symkey_t;
 
 typedef struct _pref_t {
