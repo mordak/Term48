@@ -780,7 +780,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
 		if (symmenu_show) {
 			for (int i = 0; i < 3; ++i) {
 				keys = keystroke_lookup((char)screen_val, prefs->sym_keys[i]);
-				if(keys != NULL){
+				if (keys != NULL){
 					send_metamode_keystrokes(keys);
 					return;
 				}
@@ -1097,10 +1097,7 @@ SDL_Color adjust_color(SDL_Color in, struct font_style sty){
 void render() {
 
 	int offset;
-	float x, y;
 	struct screenchar* sc;
-	SDL_Rect destrect;
-	SDL_Rect symmenu_srcrect;
 	SDL_Surface* torender;
 	SDL_Color symmenu_background = (SDL_Color)SYMMENU_BACKGROUND;
 	UChar str[2];
@@ -1110,8 +1107,9 @@ void render() {
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, default_bg_color.r, default_bg_color.g, default_bg_color.b));
 
 	for(int i = 0; i < rows; ++i){
-		y = text_height * (i);
-		x = 0.0;
+		float x = 0.0;
+		float y = text_height * (i);
+		
 		for(int j = 0; j < cols; ++j){
 			/* guard against screen rotations that push the bottom of the screen past the
 			 * bottom of the buffer. */
@@ -1139,6 +1137,9 @@ void render() {
 			} else {
 				torender = sc->surface;
 			}
+
+			/* construct the destination rectangle */
+			SDL_Rect destrect;
 			destrect.x = x;
 			destrect.y = y;
 			destrect.w = torender->w;
@@ -1178,6 +1179,8 @@ void render() {
 		}
 		cursor_x = drawcols;
 		cursor_y = buf->line - buf->top_line;
+
+		SDL_Rect destrect;
 		destrect.x = cursor_x * advance;
 		destrect.y = cursor_y * text_height;
 		destrect.w = cursor->w;
@@ -1191,6 +1194,7 @@ void render() {
 
 	if(metamode && metamode_cursor != NULL){
 		/* draw the metamode cursor */
+		SDL_Rect destrect;
 		destrect.x = (cols-1) * advance;
 		destrect.y = 0;
 		destrect.w = metamode_cursor->w;
@@ -1199,6 +1203,7 @@ void render() {
 	}
 
 	if(vmodifiers & KEYMOD_CTRL){
+		SDL_Rect destrect;
 		destrect.x = (cols-1) * advance;
 		destrect.y = 1 * text_height;
 		destrect.w = ctrl_key_indicator->w;
@@ -1207,6 +1212,7 @@ void render() {
 	}
 
 	if(vmodifiers & KEYMOD_ALT){
+		SDL_Rect destrect;
 		destrect.x = (cols-1) * advance;
 		destrect.y = 2 * text_height;
 		destrect.w = alt_key_indicator->w;
@@ -1215,6 +1221,7 @@ void render() {
 	}
 
 	if(vmodifiers & KEYMOD_SHIFT){
+		SDL_Rect destrect;
 		destrect.x = (cols-1) * advance;
 		destrect.y = 3 * text_height;
 		destrect.w = shift_key_indicator->w;
@@ -1225,6 +1232,7 @@ void render() {
 	if (symmenu_show && (symmenu_num_rows > 0)) {
 		for (int row = 0; row < 3; row++) {
 			for (int col = 0; symkey_entries[row][col].symbol != NULL; col++) {
+				SDL_Rect destrect, symmenu_srcrect;
 				symkey_t *sk = &symkey_entries[row][col];
 				
 				// Draw the background box

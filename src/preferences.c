@@ -16,9 +16,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-int access(const char *pathname, int mode);
 #include <string.h>
-char *strdup(const char *s1);
 #include <unicode/utf.h>
 
 #include "terminal.h"
@@ -66,7 +64,7 @@ static int* create_int_array(config_t const *config, char const *path, size_t de
 		source_len = config_setting_length(setting);
 	}
 	
-	int *result = calloc(source_len, sizeof(int));
+	int *result = calloc(source_len + 1, sizeof(int));
 	result[source_len] = -1;  // sentinel for end of array
 
 	if (use_default) {
@@ -174,7 +172,7 @@ pref_t *read_preferences(const char* filename) {
 	prefs->font_path = strdup(prefs->font_path);
 	DEFAULT_LOOKUP(int, config, "font_size", prefs->font_size, DEFAULT_FONT_SIZE);
 	prefs->text_color = create_int_array(config, "text_color", PREFS_COLOR_NUM_ELEMENTS, DEFAULT_TEXT_COLOR, 0);
-	prefs->background_color = create_int_array(config, "background_color", PREFS_COLOR_NUM_ELEMENTS, DEFAULT_TEXT_COLOR, 0);
+	prefs->background_color = create_int_array(config, "background_color", PREFS_COLOR_NUM_ELEMENTS, DEFAULT_BACKGROUND_COLOR, 0);
 	DEFAULT_LOOKUP(int, config, "screen_idle_awake", prefs->screen_idle_awake, DEFAULT_SCREEN_IDLE_AWAKE);
 	DEFAULT_LOOKUP(bool, config, "auto_show_vkb", prefs->auto_show_vkb, DEFAULT_AUTO_SHOW_VKB);
 	DEFAULT_LOOKUP(int, config, "metamode_doubletap_key", prefs->metamode_doubletap_key, DEFAULT_METAMODE_DOUBLETAP_KEY);
@@ -187,7 +185,7 @@ pref_t *read_preferences(const char* filename) {
 	prefs->tty_encoding = strdup(prefs->tty_encoding);
 	prefs->metamode_keys = create_keymap_array(config, "metamode_keys", DEFAULT_METAMODE_KEYS_LEN, DEFAULT_METAMODE_KEYS);
 	prefs->metamode_sticky_keys = create_keymap_array(config, "metamode_sticky_keys", DEFAULT_METAMODE_STICKY_KEYS_LEN, DEFAULT_METAMODE_STICKY_KEYS);
-	prefs->metamode_sticky_keys = create_keymap_array(config, "metamode_func_keys", DEFAULT_METAMODE_FUNC_KEYS_LEN, DEFAULT_METAMODE_FUNC_KEYS);
+	prefs->metamode_func_keys = create_keymap_array(config, "metamode_func_keys", DEFAULT_METAMODE_FUNC_KEYS_LEN, DEFAULT_METAMODE_FUNC_KEYS);
 	prefs->sym_keys[0] = create_keymap_array(config, "sym_keys_r1", DEFAULT_SYM_KEYS_R1_LEN, DEFAULT_SYM_KEYS_R1);
 	prefs->sym_keys[1] = create_keymap_array(config, "sym_keys_r2", DEFAULT_SYM_KEYS_R2_LEN, DEFAULT_SYM_KEYS_R2);
 	prefs->sym_keys[2] = create_keymap_array(config, "sym_keys_r3", DEFAULT_SYM_KEYS_R3_LEN, DEFAULT_SYM_KEYS_R3);
@@ -218,7 +216,7 @@ int preferences_is_keyhold_exempt(int keystroke){
 }
 
 const char* keystroke_lookup(char keystroke, keymap_t *keymap_head) {
-	while (keymap_head->to != -1) {
+	while (keymap_head->to != NULL) {
 		if (keymap_head->from == keystroke) {
 			return keymap_head->to;
 		}
