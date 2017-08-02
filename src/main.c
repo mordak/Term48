@@ -107,7 +107,7 @@ extern struct scroll_region sr;
 #define PB_D_PIXELS 32
 #define README_FILE_PATH "../app/native/README"
 #define README45_FILE_PATH "../app/native/README45"
-#define SYMMENU_KEY_BORDER 2
+#define SYMKEY_BORDER_SIZE 2
 
 int is_terminfo_keystrokes(const char* keystrokes){
 	if(keystrokes[0] == 'k'){
@@ -241,8 +241,8 @@ const char* symkey_for_mousedown(Uint16 x, Uint16 y){
 		for (int col = 0; symkey_entries[row][col].to != NULL; col++) {
 			symkey_t *sk = &symkey_entries[row][col];
 			
-			if ((x > sk->from_x) && (y > sk->from_y) &&
-			    (x < sk->to_x)   && (y < sk->to_y)) {
+			if ((x > sk->from_x) && (y > sk->from_y + (screen->h - symmenu_surface->h)) &&
+			    (x < sk->to_x)   && (y < sk->to_y + (screen->h - symmenu_surface->h))) {
 				if (!symmenu_lock) {
 					symmenu_toggle();
 				} else {
@@ -288,12 +288,6 @@ static symkey_t** symmenu_init() {
 		return symkey_menu;
 	}
 	
-	UChar* ukeystrokes;
-	size_t ukeystrokes_len;
-	size_t keystrokes_len;
-	UChar blank_background[2] = {' ', NULL};
-	UChar cornerchar[2]; cornerchar[1] = NULL;
-	
 	int bg_font_size = preferences_guess_best_font_size(longest_row_len);
 	int corner_font_size = bg_font_size / 5;
 	int fg_font_size = (6 * bg_font_size) / 10;
@@ -323,11 +317,11 @@ static symkey_t** symmenu_init() {
 	SDL_Surface *testsurf = TTF_RenderUNICODE_Shaded(fg_font, &testchar, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
 	int sym_w = testsurf->w;
 	int sym_h = testsurf->h;
-	int bg_w = testsurf->w + (2*SYMMENU_KEY_BORDER);
-	int bg_h = testsurf->h + (2*SYMMENU_KEY_BORDER);
+	int bg_w = testsurf->w + (2*SYMKEY_BORDER_SIZE);
+	int bg_h = testsurf->h + (2*SYMKEY_BORDER_SIZE);
 
 	/* fill in the symkey entries from prefs keymap*/
-	for (int row = 0; row <= 0; ++row) {
+	for (int row = 0; row < 3; ++row) {
 		for (int col = 0; prefs->sym_keys[row][col].to != NULL; ++col) {
 			symkey_t *sk = &symkey_menu[row][col];
 			keymap_t *km = &prefs->sym_keys[row][col];
@@ -364,7 +358,23 @@ static symkey_t** symmenu_init() {
 		return NULL;
 	}
 
-	/* TODO: render the UChars */
+	/* render the keys */
+	UChar cornerchar[2]; cornerchar[1] = NULL;
+	for (int row = 0; row < 3; ++row) {
+		for (int col = 0; prefs->sym_keys[row][col].to != NULL; ++col) {
+			symkey_t *sk = &symkey_menu[row][col];
+			SDL_Rect destrect;
+
+			destrect.x = sk->from_x + SYMKEY_BORDER_SIZE;
+			destrect.y = sk->from_y + SYMKEY_BORDER_SIZE;
+			SDL_Surface *destsurf = TTF_RenderUNICODE_Shaded(fg_font, sk->uc, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
+			destrect.w = destsurf->w;
+			destrect.h = destsurf->h;
+			if(SDL_BlitSurface(destsurf, NULL, symmenu_surface, &destrect) != 0){
+				PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
+			}
+		}
+	}
 	
 	TTF_CloseFont(fg_font);
 	TTF_CloseFont(corner_font);
@@ -1114,7 +1124,6 @@ void render() {
 	int offset;
 	struct screenchar* sc;
 	SDL_Surface* torender;
-	SDL_Color symmenu_background = (SDL_Color)SYMMENU_BACKGROUND;
 	UChar str[2];
 	str[1] = NULL;
 
