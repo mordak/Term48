@@ -104,8 +104,6 @@ extern int MAX_ROWS;
 extern int TEXT_BUFFER_SIZE;
 extern struct scroll_region sr;
 
-struct msg_list_node *init_msg_list_tail = NULL;
-
 #define PB_D_PIXELS 32
 
 int is_terminfo_keystrokes(const char* keystrokes){
