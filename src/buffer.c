@@ -22,7 +22,7 @@
 
 #include "buffer.h"
 
-static uint saved_buf_p;
+static uint32_t saved_buf_p;
 static saved_buf_t* saved_buf;
 static buf_t* screens;
 
@@ -559,12 +559,12 @@ void buf_save_cursor(){
   sb->origin = buf->origin;
   sb->current_style = buf->current_style;
   sb->inverse_video = buf->inverse_video;
-  PRINT(stderr, "\nSaved_buf_stuff: saved_buf_p: %d, row:%d, sb_mem:%x\n", saved_buf_p, sb->row, (uint)sb);
+  PRINT(stderr, "\nSaved_buf_stuff: saved_buf_p: %d, row:%d, sb_mem:%x\n", saved_buf_p, sb->row, (uint32_t)sb);
 }
 
 void buf_restore_cursor(){
   saved_buf_t *sb = &(saved_buf[saved_buf_p]);
-  PRINT(stderr, "\nRestoring saved_buf_stuff: saved_buf_p: %d, row:%d, sb_mem:%x\n", saved_buf_p, sb->row, (uint)sb);
+  PRINT(stderr, "\nRestoring saved_buf_stuff: saved_buf_p: %d, row:%d, sb_mem:%x\n", saved_buf_p, sb->row, (uint32_t)sb);
   buf->line = screen_to_buf_row(sb->row);
   buf->col  = screen_to_buf_col(sb->col);
   buf->origin = sb->origin;
