@@ -44,6 +44,12 @@ typedef struct _symkey_t {
 	UChar *uc;
 } symkey_t;
 
+typedef struct _symmenu_t {
+	int num_rows;
+	symkey_t **entries;
+	SDL_Surface *surface;
+} symmenu_t;
+
 typedef struct _pref_t {
 	char *font_path;
 	int font_size, *text_color, *background_color, screen_idle_awake,
