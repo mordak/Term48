@@ -1,36 +1,37 @@
 CC := qcc
 
+INCLUDE := -I$(QNX_TARGET)/usr/include
 INCLUDE += -I$(QNX_TARGET)/usr/include/freetype2
-INCLUDE += -I$(QNX_TARGET)/usr/include
 INCLUDE += -I./external/include
 
 # BB10 libraries
 LIBPATHS	:= -L$(QNX_TARGET)/armle-v7/lib
 LIBS    	:= -lbps -licui18n -licuuc -lscreen -lm -lfreetype -lclipboard
+LIBS    	+= -lconfig
 
 # Defines
-DEFINES		:= -D_FORTIFY_SOURCE=2 -D__PLAYBOOK__ -fstack-protector-strong 
+DEFINES := -D_FORTIFY_SOURCE=2 -D__PLAYBOOK__ -fstack-protector-strong 
 
 # OpenGL libraries
-#LIBPATHS	+= -L$(QNX_TARGET)/armle-v7/usr/lib
+LIBPATHS += -L$(QNX_TARGET)/armle-v7/usr/lib
 
 # Include bundles libs
-LIBPATHS	+= -L./external/lib
-LIBS    	+= -lconfig -lSDL12 -lTouchControlOverlay
+LIBPATHS += -L./external/lib
+LIBS     += -lconfig -lSDL12 -lTouchControlOverlay
 
 # change these as needed (debug right now)
-#DEBUGFLAGS 	:= -O2
-DEBUGFLAGS 	:= -O0 -g -DDEBUGMSGS
-CFLAGS 			:= $(INCLUDE) -V4.6.3,gcc_ntoarmv7le $(DEBUGFLAGS)
-LDFLAGS			:= $(LIBPATHS) $(LIBS)
-LDOPTS			:= -Wl,-z,relro -Wl,-z,now
+#DEBUGFLAGS	:= -O2
+DEBUGFLAGS	:= -O0 -g -DDEBUGMSGS
+CFLAGS    	:= $(INCLUDE) -V4.6.3,gcc_ntoarmv7le -Wc,-std=gnu99 $(DEBUGFLAGS)
+LDFLAGS   	:= $(LIBPATHS) $(LIBS)
+LDOPTS    	:= -Wl,-z,relro -Wl,-z,now
 
-ASSET 	:= Device-Debug
-BINARY	:= Term48-dev
-BINARY_PATH := $(ASSET)/$(BINARY)
+ASSET      	:= Device-Debug
+BINARY     	:= Term48-dev
+BINARY_PATH	:= $(ASSET)/$(BINARY)
 
-SRCS  	:= $(wildcard src/*.c)
-OBJS  	:= $(SRCS:.c=.o )
+SRCS := $(wildcard src/*.c) $(wildcard src/cascades/*.cpp)
+OBJS := $(SRCS:.c=.o )
 
 include ./signing/bbpass
 
@@ -40,7 +41,7 @@ all: package-debug
 
 $(BINARY): $(OBJS)
 	mkdir -p $(ASSET)
-	$(CC) $(OBJS) $(CFLAGS) $(LDFLAGS) $(LDOPTS) -o $(BINARY_PATH)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(LDOPTS) $(OBJS) -o $(BINARY_PATH)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $(DEFINES) $< -o $@
