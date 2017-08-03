@@ -24,6 +24,24 @@
 
 pref_t *prefs = NULL;
 
+static void first_run(pref_t *prefs) {
+	char* home = getenv("HOME");
+	if(home != NULL){ chdir(home); }
+	
+	char* readme_path = (atoi(getenv("WIDTH")) <= 720) ? README45_FILE_PATH : README_FILE_PATH;
+	fprintf(stderr, "Updating README\n");
+	if (access(readme_path, F_OK) != -1) {
+		// stat success!
+		if (symlink(readme_path, "./README") == -1){
+			if (errno != EEXIST){
+				fprintf(stderr, "Error linking README from app to PWD\n");
+			}
+		}
+	}
+
+	save_preferences(prefs, PREFS_FILE_PATH);
+}
+
 int preferences_guess_best_font_size(int target_cols){
 	/* font widths in pixels for sizes 0-250, indexed by font size */
 	int screen_width, screen_height, target_width;
@@ -65,7 +83,7 @@ static int* create_int_array(config_t const *config, char const *path, size_t de
 	}
 	
 	int *result = calloc(source_len + 1, sizeof(int));
-	result[source_len] = -1;  // sentinel for end of array
+	result[source_len] = -1;  // sentinel for end of array, only useful for positive arrays
 
 	if (use_default) {
 		for (int i = 0; i < source_len; i++) {
@@ -104,7 +122,8 @@ static keymap_t* create_keymap_array(config_t const *config, char const *path, s
 	} else {
 		for (int i = 0; i < source_len; i++) {
 			config_setting_t *m = config_setting_get_elem(setting, i);
-			result[i].from = config_setting_get_int_elem(m, 0);
+			char const *from_str = config_setting_get_string_elem(m, 0);
+			result[i].from = from_str[0];
 			result[i].to = strdup(config_setting_get_string_elem(m, 1));
 		}
 	}
@@ -152,13 +171,16 @@ pref_t *read_preferences(const char* filename) {
 		fprintf(stderr, "fatal error: failed to calloc prefs structure\n");
 		exit(1);
 	}
+
+	int is_first_run = 0;
 	
 	config_t config_data; // what libconfig parses out of the file
 	config_t *config = &config_data;
 	config_init(config);
 	
 	if (access(filename, F_OK) == -1) {
-		fprintf(stderr, "Preferences file not found\n");
+		PRINT(stderr, "Preferences file not found, assuming first run\n");
+		is_first_run = 1;
 	} else {
 		if(config_read_file(config, filename) != CONFIG_TRUE){
 			fprintf(stderr, "%s:%d - %s\n", config_error_file(config),
@@ -173,11 +195,11 @@ pref_t *read_preferences(const char* filename) {
 	DEFAULT_LOOKUP(int, config, "font_size", prefs->font_size, DEFAULT_FONT_SIZE);
 	prefs->text_color = create_int_array(config, "text_color", PREFS_COLOR_NUM_ELEMENTS, DEFAULT_TEXT_COLOR, 0);
 	prefs->background_color = create_int_array(config, "background_color", PREFS_COLOR_NUM_ELEMENTS, DEFAULT_BACKGROUND_COLOR, 0);
-	DEFAULT_LOOKUP(int, config, "screen_idle_awake", prefs->screen_idle_awake, DEFAULT_SCREEN_IDLE_AWAKE);
+	DEFAULT_LOOKUP(bool, config, "screen_idle_awake", prefs->screen_idle_awake, DEFAULT_SCREEN_IDLE_AWAKE);
 	DEFAULT_LOOKUP(bool, config, "auto_show_vkb", prefs->auto_show_vkb, DEFAULT_AUTO_SHOW_VKB);
 	DEFAULT_LOOKUP(int, config, "metamode_doubletap_key", prefs->metamode_doubletap_key, DEFAULT_METAMODE_DOUBLETAP_KEY);
 	DEFAULT_LOOKUP(int, config, "metamode_doubletap_delay", prefs->metamode_doubletap_delay, DEFAULT_METAMODE_DOUBLETAP_DELAY);
-	DEFAULT_LOOKUP(int, config, "keyhold_actions", prefs->keyhold_actions, DEFAULT_KEYHOLD_ACTIONS);
+	DEFAULT_LOOKUP(bool, config, "keyhold_actions", prefs->keyhold_actions, DEFAULT_KEYHOLD_ACTIONS);
 	DEFAULT_LOOKUP(int, config, "metamode_hold_key", prefs->metamode_hold_key, DEFAULT_METAMODE_HOLD_KEY);
 	DEFAULT_LOOKUP(bool, config, "allow_resize_columns", prefs->allow_resize_columns, DEFAULT_ALLOW_RESIZE_COLUMNS);
 	prefs->metamode_hitbox = create_int_array(config, "metamode_hitbox", 4, DEFAULT_METAMODE_HITBOX, 0);
@@ -194,20 +216,78 @@ pref_t *read_preferences(const char* filename) {
 	DEFAULT_LOOKUP(bool, config, "sticky_alt_key", prefs->sticky_alt_key, DEFAULT_STICKY_ALT_KEY);
 	prefs->keyhold_actions_exempt = create_int_array(config, "keyhold_actions_exempt", DEFAULT_KEYHOLD_ACTIONS_EXEMPT_LEN, DEFAULT_KEYHOLD_ACTIONS_EXEMPT, 1);
 
+	if (is_first_run) {
+		first_run(prefs);
+	}
+
 	return prefs;
 }
 
-void save_preferences(pref_t const* pref, char const* filename) {
-
-	fprintf(stderr, "preferences saving not implemented yet\n");
-	return;
-	/* config_write_file(preferences, preferences_filename); */
+void set_int_array(config_setting_t *root, char const *key, size_t num_elems, int const *source) {
+	config_setting_t *setting = config_setting_add(root, key, CONFIG_TYPE_ARRAY);
+	for (size_t i = 0; i < num_elems; ++i) {
+		config_setting_t *elem = config_setting_add(setting, NULL, CONFIG_TYPE_INT);
+		config_setting_set_int(elem, source[i]);
+	}
 }
 
-int preferences_is_keyhold_exempt(int keystroke){
-	int *k = prefs->keyhold_actions_exempt;
-	while (k != NULL) {
-		if (*k == keystroke) {
+void set_keymap_array(config_setting_t *root, char const *key, keymap_t const *source) {
+	config_setting_t *setting = config_setting_add(root, key, CONFIG_TYPE_ARRAY);
+	for (; source->to != NULL; ++source) {
+		config_setting_t *group = config_setting_add(setting, NULL, CONFIG_TYPE_GROUP);
+		
+		config_setting_t *from_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		char from_str[2] = {source->from, '\0'};
+		config_setting_set_string(from_s, from_str);
+
+		config_setting_t *to_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		config_setting_set_string(to_s, source->to);
+	}
+}
+
+#define PREF_SET(root, setptr, key, type, configtype, source) \
+	do { setptr = config_setting_add(root, key, CONFIG_TYPE_##configtype); \
+		config_setting_set_##type(setptr, source); } while(0)
+void save_preferences(pref_t const* prefs, char const* filename) {
+	config_t config;
+	config_init(&config);
+	config_setting_t *root = config_root_setting(&config);
+	config_setting_t *setting = NULL;
+
+	PREF_SET(root, setting, "font_path", string, STRING, prefs->font_path);
+	PREF_SET(root, setting, "font_size", int, INT, prefs->font_size);
+	set_int_array(root, "text_color", PREFS_COLOR_NUM_ELEMENTS, prefs->text_color);
+	set_int_array(root, "background_color", PREFS_COLOR_NUM_ELEMENTS, prefs->background_color);
+	PREF_SET(root, setting, "screen_idle_awake", bool, BOOL, prefs->screen_idle_awake);
+	PREF_SET(root, setting, "auto_show_vkb", bool, BOOL, prefs->auto_show_vkb);
+	PREF_SET(root, setting, "metamode_doubletap_key", int, INT, prefs->metamode_doubletap_key);
+	PREF_SET(root, setting, "metamode_doubletap_delay", int, INT, prefs->metamode_doubletap_delay);
+	PREF_SET(root, setting, "keyhold_actions", bool, BOOL, prefs->keyhold_actions);
+	PREF_SET(root, setting, "metamode_hold_key", bool, BOOL, prefs->metamode_hold_key);
+	PREF_SET(root, setting, "allow_resize_columns", bool, BOOL, prefs->allow_resize_columns);
+	set_int_array(root, "metamode_hitbox", 4, prefs->metamode_hitbox);
+	PREF_SET(root, setting, "tty_encoding", string, STRING, prefs->tty_encoding);
+	set_keymap_array(root, "metamode_keys", prefs->metamode_keys);
+	set_keymap_array(root, "metamode_sticky_keys", prefs->metamode_sticky_keys);
+	set_keymap_array(root, "metamode_func_keys", prefs->metamode_func_keys);
+	set_keymap_array(root, "sym_keys_r1", prefs->sym_keys[0]);
+	set_keymap_array(root, "sym_keys_r2", prefs->sym_keys[1]);
+	set_keymap_array(root, "sym_keys_r3", prefs->sym_keys[2]);
+	PREF_SET(root, setting, "sticky_sym_key", bool, BOOL, prefs->sticky_sym_key);
+	PREF_SET(root, setting, "sticky_shift_key", bool, BOOL, prefs->sticky_shift_key);
+	PREF_SET(root, setting, "sticky_alt_key", bool, BOOL, prefs->sticky_alt_key);
+	
+	int num_exempt = 0;
+	for (; prefs->keyhold_actions_exempt[num_exempt] > 0; ++num_exempt) { }
+	set_int_array(root, "keyhold_actions_exempt", num_exempt, prefs->keyhold_actions_exempt);
+	
+	config_write_file(&config, filename);
+	return;
+}
+
+int is_int_member(int const* list, int target) {
+	for (int i = 0; list[i] != -1; ++i) {
+		if (list[i] == target) {
 			return 1;
 		}
 	}

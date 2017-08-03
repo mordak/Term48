@@ -17,12 +17,18 @@
 #ifndef PREFERENCES_H_
 #define PREFERENCES_H_
 
+
 #include <sys/keycodes.h>
 #include <libconfig.h>
 #include <unicode/utf.h>
+#include <errno.h>
+
 #include "SDL.h"
 
-#define PREFS_FILENAME ".term48rc"
+#define PREFS_FILE_PATH ".term48rc"
+#define README_FILE_PATH "../app/native/README"
+#define README45_FILE_PATH "../app/native/README45"
+
 #define PREFS_COLOR_NUM_ELEMENTS 3
 #define PREFS_SYMKEYS_DEFAULT_NUM_ROWS 2
 
@@ -98,7 +104,7 @@ void save_preferences(pref_t const* pref, char const* filename);
 void destroy_preferences(pref_t *pref);
 
 const char* keystroke_lookup(char keystroke, keymap_t *keymap_head);
-int preferences_is_keyhold_exempt(int keystroke);
+int is_int_member(int const* list, int target);
 
 #define NUM_SIZES 251
 static const int font_widths[NUM_SIZES] = {0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6,

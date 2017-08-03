@@ -42,7 +42,6 @@
 void rescreen();
 void setup_screen_size(int w, int h);
 void set_screen_cols(int cols);
-void first_run();
 
 int init();
 void uninit();
@@ -64,7 +63,10 @@ void uninit();
 #define SDL_BT_CYAN     {.r = 0,   .b = 255, .g = 255}
 #define SDL_WHITE       {.r = 255, .b = 255, .g = 255}
 
-#define SYMMENU_BORDER     {.r = 50,  .b = 50,  .g = 50}
+#define SYMKEY_BORDER_SIZE 2
+#define SYMMENU_FRET_SIZE 10
+#define SYMMENU_FRET       {.r = 130, .b = 130, .g = 130}
+#define SYMMENU_BORDER     {.r = 90,  .b = 90,  .g = 90}
 #define SYMMENU_BACKGROUND {.r = 38,  .b = 38,  .g = 38}
 #define SYMMENU_CORNER     {.r = 153, .b = 153, .g = 153}
 #define SYMMENU_FONT       {.r = 255, .b = 255, .g = 255}

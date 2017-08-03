@@ -104,10 +104,9 @@ extern int MAX_ROWS;
 extern int TEXT_BUFFER_SIZE;
 extern struct scroll_region sr;
 
+struct msg_list_node *init_msg_list_tail = NULL;
+
 #define PB_D_PIXELS 32
-#define README_FILE_PATH "../app/native/README"
-#define README45_FILE_PATH "../app/native/README45"
-#define SYMKEY_BORDER_SIZE 2
 
 int is_terminfo_keystrokes(const char* keystrokes){
 	if(keystrokes[0] == 'k'){
@@ -188,21 +187,6 @@ void check_device(){ /* DEAD */
 		//isPassport = 1;
 	}
 	deviceinfo_free_details(&di_t);
-}
-
-void first_run(){
-	struct stat statbuf;
-	char* readme_path = (atoi(getenv("WIDTH")) <= 720) ? README45_FILE_PATH : README_FILE_PATH;
-	fprintf(stderr, "Updating README\n");
-	int rc = stat(readme_path, &statbuf);
-	if(rc == 0){
-		// stat success!
-		if(symlink(readme_path, "./README") == -1){
-			if(errno != EEXIST){
-				fprintf(stderr, "Error linking README from app to PWD\n");
-			}
-		}
-	}
 }
 
 int get_wm_info(SDL_SysWMinfo* info){
@@ -288,7 +272,7 @@ static symkey_t** symmenu_init() {
 		return symkey_menu;
 	}
 	
-	int bg_font_size = preferences_guess_best_font_size(longest_row_len);
+	int bg_font_size = preferences_guess_best_font_size(longest_row_len * 1.25);
 	int corner_font_size = bg_font_size / 5;
 	int fg_font_size = (6 * bg_font_size) / 10;
 
@@ -318,7 +302,7 @@ static symkey_t** symmenu_init() {
 	int sym_w = testsurf->w;
 	int sym_h = testsurf->h;
 	int bg_w = testsurf->w + (2*SYMKEY_BORDER_SIZE);
-	int bg_h = testsurf->h + (2*SYMKEY_BORDER_SIZE);
+	int bg_h = testsurf->h + (2*SYMKEY_BORDER_SIZE) + SYMMENU_FRET_SIZE;
 
 	/* fill in the symkey entries from prefs keymap*/
 	for (int row = 0; row < 3; ++row) {
@@ -358,6 +342,43 @@ static symkey_t** symmenu_init() {
 		return NULL;
 	}
 
+		/* render frets */
+	for (int i = 0; i < symmenu_num_rows; ++i) {
+		SDL_Rect destrect;
+		destrect.x = 0;
+		destrect.y = bg_h * i;
+		destrect.h = SYMMENU_FRET_SIZE;
+		destrect.w = screen->w;
+
+		SDL_Color bgc = (SDL_Color)SYMMENU_FRET;
+		Uint32 fret_fill_color = SDL_MapRGB(screen->format, bgc.r, bgc.b, bgc.g);
+	
+		if (SDL_FillRect(symmenu_surface, &destrect, fret_fill_color) != 0) {
+			fprintf(stderr, "Symmenu fret bgfill failed: %s\n", SDL_GetError());
+			return NULL;
+		}
+
+		/* left-to-right borders */
+		destrect.x = 0;
+		destrect.y = bg_h * i + SYMMENU_FRET_SIZE;
+		destrect.h = SYMKEY_BORDER_SIZE;
+		destrect.w = screen->w;
+		bgc = (SDL_Color)SYMMENU_BORDER;
+		fret_fill_color = SDL_MapRGB(screen->format, bgc.r, bgc.b, bgc.g);
+		if (SDL_FillRect(symmenu_surface, &destrect, fret_fill_color) != 0) {
+			fprintf(stderr, "Symmenu border bgfill failed: %s\n", SDL_GetError());
+			return NULL;
+		}
+		destrect.x = 0;
+		destrect.y = bg_h * (i + 1) - SYMKEY_BORDER_SIZE;
+		bgc = (SDL_Color)SYMMENU_BORDER;
+		fret_fill_color = SDL_MapRGB(screen->format, bgc.r, bgc.b, bgc.g);
+		if (SDL_FillRect(symmenu_surface, &destrect, fret_fill_color) != 0) {
+			fprintf(stderr, "Symmenu border bgfill failed: %s\n", SDL_GetError());
+			return NULL;
+		}
+	}
+
 	/* render the keys */
 	UChar cornerchar[2]; cornerchar[1] = NULL;
 	for (int row = 0; row < 3; ++row) {
@@ -365,17 +386,31 @@ static symkey_t** symmenu_init() {
 			symkey_t *sk = &symkey_menu[row][col];
 			SDL_Rect destrect;
 
+			/* main symbol */
 			destrect.x = sk->from_x + SYMKEY_BORDER_SIZE;
-			destrect.y = sk->from_y + SYMKEY_BORDER_SIZE;
+			destrect.y = sk->from_y + SYMKEY_BORDER_SIZE + SYMMENU_FRET_SIZE;
 			SDL_Surface *destsurf = TTF_RenderUNICODE_Shaded(fg_font, sk->uc, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
+			destrect.w = destsurf->w;
+			destrect.h = destsurf->h;
+			if (SDL_BlitSurface(destsurf, NULL, symmenu_surface, &destrect) != 0){
+				PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
+			}
+			SDL_FreeSurface(destsurf);
+
+			/* from key */
+			cornerchar[0] = prefs->sym_keys[row][col].from;
+			destrect.x = sk->from_x;
+			destrect.y = sk->from_y + SYMMENU_FRET_SIZE;
+			destsurf = TTF_RenderUNICODE_Shaded(corner_font, cornerchar, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
 			destrect.w = destsurf->w;
 			destrect.h = destsurf->h;
 			if(SDL_BlitSurface(destsurf, NULL, symmenu_surface, &destrect) != 0){
 				PRINT(stderr, "Blit Failed: %s\n", SDL_GetError());
 			}
+			SDL_FreeSurface(destsurf);
 		}
 	}
-	
+
 	TTF_CloseFont(fg_font);
 	TTF_CloseFont(corner_font);
 	TTF_CloseFont(bg_font);
@@ -746,7 +781,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
 		/* handle key repeat to upcase / metamode */
 		if ((screen_flags & KEY_REPEAT) &&
 		    prefs->keyhold_actions &&
-		    !preferences_is_keyhold_exempt(screen_val)) {
+		    !is_int_member(prefs->keyhold_actions_exempt, screen_val)) {
 			if (!key_repeat_done) {
 				/* Check for a metamode toggle key first */
 				if (screen_val == prefs->metamode_hold_key) {
@@ -1462,7 +1497,7 @@ int main(int argc, char **argv) {
 	char* home = getenv("HOME");
 	if(home != NULL){ chdir(home); }
 	
-	prefs = read_preferences(PREFS_FILENAME);
+	prefs = read_preferences(PREFS_FILE_PATH);
 
 	/* set auto orientation */
 	setenv("AUTO_ORIENTATION", "1", 0);
@@ -1473,7 +1508,7 @@ int main(int argc, char **argv) {
 		uninit();
 		return TERM_FAILURE;
 	}
-
+	
 	/* Initialize pty */
 	if (TERM_SUCCESS != pty_init()) {
 		PRINT(stderr, "Unable to initialize pty/tty\n");
