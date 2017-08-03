@@ -30,7 +30,7 @@ ASSET      	:= Device-Debug
 BINARY     	:= Term48-dev
 BINARY_PATH	:= $(ASSET)/$(BINARY)
 
-SRCS := $(wildcard src/*.c) $(wildcard src/cascades/*.cpp)
+SRCS := $(wildcard src/*.c)
 OBJS := $(SRCS:.c=.o )
 
 include ./signing/bbpass
