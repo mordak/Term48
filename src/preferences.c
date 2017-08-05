@@ -20,6 +20,7 @@
 #include <unicode/utf.h>
 
 #include "terminal.h"
+#include "symmenu.h"
 #include "preferences.h"
 
 pref_t *prefs = NULL;
@@ -42,7 +43,7 @@ static void first_run(pref_t *prefs) {
 	save_preferences(prefs, PREFS_FILE_PATH);
 }
 
-int preferences_guess_best_font_size(int target_cols){
+int preferences_guess_best_font_size(pref_t *prefs, int target_cols){
 	/* font widths in pixels for sizes 0-250, indexed by font size */
 	int screen_width, screen_height, target_width;
 	if((getenv("WIDTH") == NULL) || (getenv("HEIGHT") == NULL)){
@@ -131,6 +132,94 @@ static keymap_t* create_keymap_array(config_t const *config, char const *path, s
 	return result;
 }
 
+static symmenu_t* create_symmenu(config_t const *config, char const *path, int def_num_rows, int const *def_row_lens, keymap_t const *def_entries) {
+	config_setting_t *rows_s = config_lookup(config, path);
+	int use_default = 0;
+
+	symmenu_t *menu = calloc(1, sizeof(symmenu_t));
+	
+	/* TODO: more robust checking on config syntax */
+	if (!rows_s || (config_setting_type(rows_s) != CONFIG_TYPE_LIST)) {
+		fprintf(stderr, "invalid symmenu %s, using default\n", path);
+
+		/* calculate the length of the keymap entry array */
+		int def_num_keys = 0;
+		for (int i = 0; i < def_num_rows; ++i) {
+			def_num_keys += def_row_lens[i];
+		}
+		
+		/* allocate the keymap entry and symkey arrays */
+		menu->entries = calloc(def_num_keys + 1, sizeof(keymap_t));
+		menu->entries[def_num_keys] = (keymap_t){0, NULL}; // sentinel for end of array
+		
+		menu->keys = calloc(def_num_rows + 1, sizeof(symkey_t*));
+		menu->keys[def_num_rows] = NULL;
+		
+		/* fill in the keymap entry array */
+		int entry_idx = 0;
+		for (int row = 0; row < def_num_rows; ++row) {
+			/* allocate the symkey row */
+			menu->keys[row] = calloc(def_row_lens[row] + 1, sizeof(symkey_t));
+			menu->keys[row][def_row_lens[row]].map = NULL;
+			
+			/* fill in the symkey row (rest done during render) */
+			for (int col = 0; col < def_row_lens[row]; ++col) {
+				menu->entries[entry_idx].from = def_entries[entry_idx].from;
+				menu->entries[entry_idx].to = strdup(def_entries[entry_idx].to);
+			
+				menu->keys[row][col].flash = '\0';
+				menu->keys[row][col].map = &menu->entries[entry_idx];
+
+				++entry_idx;
+			}
+		}
+
+	} else {
+		/* calculate the length of the keymap entry array */
+		int num_keys = 0;
+		for (int row = 0; row < config_setting_length(rows_s); ++row) {
+			config_setting_t *col_s = config_setting_get_elem(rows_s, row);
+			num_keys += config_setting_length(col_s);
+		}
+	
+		/* allocate the keymap entry and symkey arrays */
+		menu->entries = calloc(num_keys + 1, sizeof(keymap_t));
+		menu->entries[num_keys] = (keymap_t){0, NULL}; // sentinel for end of array
+		
+		menu->keys = calloc(config_setting_length(rows_s) + 1, sizeof(symkey_t*));
+		menu->keys[config_setting_length(rows_s)] = NULL;
+
+		/* fill in the keymap entry array */
+		int entry_idx = 0;
+		for (int row = 0; row < config_setting_length(rows_s); ++row) {
+			config_setting_t *col_s = config_setting_get_elem(rows_s, row);
+			int col_len = config_setting_length(col_s);
+			
+			/* allocate the symkey row */
+			menu->keys[row] = calloc(col_len + 1, sizeof(symkey_t));
+			menu->keys[row][col_len].map = NULL;
+			
+			/* fill in the symkey row (rest done during render) */
+			for (int col = 0; col < col_len; ++col) {
+				config_setting_t *m = config_setting_get_elem(col_s, col);
+				char const *from_str = config_setting_get_string_elem(m, 0);
+				menu->entries[entry_idx].from = from_str[0];
+				menu->entries[entry_idx].to = strdup(config_setting_get_string_elem(m, 1));
+			
+				menu->keys[row][col].flash = '\0';
+				menu->keys[row][col].map = &menu->entries[entry_idx];
+
+				++entry_idx;
+			}
+		}
+	}
+
+	/* call the rendering function later after SDL init*/
+	menu->surface = NULL;
+
+	return menu;
+}
+
 void destroy_preferences(pref_t *pref) {
 	free(pref->font_path);
 	free(pref->tty_encoding);
@@ -151,19 +240,14 @@ void destroy_preferences(pref_t *pref) {
 	while (m->to != NULL) { free(m->to); ++m; }
 	free(pref->metamode_func_keys);
 
-	for (int i = 0; i < 3; i++) {
-		m = pref->sym_keys[i];
-		while (m->to != NULL) { free(m->to); ++m; }
-		free(pref->sym_keys[i]);
-	}
-	free(pref->sym_keys);
+	destroy_symmenu(pref->main_symmenu);
 	
 	free(pref->keyhold_actions_exempt);
 
 	free(pref);
 }
 
-#define DEFAULT_LOOKUP(type, conf, path, target, defval) \
+#define DEFAULT_LOOKUP(type, conf, path, target, defval)	  \
 	do { if (CONFIG_TRUE != config_lookup_##type(conf, path, &(target))) { target = defval; } } while(0)
 pref_t *read_preferences(const char* filename) {
 	pref_t *prefs = calloc(1, sizeof(pref_t)); // our internal data structure
@@ -185,6 +269,8 @@ pref_t *read_preferences(const char* filename) {
 		if(config_read_file(config, filename) != CONFIG_TRUE){
 			fprintf(stderr, "%s:%d - %s\n", config_error_file(config),
 			        config_error_line(config), config_error_text(config));
+			char *crash = NULL;
+			*crash = 'm';
 		}
 	}
 	
@@ -208,13 +294,13 @@ pref_t *read_preferences(const char* filename) {
 	prefs->metamode_keys = create_keymap_array(config, "metamode_keys", DEFAULT_METAMODE_KEYS_LEN, DEFAULT_METAMODE_KEYS);
 	prefs->metamode_sticky_keys = create_keymap_array(config, "metamode_sticky_keys", DEFAULT_METAMODE_STICKY_KEYS_LEN, DEFAULT_METAMODE_STICKY_KEYS);
 	prefs->metamode_func_keys = create_keymap_array(config, "metamode_func_keys", DEFAULT_METAMODE_FUNC_KEYS_LEN, DEFAULT_METAMODE_FUNC_KEYS);
-	prefs->sym_keys[0] = create_keymap_array(config, "sym_keys_r1", DEFAULT_SYM_KEYS_R1_LEN, DEFAULT_SYM_KEYS_R1);
-	prefs->sym_keys[1] = create_keymap_array(config, "sym_keys_r2", DEFAULT_SYM_KEYS_R2_LEN, DEFAULT_SYM_KEYS_R2);
-	prefs->sym_keys[2] = create_keymap_array(config, "sym_keys_r3", DEFAULT_SYM_KEYS_R3_LEN, DEFAULT_SYM_KEYS_R3);
 	DEFAULT_LOOKUP(bool, config, "sticky_sym_key", prefs->sticky_sym_key, DEFAULT_STICKY_SYM_KEY);
 	DEFAULT_LOOKUP(bool, config, "sticky_shift_key", prefs->sticky_shift_key, DEFAULT_STICKY_SHIFT_KEY);
 	DEFAULT_LOOKUP(bool, config, "sticky_alt_key", prefs->sticky_alt_key, DEFAULT_STICKY_ALT_KEY);
 	prefs->keyhold_actions_exempt = create_int_array(config, "keyhold_actions_exempt", DEFAULT_KEYHOLD_ACTIONS_EXEMPT_LEN, DEFAULT_KEYHOLD_ACTIONS_EXEMPT, 1);
+	DEFAULT_LOOKUP(bool, config, "rescreen_for_symmenu", prefs->rescreen_for_symmenu, DEFAULT_RESCREEN_FOR_SYMMENU);
+
+	prefs->main_symmenu = create_symmenu(config, "main_symmenu", DEFAULT_SYMMENU_NUM_ROWS, DEFAULT_SYMMENU_ROW_LENS, DEFAULT_SYMMENU_ENTRIES);
 
 	if (is_first_run) {
 		first_run(prefs);
@@ -232,9 +318,9 @@ void set_int_array(config_setting_t *root, char const *key, size_t num_elems, in
 }
 
 void set_keymap_array(config_setting_t *root, char const *key, keymap_t const *source) {
-	config_setting_t *setting = config_setting_add(root, key, CONFIG_TYPE_ARRAY);
+	config_setting_t *setting = config_setting_add(root, key, CONFIG_TYPE_LIST);
 	for (; source->to != NULL; ++source) {
-		config_setting_t *group = config_setting_add(setting, NULL, CONFIG_TYPE_GROUP);
+		config_setting_t *group = config_setting_add(setting, NULL, CONFIG_TYPE_LIST);
 		
 		config_setting_t *from_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
 		char from_str[2] = {source->from, '\0'};
@@ -245,7 +331,36 @@ void set_keymap_array(config_setting_t *root, char const *key, keymap_t const *s
 	}
 }
 
-#define PREF_SET(root, setptr, key, type, configtype, source) \
+void set_symmenu(config_setting_t *root, char const *key, symmenu_t const *source) {
+	config_setting_t *rows_s = config_setting_add(root, key, CONFIG_TYPE_LIST);
+	config_setting_t *col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_LIST);
+
+	int row = 0, col = 0;
+	while (1) {
+		if (source->keys[row][col].map == NULL) {
+			++row;
+			if (source->keys[row] == NULL) {
+				return;
+			}
+			col = 0;
+			col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_LIST);
+			continue;
+		}
+		
+		config_setting_t *group = config_setting_add(col_s, NULL, CONFIG_TYPE_LIST);
+		
+		config_setting_t *from_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		char from_str[2] = {source->keys[row][col].map->from, '\0'};
+		config_setting_set_string(from_s, from_str);
+
+		config_setting_t *to_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		config_setting_set_string(to_s, source->keys[row][col].map->to);
+
+		++col;
+	}
+}
+
+#define PREF_SET(root, setptr, key, type, configtype, source)	  \
 	do { setptr = config_setting_add(root, key, CONFIG_TYPE_##configtype); \
 		config_setting_set_##type(setptr, source); } while(0)
 void save_preferences(pref_t const* prefs, char const* filename) {
@@ -270,12 +385,11 @@ void save_preferences(pref_t const* prefs, char const* filename) {
 	set_keymap_array(root, "metamode_keys", prefs->metamode_keys);
 	set_keymap_array(root, "metamode_sticky_keys", prefs->metamode_sticky_keys);
 	set_keymap_array(root, "metamode_func_keys", prefs->metamode_func_keys);
-	set_keymap_array(root, "sym_keys_r1", prefs->sym_keys[0]);
-	set_keymap_array(root, "sym_keys_r2", prefs->sym_keys[1]);
-	set_keymap_array(root, "sym_keys_r3", prefs->sym_keys[2]);
+	set_symmenu(root, "main_symmenu", prefs->main_symmenu);
 	PREF_SET(root, setting, "sticky_sym_key", bool, BOOL, prefs->sticky_sym_key);
 	PREF_SET(root, setting, "sticky_shift_key", bool, BOOL, prefs->sticky_shift_key);
 	PREF_SET(root, setting, "sticky_alt_key", bool, BOOL, prefs->sticky_alt_key);
+	PREF_SET(root, setting, "rescreen_for_symmenu", bool, BOOL, prefs->rescreen_for_symmenu);
 	
 	int num_exempt = 0;
 	for (; prefs->keyhold_actions_exempt[num_exempt] > 0; ++num_exempt) { }
