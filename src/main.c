@@ -51,8 +51,8 @@ char draw_cursor = 1;
 char flash = 0;
 
 static pref_t *prefs = NULL;
+static symmenu_t *current_symmenu = NULL;
 
-static char symmenu_show = 0;
 static char symmenu_lock = 0;
 
 static char metamode = 0;
@@ -203,17 +203,18 @@ void symmenu_stick(){
 	symmenu_lock = 1;
 }
 
-void symmenu_toggle(){
-	symmenu_show = symmenu_show ? 0 : 1;
-	if (symmenu_show){
+void symmenu_toggle(symmenu_t *target){
+	if (current_symmenu == NULL){
+		current_symmenu = target;
 		// resize to show menu
 		if (prefs->rescreen_for_symmenu) {
-			setup_screen_size(screen->w, screen->h - prefs->main_symmenu->surface->h);
+			setup_screen_size(screen->w, screen->h - current_symmenu->surface->h);
 		}
 		if (prefs->sticky_sym_key) {
 			symmenu_stick();
 		}
 	} else {
+		current_symmenu = NULL;
 		if (prefs->rescreen_for_symmenu) {
 			// resize to take full screen
 			setup_screen_size(screen->w, screen->h);
@@ -230,7 +231,7 @@ static const char* symkey_for_mousedown(symmenu_t *menu, Uint16 x, Uint16 y) {
 			if ((x > key->from_x) && (y > key->from_y + (screen->h - menu->surface->h)) &&
 			    (x < key->to_x)   && (y < key->to_y + (screen->h - menu->surface->h))) {
 				if (!symmenu_lock) {
-					symmenu_toggle();
+					symmenu_toggle(NULL);
 				} else {
 					key->flash = 1;
 				}
@@ -390,8 +391,8 @@ void handle_mousedown(Uint16 x, Uint16 y){
 	}
 
 	/* check for symmenu touches */
-	if(symmenu_show){
-		send_metamode_keystrokes(symkey_for_mousedown(prefs->main_symmenu, x, y));
+	if(current_symmenu != NULL){
+		send_metamode_keystrokes(symkey_for_mousedown(current_symmenu, x, y));
 	}
 }
 
@@ -453,82 +454,17 @@ void toggle_vkeymod(int mod){
 	}
 }
 
-char no_uppercase_representation(int keysym){
-	switch(keysym){
-	case 0x00:
-	case 0x01:
-	case 0x02:
-	case 0x03:
-	case 0x04:
-	case 0x05:
-	case 0x06:
-	case 0x07:
-	case 0x08:
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
-	case 0x10:
-	case 0x11:
-	case 0x12:
-	case 0x13:
-	case 0x14:
-	case 0x15:
-	case 0x16:
-	case 0x17:
-	case 0x18:
-	case 0x19:
-	case 0x1a:
-	case 0x1b:
-	case 0x1c:
-	case 0x1d:
-	case 0x1e:
-	case 0x1f:
-	case KEYCODE_PAUSE      :
-	case KEYCODE_SCROLL_LOCK:
-	case KEYCODE_PRINT      :
-	case KEYCODE_SYSREQ     :
-	case KEYCODE_BREAK      :
-	case KEYCODE_ESCAPE     :
-	case KEYCODE_BACKSPACE  :
-	case KEYCODE_TAB        :
-	case KEYCODE_BACK_TAB   :
-	case KEYCODE_CAPS_LOCK  :
-	case KEYCODE_LEFT_SHIFT :
-	case KEYCODE_RIGHT_SHIFT:
-	case KEYCODE_LEFT_CTRL  :
-	case KEYCODE_RIGHT_CTRL :
-	case KEYCODE_LEFT_ALT   :
-	case KEYCODE_RIGHT_ALT  :
-	case KEYCODE_MENU       :
-	case KEYCODE_LEFT_HYPER :
-	case KEYCODE_RIGHT_HYPER:
-	case KEYCODE_INSERT     :
-	case KEYCODE_HOME       :
-	case KEYCODE_PG_UP      :
-	case KEYCODE_DELETE     :
-	case KEYCODE_END        :
-	case KEYCODE_PG_DOWN    :
-	case KEYCODE_NUM_LOCK   :
-	case KEYCODE_F1         :
-	case KEYCODE_F2         :
-	case KEYCODE_F3         :
-	case KEYCODE_F4         :
-	case KEYCODE_F5         :
-	case KEYCODE_F6         :
-	case KEYCODE_F7         :
-	case KEYCODE_F8         :
-	case KEYCODE_F9         :
-	case KEYCODE_F10        :
-	case KEYCODE_F11        :
-	case KEYCODE_F12        :
-		return 1;
-		break;
+static symmenu_t *get_keyhold_actions(int keycode) {
+	if (!prefs->keyhold_actions) {
+		return NULL;
 	}
-	return 0;
+
+	switch (keycode) {
+	case KEYCODE_E:
+		return prefs->e_accent_menu;
+	}
+
+	return NULL;
 }
 
 void handleKeyboardEvent(screen_event_t screen_event)
@@ -574,7 +510,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
 		/* handle sticky keys */
 		if(screen_val == KEYCODE_BB_SYM_KEY){
 			if(!(screen_flags & KEY_REPEAT)){
-				symmenu_toggle();
+				symmenu_toggle(prefs->main_symmenu);
 			} else{
 				/* they are holding it down */
 				symmenu_stick();
@@ -613,24 +549,31 @@ void handleKeyboardEvent(screen_event_t screen_event)
 					metamode_toggle();
 					key_repeat_done = 1;
 					return;
-				} else if (!no_uppercase_representation(screen_val)){
-					/* Now try to upcase */
-					last_len = io_upcase_last_write(&target, CHARACTER_BUFFER);
-					if(last_len > 0){
-						/* We can upcase, send last_len backspaces and then the upcase char.
-						 * Note that this really only works if the program on the other
-						 * end of the line understands unicode, and can marry up backspaces
-						 * with codepoints, instead of just blindly deleting one byte at a time. */
-						upcase_len = (size_t)(target - c);
-						PRINT(stderr, "Writing %d backspace and %d upcase chars\n", last_len, upcase_len);
-						for(bs_i = 1; bs_i <= last_len; ++bs_i){
-							io_write_master(&backspace, 1);
-						}
-						io_write_master(c, upcase_len);
-						key_repeat_done = 1;
-						return;
-					}
-				} // fall through to usual behaviour if we can't upcase the last write.
+				}
+				
+				symmenu_t *menu = get_keyhold_actions(screen_val);
+				if (menu == NULL) {
+					return;
+				}
+				
+				last_len = io_upcase_last_write(&target, CHARACTER_BUFFER);
+				/* write backspace */
+				for(bs_i = 1; bs_i <= last_len; ++bs_i){
+					io_write_master(&backspace, 1);
+				}
+
+				/* select the mapping */
+				if (menu->entries[1].to == NULL) {
+					/* We can upcase, send last_len backspaces and then the upcase char.
+					 * Note that this really only works if the program on the other
+					 * end of the line understands unicode, and can marry up backspaces
+					 * with codepoints, instead of just blindly deleting one byte at a time. */
+					send_metamode_keystrokes(menu->entries[0].to);
+				} else {
+					symmenu_toggle(menu);
+				}
+				key_repeat_done = 1;
+				return;
 			} else {
 				// We have already handled this key repeat
 				return;
@@ -660,11 +603,11 @@ void handleKeyboardEvent(screen_event_t screen_event)
 		}
 
 		/* handle sym keys */
-		if (symmenu_show) {
-			keys = keystroke_lookup((char)screen_val, prefs->main_symmenu->entries);
+		if (current_symmenu != NULL) {
+			keys = keystroke_lookup((char)screen_val, current_symmenu->entries);
 			if (keys != NULL){
 				send_metamode_keystrokes(keys);
-				symmenu_toggle();
+				symmenu_toggle(NULL);
 				return;
 			}
 		}
@@ -1106,15 +1049,15 @@ void render() {
 		SDL_BlitSurface(shift_key_indicator, NULL, screen, &destrect);
 	}
 
-	if (symmenu_show && (prefs->main_symmenu->surface != NULL)) {
+	if ((current_symmenu != NULL) && (current_symmenu->surface != NULL)) {
 		/* blit symmenu surface */
 		SDL_Rect destrect;
-		destrect.w = prefs->main_symmenu->surface->w;
-		destrect.h = prefs->main_symmenu->surface->h;
+		destrect.w = current_symmenu->surface->w;
+		destrect.h = current_symmenu->surface->h;
 		destrect.x = 0;
-		destrect.y = screen->h - prefs->main_symmenu->surface->h;;
+		destrect.y = screen->h - current_symmenu->surface->h;;
 	
-		if (SDL_BlitSurface(prefs->main_symmenu->surface, NULL, screen, &destrect) != 0) {
+		if (SDL_BlitSurface(current_symmenu->surface, NULL, screen, &destrect) != 0) {
 			PRINT(stderr, "Symmenu blit failed: %s\n", SDL_GetError());
 			return;
 		}
@@ -1357,6 +1300,7 @@ int main(int argc, char **argv) {
 
 	/* render the symmenus */
 	prefs->main_symmenu->surface = render_symmenu(screen, prefs, prefs->main_symmenu);
+	prefs->e_accent_menu->surface = render_symmenu(screen, prefs, prefs->e_accent_menu);
 
 	if (prefs->auto_show_vkb) {
 		virtualkeyboard_show();

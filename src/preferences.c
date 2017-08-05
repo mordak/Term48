@@ -301,6 +301,7 @@ pref_t *read_preferences(const char* filename) {
 	DEFAULT_LOOKUP(bool, config, "rescreen_for_symmenu", prefs->rescreen_for_symmenu, DEFAULT_RESCREEN_FOR_SYMMENU);
 
 	prefs->main_symmenu = create_symmenu(config, "main_symmenu", DEFAULT_SYMMENU_NUM_ROWS, DEFAULT_SYMMENU_ROW_LENS, DEFAULT_SYMMENU_ENTRIES);
+	prefs->e_accent_menu = create_symmenu(config, "e_accents", 1, DEFAULT_E_ACCENT_ROW_LENS, DEFAULT_E_ACCENT_ENTRIES);
 
 	if (is_first_run) {
 		first_run(prefs);
