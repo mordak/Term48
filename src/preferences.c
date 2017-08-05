@@ -214,7 +214,7 @@ static symmenu_t* create_symmenu(config_t const *config, char const *path, int d
 		}
 	}
 
-	/* call the rendering function */
+	/* call the rendering function later after SDL init*/
 	menu->surface = NULL;
 
 	return menu;
@@ -329,7 +329,32 @@ void set_keymap_array(config_setting_t *root, char const *key, keymap_t const *s
 }
 
 void set_symmenu(config_setting_t *root, char const *key, symmenu_t const *source) {
+	config_setting_t *rows_s = config_setting_add(root, key, CONFIG_TYPE_ARRAY);
+	config_setting_t *col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_ARRAY);
 
+	int row = 0, col = 0;
+	while (1) {
+		if (source->keys[row][col].map == NULL) {
+			++row;
+			if (source->keys[row] == NULL) {
+				return;
+			}
+			col = 0;
+			col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_ARRAY);
+			continue;
+		}
+		
+		config_setting_t *group = config_setting_add(col_s, NULL, CONFIG_TYPE_GROUP);
+		
+		config_setting_t *from_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		char from_str[2] = {source->keys[row][col].map->from, '\0'};
+		config_setting_set_string(from_s, from_str);
+
+		config_setting_t *to_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		config_setting_set_string(to_s, source->keys[row][col].map->to);
+
+		++col;
+	}
 }
 
 #define PREF_SET(root, setptr, key, type, configtype, source)	  \

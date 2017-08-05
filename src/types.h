@@ -9,14 +9,15 @@ typedef struct _keymap_t {
 
 typedef struct _symkey_t {
 	char flash;
-	keymap_t *map;
-	int from_x, to_x, from_y, to_y; // used for mousedown
+	keymap_t *map; /* pointer to corresponding map */
+	int from_x, to_x, from_y, to_y; /* used for mousedown */
 	UChar *uc;
 } symkey_t;
 
 typedef struct _symmenu_t {
-	symkey_t **keys;
-	keymap_t *entries;
+	/* row terminated by NULL pointer, col by NULL symkey_t->map */
+	symkey_t **keys; 
+	keymap_t *entries; /* terminated by NULL keymap_t.to */
 	SDL_Surface *surface;
 } symmenu_t;
 
@@ -27,9 +28,13 @@ typedef struct _pref_t {
 		keyhold_actions, metamode_hold_key, allow_resize_columns,
 		*metamode_hitbox;
 	char *tty_encoding;
+	
+	/* terminated by NULL pointer */
 	keymap_t *metamode_keys, *metamode_sticky_keys, *metamode_func_keys;
+	
 	symmenu_t *main_symmenu;
-	int sticky_sym_key, sticky_shift_key, sticky_alt_key, *keyhold_actions_exempt;
+	int sticky_sym_key, sticky_shift_key, sticky_alt_key;
+	int *keyhold_actions_exempt; /* terminated by -1 */
 } pref_t;
 
 #endif
