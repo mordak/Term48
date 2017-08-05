@@ -23,6 +23,8 @@
 #include <unicode/utf.h>
 #include <errno.h>
 
+#include "types.h"
+#include "symmenu.h"
 #include "SDL.h"
 
 #define PREFS_FILE_PATH ".term48rc"
@@ -34,36 +36,8 @@
 
 static int PREFS_VERSION = 9;
 
-typedef struct _keymap_t {
-	char from, *to;
-} keymap_t;
-
-typedef struct _symkey_t {
-	char flash; char const *to;
-	int from_x, to_x, from_y, to_y; // used for mousedown
-	UChar *uc;
-} symkey_t;
-
-typedef struct _symmenu_t {
-	int num_rows;
-	symkey_t **entries;
-	SDL_Surface *surface;
-} symmenu_t;
-
-typedef struct _pref_t {
-	char *font_path;
-	int font_size, *text_color, *background_color, screen_idle_awake,
-		auto_show_vkb, metamode_doubletap_key, metamode_doubletap_delay,
-		keyhold_actions, metamode_hold_key, allow_resize_columns,
-		*metamode_hitbox;
-	char *tty_encoding;
-	keymap_t *metamode_keys, *metamode_sticky_keys, *metamode_func_keys,
-		*sym_keys[3];
-	int sticky_sym_key, sticky_shift_key, sticky_alt_key, *keyhold_actions_exempt;
-} pref_t;
-
 #define DEFAULT_FONT_PATH "/usr/fonts/font_repository/monotype/cour.ttf"
-#define DEFAULT_FONT_SIZE 40
+#define DEFAULT_FONT_SIZE 24//40
 #define DEFAULT_TEXT_COLOR (int[]){255, 255, 255}
 #define DEFAULT_BACKGROUND_COLOR (int[]){0, 0, 0}
 #define DEFAULT_SCREEN_IDLE_AWAKE 0
@@ -87,23 +61,19 @@ typedef struct _pref_t {
                                                 {'c', "ctrl_down"}, \
                                                 {'s', "rescreen"}, \
                                                 {'v', "paste_clipboard"}}
-#define DEFAULT_SYM_KEYS_R1_LEN 10
-#define DEFAULT_SYM_KEYS_R1 (keymap_t[]){{'q', "~"}, {'w', "`"}, {'e', "{"}, {'r', "}"}, \
-                                         {'t', "["}, {'y', "]"}, {'u', "<"}, {'i', ">"}, \
-                                         {'o', "^"}, {'p', "%"}}
-#define DEFAULT_SYM_KEYS_R2_LEN 9
-#define DEFAULT_SYM_KEYS_R2 (keymap_t[]){{'a', "="}, {'s', "-"}, {'d', "*"}, {'f', "/"}, \
-                                         {'g', "\\"},{'h', "|"}, {'j', "&"}, {'k', "'"}, \
-                                         {'l', "\""}}
-#define DEFAULT_SYM_KEYS_R3_LEN 0
-#define DEFAULT_SYM_KEYS_R3 (keymap_t[]){}
+#define DEFAULT_SYMMENU_NUM_ROWS 2
+#define DEFAULT_SYMMENU_ROW_LENS (int[]){10, 9}
+#define DEFAULT_SYMMENU_ENTRIES (keymap_t[]) {  \
+    {'q', "~"}, {'w', "`"}, {'e', "{"}, {'r', "}"}, {'t', "["}, {'y', "]"}, {'u', "<"}, {'i', ">"}, {'o', "^"}, {'p', "%"}, \
+    {'a', "="}, {'s', "-"}, {'d', "*"}, {'f', "/"}, {'g', "\\"},{'h', "|"}, {'j', "&"}, {'k', "'"}, {'l', "\""} \
+}
 #define DEFAULT_STICKY_SYM_KEY 0
 #define DEFAULT_STICKY_SHIFT_KEY 0
 #define DEFAULT_STICKY_ALT_KEY 0
 #define DEFAULT_KEYHOLD_ACTIONS_EXEMPT_LEN 2
 #define DEFAULT_KEYHOLD_ACTIONS_EXEMPT (int[]){KEYCODE_BACKSPACE, KEYCODE_RETURN}
 
-int preferences_guess_best_font_size(int target_cols);
+int preferences_guess_best_font_size(pref_t *prefs, int target_cols);
 
 pref_t* read_preferences(const char* filename);
 void save_preferences(pref_t const* pref, char const* filename);
