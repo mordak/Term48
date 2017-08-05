@@ -269,6 +269,8 @@ pref_t *read_preferences(const char* filename) {
 		if(config_read_file(config, filename) != CONFIG_TRUE){
 			fprintf(stderr, "%s:%d - %s\n", config_error_file(config),
 			        config_error_line(config), config_error_text(config));
+			char *crash = NULL;
+			*crash = 'm';
 		}
 	}
 	
@@ -296,6 +298,7 @@ pref_t *read_preferences(const char* filename) {
 	DEFAULT_LOOKUP(bool, config, "sticky_shift_key", prefs->sticky_shift_key, DEFAULT_STICKY_SHIFT_KEY);
 	DEFAULT_LOOKUP(bool, config, "sticky_alt_key", prefs->sticky_alt_key, DEFAULT_STICKY_ALT_KEY);
 	prefs->keyhold_actions_exempt = create_int_array(config, "keyhold_actions_exempt", DEFAULT_KEYHOLD_ACTIONS_EXEMPT_LEN, DEFAULT_KEYHOLD_ACTIONS_EXEMPT, 1);
+	DEFAULT_LOOKUP(bool, config, "rescreen_for_symmenu", prefs->rescreen_for_symmenu, DEFAULT_RESCREEN_FOR_SYMMENU);
 
 	prefs->main_symmenu = create_symmenu(config, "main_symmenu", DEFAULT_SYMMENU_NUM_ROWS, DEFAULT_SYMMENU_ROW_LENS, DEFAULT_SYMMENU_ENTRIES);
 
@@ -315,9 +318,9 @@ void set_int_array(config_setting_t *root, char const *key, size_t num_elems, in
 }
 
 void set_keymap_array(config_setting_t *root, char const *key, keymap_t const *source) {
-	config_setting_t *setting = config_setting_add(root, key, CONFIG_TYPE_ARRAY);
+	config_setting_t *setting = config_setting_add(root, key, CONFIG_TYPE_LIST);
 	for (; source->to != NULL; ++source) {
-		config_setting_t *group = config_setting_add(setting, NULL, CONFIG_TYPE_GROUP);
+		config_setting_t *group = config_setting_add(setting, NULL, CONFIG_TYPE_LIST);
 		
 		config_setting_t *from_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
 		char from_str[2] = {source->from, '\0'};
@@ -329,8 +332,8 @@ void set_keymap_array(config_setting_t *root, char const *key, keymap_t const *s
 }
 
 void set_symmenu(config_setting_t *root, char const *key, symmenu_t const *source) {
-	config_setting_t *rows_s = config_setting_add(root, key, CONFIG_TYPE_ARRAY);
-	config_setting_t *col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_ARRAY);
+	config_setting_t *rows_s = config_setting_add(root, key, CONFIG_TYPE_LIST);
+	config_setting_t *col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_LIST);
 
 	int row = 0, col = 0;
 	while (1) {
@@ -340,11 +343,11 @@ void set_symmenu(config_setting_t *root, char const *key, symmenu_t const *sourc
 				return;
 			}
 			col = 0;
-			col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_ARRAY);
+			col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_LIST);
 			continue;
 		}
 		
-		config_setting_t *group = config_setting_add(col_s, NULL, CONFIG_TYPE_GROUP);
+		config_setting_t *group = config_setting_add(col_s, NULL, CONFIG_TYPE_LIST);
 		
 		config_setting_t *from_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
 		char from_str[2] = {source->keys[row][col].map->from, '\0'};
@@ -386,6 +389,7 @@ void save_preferences(pref_t const* prefs, char const* filename) {
 	PREF_SET(root, setting, "sticky_sym_key", bool, BOOL, prefs->sticky_sym_key);
 	PREF_SET(root, setting, "sticky_shift_key", bool, BOOL, prefs->sticky_shift_key);
 	PREF_SET(root, setting, "sticky_alt_key", bool, BOOL, prefs->sticky_alt_key);
+	PREF_SET(root, setting, "rescreen_for_symmenu", bool, BOOL, prefs->rescreen_for_symmenu);
 	
 	int num_exempt = 0;
 	for (; prefs->keyhold_actions_exempt[num_exempt] > 0; ++num_exempt) { }

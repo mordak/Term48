@@ -205,15 +205,19 @@ void symmenu_stick(){
 
 void symmenu_toggle(){
 	symmenu_show = symmenu_show ? 0 : 1;
-	if(symmenu_show){
+	if (symmenu_show){
 		// resize to show menu
-		setup_screen_size(screen->w, screen->h - prefs->main_symmenu->surface->h);
+		if (prefs->rescreen_for_symmenu) {
+			setup_screen_size(screen->w, screen->h - prefs->main_symmenu->surface->h);
+		}
 		if (prefs->sticky_sym_key) {
 			symmenu_stick();
 		}
 	} else {
-		// resize to take full screen
-		setup_screen_size(screen->w, screen->h);
+		if (prefs->rescreen_for_symmenu) {
+			// resize to take full screen
+			setup_screen_size(screen->w, screen->h);
+		}
 		symmenu_lock = 0;
 	}
 }
