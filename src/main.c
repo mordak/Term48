@@ -462,6 +462,8 @@ static symmenu_t *get_keyhold_actions(int keycode) {
 	switch (keycode) {
 	case KEYCODE_E:
 		return prefs->e_accent_menu;
+	case KEYCODE_K:
+		return prefs->k_accent_menu;
 	}
 
 	return NULL;
@@ -558,7 +560,7 @@ void handleKeyboardEvent(screen_event_t screen_event)
 				
 				last_len = io_upcase_last_write(&target, CHARACTER_BUFFER);
 				/* write backspace */
-				for(bs_i = 1; bs_i <= last_len; ++bs_i){
+				for(bs_i = 1; bs_i <= last_len; ++bs_i) {
 					io_write_master(&backspace, 1);
 				}
 

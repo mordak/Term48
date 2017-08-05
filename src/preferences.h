@@ -24,6 +24,7 @@
 #include <errno.h>
 
 #include "types.h"
+#include "accent_menus.h"
 #include "symmenu.h"
 #include "SDL.h"
 
@@ -67,8 +68,6 @@ static int PREFS_VERSION = 9;
     {'q', "~"}, {'w', "`"}, {'e', "{"}, {'r', "}"}, {'t', "["}, {'y', "]"}, {'u', "<"}, {'i', ">"}, {'o', "^"}, {'p', "%"}, \
     {'a', "="}, {'s', "-"}, {'d', "*"}, {'f', "/"}, {'g', "\\"},{'h', "|"}, {'j', "&"}, {'k', "'"}, {'l', "\""} \
 }
-#define DEFAULT_E_ACCENT_ROW_LENS (int[]){5}
-#define DEFAULT_E_ACCENT_ENTRIES (keymap_t[]) {{'q', "E"}, {'w', "\u00E9"}, {'e', "\u00E8"}, {'r', "\u00EA"}, {'t', "\u00EB"}}
 #define DEFAULT_STICKY_SYM_KEY 0
 #define DEFAULT_STICKY_SHIFT_KEY 0
 #define DEFAULT_STICKY_ALT_KEY 0

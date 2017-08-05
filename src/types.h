@@ -33,7 +33,8 @@ typedef struct _pref_t {
 	/* terminated by NULL pointer */
 	keymap_t *metamode_keys, *metamode_sticky_keys, *metamode_func_keys;
 	
-	symmenu_t *main_symmenu, *e_accent_menu;
+	symmenu_t *main_symmenu;
+	symmenu_t *e_accent_menu, *k_accent_menu;
 	
 	int sticky_sym_key, sticky_shift_key, sticky_alt_key;
 	int *keyhold_actions_exempt; /* terminated by -1 */
