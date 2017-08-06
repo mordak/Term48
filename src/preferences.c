@@ -70,6 +70,21 @@ int preferences_guess_best_font_size(pref_t *prefs, int target_cols){
 	return font_widths[NUM_SIZES-1];
 }
 
+static void upgrade_config_v8(config_t *dst, config_t *src) {
+	/* stub code; update the keymap and symkey stuff */
+}
+
+static void upgrade_config(config_t *dst, config_t *src, int old_version) {
+	switch (old_version) {
+	case 8:
+		upgrade_config_v8(dst, src);
+		break;
+	default:
+		fprintf(stderr, "Preferences version not supported!\n");
+		break;
+	}
+}
+
 static int* create_int_array(config_t const *config, char const *path, size_t def_len, int const *def, int dynamic) {
 	config_setting_t *setting = config_lookup(config, path);
 	int use_default = 0;
@@ -269,9 +284,13 @@ pref_t *read_preferences(const char* filename) {
 		if(config_read_file(config, filename) != CONFIG_TRUE){
 			fprintf(stderr, "%s:%d - %s\n", config_error_file(config),
 			        config_error_line(config), config_error_text(config));
-			char *crash = NULL;
-			*crash = 'm';
 		}
+	}
+
+	DEFAULT_LOOKUP(int, config, "prefs_version", prefs->prefs_version, PREFS_VERSION);
+	if(prefs->prefs_version != PREFS_VERSION) {
+		 config_t *old_config = config;
+		 upgrade_config(config, old_config, prefs->prefs_version);
 	}
 	
 	int default_font_columns = (atoi(getenv("WIDTH")) <= 720) ? 45 : 60;

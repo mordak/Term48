@@ -46,29 +46,29 @@ void set_screen_cols(int cols);
 int init();
 void uninit();
 
-#define SDL_BLACK       {.r = 0,   .b = 0,   .g = 0}
-#define SDL_RED         {.r = 205, .b = 0,   .g = 0}
-#define SDL_GREEN       {.r = 0,   .b = 205, .g = 0}
-#define SDL_YELLOW      {.r = 205, .b = 205, .g = 0}
-#define SDL_BLUE        {.r = 0,   .b = 0,   .g = 238}
-#define SDL_MAGENTA     {.r = 205, .b = 0,   .g = 205}
-#define SDL_CYAN        {.r = 0,   .b = 205, .g = 205}
-#define SDL_GRAY        {.r = 229, .b = 229, .g = 229}
-#define SDL_BT_GRAY     {.r = 127, .b = 127, .g = 127}
-#define SDL_BT_RED      {.r = 255, .b = 0,   .g = 0}
-#define SDL_BT_GREEN    {.r = 0,   .b = 255, .g = 0}
-#define SDL_BT_YELLOW   {.r = 255, .b = 255, .g = 0}
-#define SDL_BT_BLUE     {.r = 92,  .b = 92,  .g = 255}
-#define SDL_BT_MAGENTA  {.r = 255, .b = 0,   .g = 255}
-#define SDL_BT_CYAN     {.r = 0,   .b = 255, .g = 255}
-#define SDL_WHITE       {.r = 255, .b = 255, .g = 255}
+#define SDL_BLACK       {.r = 0,   .g = 0,   .b = 0}
+#define SDL_RED         {.r = 205, .g = 0,   .b = 0}
+#define SDL_GREEN       {.r = 0,   .g = 205, .b = 0}
+#define SDL_YELLOW      {.r = 205, .g = 205, .b = 0}
+#define SDL_BLUE        {.r = 0,   .g = 0,   .b = 238}
+#define SDL_MAGENTA     {.r = 205, .g = 0,   .b = 205}
+#define SDL_CYAN        {.r = 0,   .g = 205, .b = 205}
+#define SDL_GRAY        {.r = 229, .g = 229, .b = 229}
+#define SDL_BT_GRAY     {.r = 127, .g = 127, .b = 127}
+#define SDL_BT_RED      {.r = 255, .g = 0,   .b = 0}
+#define SDL_BT_GREEN    {.r = 0,   .g = 255, .b = 0}
+#define SDL_BT_YELLOW   {.r = 255, .g = 255, .b = 0}
+#define SDL_BT_BLUE     {.r = 92,  .g = 92,  .b = 255}
+#define SDL_BT_MAGENTA  {.r = 255, .g = 0,   .b = 255}
+#define SDL_BT_CYAN     {.r = 0,   .g = 255, .b = 255}
+#define SDL_WHITE       {.r = 255, .g = 255, .b = 255}
 
 #define SYMKEY_BORDER_SIZE 4
 #define SYMMENU_FRET_SIZE 8
-#define SYMMENU_FRET       {.r = 130, .b = 130, .g = 130}
-#define SYMMENU_BORDER     {.r = 90,  .b = 90,  .g = 90}
-#define SYMMENU_BACKGROUND {.r = 38,  .b = 38,  .g = 38}
-#define SYMMENU_CORNER     {.r = 153, .b = 153, .g = 153}
-#define SYMMENU_FONT       {.r = 255, .b = 255, .g = 255}
+#define SYMMENU_FRET       {.r = 130, .g = 130, .b = 130}
+#define SYMMENU_BORDER     {.r = 90,  .g = 90,  .b = 90}
+#define SYMMENU_BACKGROUND {.r = 38,  .g = 38,  .b = 38}
+#define SYMMENU_CORNER     {.r = 153, .g = 153, .b = 153}
+#define SYMMENU_FONT       {.r = 255, .g = 255, .b = 255}
 
 #endif /* TERMINAL_H_ */

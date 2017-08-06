@@ -142,10 +142,10 @@ metamode_hitbox : { x = 0; y = 0; w = 100; h = 100; };
  * from the left, y from the top) and the witdh (w) and
  * height (h) in pixels. */
 
-metamode_keys : { 
-    e = "\x1B"; 
-    t = "\t"; 
-  };
+metamode_keys : (
+    ("e", "\x1B"),
+    ("t", "\t")
+  );
 /* When in metamode, pressing the given key will send the
  * specified string into the shell and then turn off
  * metamode. Strings are read according to the rules for
@@ -162,22 +162,22 @@ metamode_keys : {
  * be sent for cursor up, down, right, left, home, end or
  * the corresponding function key. */ 
 
-metamode_sticky_keys : { 
-    k = "kcuu1"; 
-    j = "kcud1"; 
-    l = "kcuf1"; 
-    h = "kcub1"; 
-  };
+metamode_sticky_keys : ( 
+    ("k", "kcuu1"),
+    ("j", "kcud1"),
+    ("l", "kcuf1"),
+    ("h", "kcub1")
+  );
 /* Like metamode_keys above, but leaves metamode on
  * afterwards, so you can press another metamode key
  * immediately. */
 
-metamode_func_keys : { 
-    a = "alt_down"; 
-    c = "ctrl_down"; 
-    s = "rescreen"; 
-    v = "paste_clipboard"; 
-  };
+metamode_func_keys : ( 
+    ("a", "alt_down"),
+    ("c", "ctrl_down"),
+    ("s", "rescreen"),
+    ("v", "paste_clipboard")
+  );
 /* These keys map to special functions in Term48:
   
   alt_down: Will 'hold down' the alt key and send it as a
@@ -194,29 +194,34 @@ metamode_func_keys : {
   that no character encoding or conversion will be done. 
 */
 
-sym_keys : ( {
-    a = "=";
-    s = "-";
-    d = "*";
-    f = "/";
-    g = "\\";
-    h = "|";
-    j = "&";
-    k = "'";
-    l = "\"";
-  }, 
-  {
-    q = "~";
-    w = "`";
-    e = "{";
-    r = "}";
-    t = "[";
-    y = "]";
-    u = "<";
-    i = ">";
-    o = "^";
-    p = "%";
-  } );
+rescreen_on_symmenu = true;
+/* If rescreen_on_symmenu is true, then opening a symbol
+  menu will cause the screen to readjust to new dimensions
+*/
+
+main_symmenu : ( (
+    ("a", "="),
+    ("s", "-"),
+    ("d", "*"),
+    ("f", "/"),
+    ("g", "\\"),
+    ("h", "|"),
+    ("j", "&"),
+    ("k", "'"),
+    ("l", "\"")
+  ), 
+  (
+    ("q", "~"),
+    ("w", "`"),
+    ("e", "{"),
+    ("r", "}"),
+    ("t", "["),
+    ("y", "]"),
+    ("u", "<"),
+    ("i", ">"),
+    ("o", "^"),
+    ("p", "%")
+  ) );
 /* For devices with a Sym key, this preference controls the
  * contents of the symbol menu.
  *
