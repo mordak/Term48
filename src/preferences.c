@@ -322,8 +322,32 @@ pref_t *read_preferences(const char* filename) {
 	prefs->main_symmenu = create_symmenu(config, "main_symmenu", DEFAULT_SYMMENU_NUM_ROWS, DEFAULT_SYMMENU_ROW_LENS, DEFAULT_SYMMENU_ENTRIES);
 
 	/* the accent menus are configurable, but we won't include them in the default config */
+	prefs->q_accent_menu = create_symmenu(config, "q_accents", 1, DEFAULT_Q_ACCENT_ROW_LENS, DEFAULT_Q_ACCENT_ENTRIES);
+	prefs->w_accent_menu = create_symmenu(config, "w_accents", 1, DEFAULT_W_ACCENT_ROW_LENS, DEFAULT_W_ACCENT_ENTRIES);
 	prefs->e_accent_menu = create_symmenu(config, "e_accents", 1, DEFAULT_E_ACCENT_ROW_LENS, DEFAULT_E_ACCENT_ENTRIES);
+	prefs->r_accent_menu = create_symmenu(config, "r_accents", 1, DEFAULT_R_ACCENT_ROW_LENS, DEFAULT_R_ACCENT_ENTRIES);
+	prefs->t_accent_menu = create_symmenu(config, "t_accents", 1, DEFAULT_T_ACCENT_ROW_LENS, DEFAULT_T_ACCENT_ENTRIES);
+	prefs->y_accent_menu = create_symmenu(config, "y_accents", 1, DEFAULT_Y_ACCENT_ROW_LENS, DEFAULT_Y_ACCENT_ENTRIES);
+	prefs->u_accent_menu = create_symmenu(config, "u_accents", 1, DEFAULT_U_ACCENT_ROW_LENS, DEFAULT_U_ACCENT_ENTRIES);
+	prefs->i_accent_menu = create_symmenu(config, "i_accents", 1, DEFAULT_I_ACCENT_ROW_LENS, DEFAULT_I_ACCENT_ENTRIES);
+	prefs->o_accent_menu = create_symmenu(config, "o_accents", 1, DEFAULT_O_ACCENT_ROW_LENS, DEFAULT_O_ACCENT_ENTRIES);
+	prefs->p_accent_menu = create_symmenu(config, "p_accents", 1, DEFAULT_P_ACCENT_ROW_LENS, DEFAULT_P_ACCENT_ENTRIES);
+	prefs->a_accent_menu = create_symmenu(config, "a_accents", 1, DEFAULT_A_ACCENT_ROW_LENS, DEFAULT_A_ACCENT_ENTRIES);
+	prefs->s_accent_menu = create_symmenu(config, "s_accents", 1, DEFAULT_S_ACCENT_ROW_LENS, DEFAULT_S_ACCENT_ENTRIES);
+	prefs->d_accent_menu = create_symmenu(config, "d_accents", 1, DEFAULT_D_ACCENT_ROW_LENS, DEFAULT_D_ACCENT_ENTRIES);
+	prefs->f_accent_menu = create_symmenu(config, "f_accents", 1, DEFAULT_F_ACCENT_ROW_LENS, DEFAULT_F_ACCENT_ENTRIES);
+	prefs->g_accent_menu = create_symmenu(config, "g_accents", 1, DEFAULT_G_ACCENT_ROW_LENS, DEFAULT_G_ACCENT_ENTRIES);
+	prefs->h_accent_menu = create_symmenu(config, "h_accents", 1, DEFAULT_H_ACCENT_ROW_LENS, DEFAULT_H_ACCENT_ENTRIES);
+	prefs->j_accent_menu = create_symmenu(config, "j_accents", 1, DEFAULT_J_ACCENT_ROW_LENS, DEFAULT_J_ACCENT_ENTRIES);
 	prefs->k_accent_menu = create_symmenu(config, "k_accents", 1, DEFAULT_K_ACCENT_ROW_LENS, DEFAULT_K_ACCENT_ENTRIES);
+	prefs->l_accent_menu = create_symmenu(config, "l_accents", 1, DEFAULT_L_ACCENT_ROW_LENS, DEFAULT_L_ACCENT_ENTRIES);
+	prefs->z_accent_menu = create_symmenu(config, "z_accents", 1, DEFAULT_Z_ACCENT_ROW_LENS, DEFAULT_Z_ACCENT_ENTRIES);
+	prefs->x_accent_menu = create_symmenu(config, "x_accents", 1, DEFAULT_X_ACCENT_ROW_LENS, DEFAULT_X_ACCENT_ENTRIES);
+	prefs->c_accent_menu = create_symmenu(config, "c_accents", 1, DEFAULT_C_ACCENT_ROW_LENS, DEFAULT_C_ACCENT_ENTRIES);
+	prefs->v_accent_menu = create_symmenu(config, "v_accents", 1, DEFAULT_V_ACCENT_ROW_LENS, DEFAULT_V_ACCENT_ENTRIES);
+	prefs->b_accent_menu = create_symmenu(config, "b_accents", 1, DEFAULT_B_ACCENT_ROW_LENS, DEFAULT_B_ACCENT_ENTRIES);
+	prefs->n_accent_menu = create_symmenu(config, "n_accents", 1, DEFAULT_N_ACCENT_ROW_LENS, DEFAULT_N_ACCENT_ENTRIES);
+	prefs->m_accent_menu = create_symmenu(config, "m_accents", 1, DEFAULT_M_ACCENT_ROW_LENS, DEFAULT_M_ACCENT_ENTRIES);
 
 	if (is_first_run) {
 		first_run(prefs);
