@@ -38,7 +38,7 @@ typedef struct _pref_t {
 	
 	int sticky_sym_key, sticky_shift_key, sticky_alt_key;
 	int *keyhold_actions_exempt; /* terminated by -1 */
-	int rescreen_for_symmenu;
+	int rescreen_for_symmenu, prefs_version;
 } pref_t;
 
 #endif
