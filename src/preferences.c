@@ -72,17 +72,37 @@ int preferences_guess_best_font_size(pref_t *prefs, int target_cols){
 
 static void upgrade_config_v8(config_t *dst, config_t *src) {
 	/* stub code; update the keymap and symkey stuff */
+	char const *keymap_keys[] = {
+		"metamode_keys",
+		"metamode_sticky_keys",
+		"metamode_func_keys",
+		NULL
+	};
+
+	for (char const **key_ptr = keymap_keys; *key_ptr != NULL; ++key_ptr) {
+		char const *key = *key_ptr;
+		config_setting_t *map_s = config_lookup(src, key);
+
+		
+	}
 }
 
-static void upgrade_config(config_t *dst, config_t *src, int old_version) {
+static config_t *upgrade_config(config_t *src, int old_version) {
+	config_t *dst = (config_t*)calloc(1, sizeof(config_t));
+	memcpy(dst, src, sizeof(config_t));
+	
 	switch (old_version) {
 	case 8:
+		fprintf(stderr, "Upgrading from prefs. v8. Old prefs in %s\n", PREFS_FILE_BACKUP);
 		upgrade_config_v8(dst, src);
 		break;
 	default:
 		fprintf(stderr, "Preferences version not supported!\n");
 		break;
 	}
+
+	config_destroy(src);
+	return dst;
 }
 
 static int* create_int_array(config_t const *config, char const *path, size_t def_len, int const *def, int dynamic) {
@@ -271,7 +291,7 @@ pref_t *read_preferences(const char* filename) {
 		exit(1);
 	}
 
-	int is_first_run = 0;
+	int is_first_run = 0; int upgraded = 0;
 	
 	config_t config_data; // what libconfig parses out of the file
 	config_t *config = &config_data;
@@ -289,8 +309,8 @@ pref_t *read_preferences(const char* filename) {
 
 	DEFAULT_LOOKUP(int, config, "prefs_version", prefs->prefs_version, PREFS_VERSION);
 	if(prefs->prefs_version != PREFS_VERSION) {
-		 config_t *old_config = config;
-		 upgrade_config(config, old_config, prefs->prefs_version);
+		config = upgrade_config(config, prefs->prefs_version);
+		upgraded = 1;
 	}
 	
 	int default_font_columns = (atoi(getenv("WIDTH")) <= 720) ? 45 : 60;
@@ -353,6 +373,17 @@ pref_t *read_preferences(const char* filename) {
 		first_run(prefs);
 	}
 
+	if (upgraded) {
+		fprintf(stderr, "Debug: not overwriting %s\n", PREFS_FILE_PATH);
+		/*
+		if (rename(PREFS_FILE_PATH, PREFS_FILE_BACKUP)) {
+			fprintf("Failed to back up old prefs! Won't overwrite %s\n", PREFS_FILE_PATH);
+		} else {
+			save_preferences(prefs, PREFS_FILE_PATH);
+		}
+		*/
+	}
+
 	return prefs;
 }
 
@@ -382,7 +413,7 @@ void set_symmenu(config_setting_t *root, char const *key, symmenu_t const *sourc
 	config_setting_t *rows_s = config_setting_add(root, key, CONFIG_TYPE_LIST);
 	config_setting_t *col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_LIST);
 
-	int row = 0, col = 0;
+	int row = 0; int col = 0;
 	while (1) {
 		if (source->keys[row][col].map == NULL) {
 			++row;

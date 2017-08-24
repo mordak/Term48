@@ -677,16 +677,9 @@ void handleKeyboardEvent(screen_event_t screen_event)
 			//case KEYCODE_BACKSPACE  :
 			//case KEYCODE_TAB        :
 			//case KEYCODE_BACK_TAB   :
-		case KEYCODE_CAPS_LOCK  :
 		case KEYCODE_LEFT_SHIFT :
 		case KEYCODE_RIGHT_SHIFT:
-		case KEYCODE_LEFT_CTRL  :
-		case KEYCODE_RIGHT_CTRL :
-		case KEYCODE_LEFT_ALT   :
-		case KEYCODE_RIGHT_ALT  :
 		case KEYCODE_MENU       :
-		case KEYCODE_LEFT_HYPER :
-		case KEYCODE_RIGHT_HYPER:
 			//case KEYCODE_INSERT     :
 			//case KEYCODE_HOME       :
 			//case KEYCODE_PG_UP      :
@@ -707,6 +700,21 @@ void handleKeyboardEvent(screen_event_t screen_event)
 			//case KEYCODE_F11        :
 			//case KEYCODE_F12        :
 			PRINT(stderr, "Modifier %d\n", screen_val);
+			break;
+		case KEYCODE_LEFT_ALT   :
+		case KEYCODE_RIGHT_ALT  :
+			toggle_vkeymod(KEYMOD_ALT);
+			break;
+		case KEYCODE_LEFT_CTRL  :
+		case KEYCODE_RIGHT_CTRL :
+			toggle_vkeymod(KEYMOD_CTRL);
+			break;
+		case KEYCODE_LEFT_HYPER :
+		case KEYCODE_RIGHT_HYPER:
+			toggle_vkeymod(KEYMOD_CTRL);
+			break;
+		case KEYCODE_CAPS_LOCK  :
+			toggle_vkeymod(KEYMOD_CTRL);
 			break;
 		default:
 			num_chars = ecma48_parse_control_codes(screen_val, modifiers, c);
