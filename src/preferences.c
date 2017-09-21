@@ -71,18 +71,109 @@ int preferences_guess_best_font_size(pref_t *prefs, int target_cols){
 }
 
 static void upgrade_config_v8(config_t *dst, config_t *src) {
-	/* stub code; update the keymap and symkey stuff */
+	config_setting_t *dst_root = config_root_setting(dst);
+
+	/* upgrade metamode hitbox */
+
+	config_setting_t *old_hitbox_s = config_lookup(src, "metamode_hitbox");
+	if (old_hitbox_s != NULL) {
+		config_setting_t *x_s = config_setting_get_member(old_hitbox_s, "x");
+		config_setting_t *y_s = config_setting_get_member(old_hitbox_s, "y");
+		config_setting_t *w_s = config_setting_get_member(old_hitbox_s, "w");
+		config_setting_t *h_s = config_setting_get_member(old_hitbox_s, "h");
+
+		if (x_s && y_s && w_s && h_s) {
+			int x = config_setting_get_int(x_s);
+			int y = config_setting_get_int(y_s);
+			int w = config_setting_get_int(w_s);
+			int h = config_setting_get_int(h_s);
+
+			config_setting_remove(dst_root, "metamode_hitbox");
+			config_setting_t *new_hitbox_s = config_setting_add(dst_root, "metamode_hitbox", CONFIG_TYPE_ARRAY);
+			config_setting_set_int_elem(new_hitbox_s, -1, x);
+			config_setting_set_int_elem(new_hitbox_s, -1, y);
+			config_setting_set_int_elem(new_hitbox_s, -1, w);
+			config_setting_set_int_elem(new_hitbox_s, -1, h);
+		}
+	}
+
+	/* upgrade various keymaps */
+	char const *keymap_keys[] = {
+		"metamode_keys",
+		"metamode_sticky_keys",
+		"metamode_func_keys",
+		NULL
+	};
+
+	for (char const **key_ptr = keymap_keys; *key_ptr != NULL; ++key_ptr) {
+		char const *key = *key_ptr;
+		config_setting_t *old_map_s = config_lookup(src, key);
+		if (old_map_s == NULL) {
+			continue;
+		}
+
+		config_setting_remove(dst_root, key);
+		config_setting_t *new_map_s = config_setting_add(dst_root, key, CONFIG_TYPE_LIST);
+		
+		for (size_t i = 0; i < config_setting_length(old_map_s); ++i) {
+			config_setting_t *old_key_s = config_setting_get_elem(old_map_s, i);
+			
+			char const *from = config_setting_name(old_key_s);
+			char const *to = config_setting_get_string(old_key_s);
+			
+			config_setting_t *new_key_s = config_setting_add(new_map_s, NULL, CONFIG_TYPE_LIST);
+			config_setting_set_string_elem(new_key_s, -1, from);
+			config_setting_set_string_elem(new_key_s, -1, to);
+		}
+	}
+
+	/* upgrade symmenu */
+	config_setting_t *old_map_s = config_lookup(src, "sym_keys");
+	if (old_map_s == NULL) {
+		return;
+	}
+	
+	config_setting_t *new_map_s = config_setting_add(dst_root, "main_symmenu", CONFIG_TYPE_LIST);
+
+	for (int row = config_setting_length(old_map_s) - 1; row >= 0; --row) {
+		config_setting_t *old_row_s = config_setting_get_elem(old_map_s, row);
+		config_setting_t *new_row_s = config_setting_add(new_map_s, NULL, CONFIG_TYPE_LIST);
+			
+		for (size_t col = 0; col < config_setting_length(old_row_s); ++col) {
+			config_setting_t *old_key_s = config_setting_get_elem(old_row_s, col);
+			
+			char const *from = config_setting_name(old_key_s);
+			char const *to = config_setting_get_string(old_key_s);
+			
+			config_setting_t *new_key_s = config_setting_add(new_row_s, NULL, CONFIG_TYPE_LIST);
+			config_setting_set_string_elem(new_key_s, -1, from);
+			config_setting_set_string_elem(new_key_s, -1, to);
+		}
+	}
 }
 
-static void upgrade_config(config_t *dst, config_t *src, int old_version) {
+static config_t *upgrade_config(char const *path, int old_version) {
+	config_t src_data;
+	config_t *src = &src_data;
+	config_t *dst = (config_t*)malloc(sizeof(config_t));
+	
+	config_init(src);
+	config_init(dst);
+	config_read_file(src, path);
+	config_read_file(dst, path);
+	
 	switch (old_version) {
 	case 8:
+		fprintf(stderr, "Upgrading from prefs. v8. Old prefs in %s\n", PREFS_FILE_BACKUP);
 		upgrade_config_v8(dst, src);
 		break;
 	default:
 		fprintf(stderr, "Preferences version not supported!\n");
 		break;
 	}
+
+	config_destroy(src);
+	return dst;
 }
 
 static int* create_int_array(config_t const *config, char const *path, size_t def_len, int const *def, int dynamic) {
@@ -181,10 +272,10 @@ static symmenu_t* create_symmenu(config_t const *config, char const *path, int d
 			for (int col = 0; col < def_row_lens[row]; ++col) {
 				menu->entries[entry_idx].from = def_entries[entry_idx].from;
 				menu->entries[entry_idx].to = strdup(def_entries[entry_idx].to);
-			
+				
 				menu->keys[row][col].flash = '\0';
 				menu->keys[row][col].map = &menu->entries[entry_idx];
-
+				
 				++entry_idx;
 			}
 		}
@@ -235,6 +326,32 @@ static symmenu_t* create_symmenu(config_t const *config, char const *path, int d
 	return menu;
 }
 
+static hitbox_t* create_hitbox(config_t const *config, char const *path, hitbox_t def) {
+	config_setting_t *setting = config_lookup(config, path);
+	int use_default = 0;
+
+	if (!setting || (config_setting_type(setting) != CONFIG_TYPE_ARRAY)) {
+		fprintf(stderr, "invalid array %s, using default\n", path);
+		use_default = 1;
+	}
+	
+	hitbox_t *result = calloc(1, sizeof(hitbox_t));
+
+	if (use_default) {
+		result->x = def.x;
+		result->y = def.y;
+		result->w = def.w;
+		result->h = def.h;
+	} else {
+		result->x = config_setting_get_int_elem(setting, 0);
+		result->y = config_setting_get_int_elem(setting, 1);
+		result->w = config_setting_get_int_elem(setting, 2);
+		result->h = config_setting_get_int_elem(setting, 3);
+	}
+
+	return result;
+}
+
 void destroy_preferences(pref_t *pref) {
 	free(pref->font_path);
 	free(pref->tty_encoding);
@@ -271,7 +388,7 @@ pref_t *read_preferences(const char* filename) {
 		exit(1);
 	}
 
-	int is_first_run = 0;
+	int is_first_run = 0; int upgraded = 0;
 	
 	config_t config_data; // what libconfig parses out of the file
 	config_t *config = &config_data;
@@ -289,8 +406,8 @@ pref_t *read_preferences(const char* filename) {
 
 	DEFAULT_LOOKUP(int, config, "prefs_version", prefs->prefs_version, PREFS_VERSION);
 	if(prefs->prefs_version != PREFS_VERSION) {
-		 config_t *old_config = config;
-		 upgrade_config(config, old_config, prefs->prefs_version);
+		config = upgrade_config(filename, prefs->prefs_version);
+		upgraded = 1;
 	}
 	
 	int default_font_columns = (atoi(getenv("WIDTH")) <= 720) ? 45 : 60;
@@ -307,7 +424,7 @@ pref_t *read_preferences(const char* filename) {
 	DEFAULT_LOOKUP(bool, config, "keyhold_actions", prefs->keyhold_actions, DEFAULT_KEYHOLD_ACTIONS);
 	DEFAULT_LOOKUP(int, config, "metamode_hold_key", prefs->metamode_hold_key, DEFAULT_METAMODE_HOLD_KEY);
 	DEFAULT_LOOKUP(bool, config, "allow_resize_columns", prefs->allow_resize_columns, DEFAULT_ALLOW_RESIZE_COLUMNS);
-	prefs->metamode_hitbox = create_int_array(config, "metamode_hitbox", 4, DEFAULT_METAMODE_HITBOX, 0);
+	prefs->metamode_hitbox = create_hitbox(config, "metamode_hitbox", DEFAULT_METAMODE_HITBOX);
 	DEFAULT_LOOKUP(string, config, "tty_encoding", prefs->tty_encoding, DEFAULT_TTY_ENCODING);
 	prefs->tty_encoding = strdup(prefs->tty_encoding);
 	prefs->metamode_keys = create_keymap_array(config, "metamode_keys", DEFAULT_METAMODE_KEYS_LEN, DEFAULT_METAMODE_KEYS);
@@ -321,8 +438,44 @@ pref_t *read_preferences(const char* filename) {
 
 	prefs->main_symmenu = create_symmenu(config, "main_symmenu", DEFAULT_SYMMENU_NUM_ROWS, DEFAULT_SYMMENU_ROW_LENS, DEFAULT_SYMMENU_ENTRIES);
 
+	/* the accent menus are configurable, but we won't include them in the default config */
+	prefs->q_accent_menu = create_symmenu(config, "q_accents", 1, DEFAULT_Q_ACCENT_ROW_LENS, DEFAULT_Q_ACCENT_ENTRIES);
+	prefs->w_accent_menu = create_symmenu(config, "w_accents", 1, DEFAULT_W_ACCENT_ROW_LENS, DEFAULT_W_ACCENT_ENTRIES);
+	prefs->e_accent_menu = create_symmenu(config, "e_accents", 1, DEFAULT_E_ACCENT_ROW_LENS, DEFAULT_E_ACCENT_ENTRIES);
+	prefs->r_accent_menu = create_symmenu(config, "r_accents", 1, DEFAULT_R_ACCENT_ROW_LENS, DEFAULT_R_ACCENT_ENTRIES);
+	prefs->t_accent_menu = create_symmenu(config, "t_accents", 1, DEFAULT_T_ACCENT_ROW_LENS, DEFAULT_T_ACCENT_ENTRIES);
+	prefs->y_accent_menu = create_symmenu(config, "y_accents", 1, DEFAULT_Y_ACCENT_ROW_LENS, DEFAULT_Y_ACCENT_ENTRIES);
+	prefs->u_accent_menu = create_symmenu(config, "u_accents", 1, DEFAULT_U_ACCENT_ROW_LENS, DEFAULT_U_ACCENT_ENTRIES);
+	prefs->i_accent_menu = create_symmenu(config, "i_accents", 1, DEFAULT_I_ACCENT_ROW_LENS, DEFAULT_I_ACCENT_ENTRIES);
+	prefs->o_accent_menu = create_symmenu(config, "o_accents", 1, DEFAULT_O_ACCENT_ROW_LENS, DEFAULT_O_ACCENT_ENTRIES);
+	prefs->p_accent_menu = create_symmenu(config, "p_accents", 1, DEFAULT_P_ACCENT_ROW_LENS, DEFAULT_P_ACCENT_ENTRIES);
+	prefs->a_accent_menu = create_symmenu(config, "a_accents", 1, DEFAULT_A_ACCENT_ROW_LENS, DEFAULT_A_ACCENT_ENTRIES);
+	prefs->s_accent_menu = create_symmenu(config, "s_accents", 1, DEFAULT_S_ACCENT_ROW_LENS, DEFAULT_S_ACCENT_ENTRIES);
+	prefs->d_accent_menu = create_symmenu(config, "d_accents", 1, DEFAULT_D_ACCENT_ROW_LENS, DEFAULT_D_ACCENT_ENTRIES);
+	prefs->f_accent_menu = create_symmenu(config, "f_accents", 1, DEFAULT_F_ACCENT_ROW_LENS, DEFAULT_F_ACCENT_ENTRIES);
+	prefs->g_accent_menu = create_symmenu(config, "g_accents", 1, DEFAULT_G_ACCENT_ROW_LENS, DEFAULT_G_ACCENT_ENTRIES);
+	prefs->h_accent_menu = create_symmenu(config, "h_accents", 1, DEFAULT_H_ACCENT_ROW_LENS, DEFAULT_H_ACCENT_ENTRIES);
+	prefs->j_accent_menu = create_symmenu(config, "j_accents", 1, DEFAULT_J_ACCENT_ROW_LENS, DEFAULT_J_ACCENT_ENTRIES);
+	prefs->k_accent_menu = create_symmenu(config, "k_accents", 1, DEFAULT_K_ACCENT_ROW_LENS, DEFAULT_K_ACCENT_ENTRIES);
+	prefs->l_accent_menu = create_symmenu(config, "l_accents", 1, DEFAULT_L_ACCENT_ROW_LENS, DEFAULT_L_ACCENT_ENTRIES);
+	prefs->z_accent_menu = create_symmenu(config, "z_accents", 1, DEFAULT_Z_ACCENT_ROW_LENS, DEFAULT_Z_ACCENT_ENTRIES);
+	prefs->x_accent_menu = create_symmenu(config, "x_accents", 1, DEFAULT_X_ACCENT_ROW_LENS, DEFAULT_X_ACCENT_ENTRIES);
+	prefs->c_accent_menu = create_symmenu(config, "c_accents", 1, DEFAULT_C_ACCENT_ROW_LENS, DEFAULT_C_ACCENT_ENTRIES);
+	prefs->v_accent_menu = create_symmenu(config, "v_accents", 1, DEFAULT_V_ACCENT_ROW_LENS, DEFAULT_V_ACCENT_ENTRIES);
+	prefs->b_accent_menu = create_symmenu(config, "b_accents", 1, DEFAULT_B_ACCENT_ROW_LENS, DEFAULT_B_ACCENT_ENTRIES);
+	prefs->n_accent_menu = create_symmenu(config, "n_accents", 1, DEFAULT_N_ACCENT_ROW_LENS, DEFAULT_N_ACCENT_ENTRIES);
+	prefs->m_accent_menu = create_symmenu(config, "m_accents", 1, DEFAULT_M_ACCENT_ROW_LENS, DEFAULT_M_ACCENT_ENTRIES);
+
 	if (is_first_run) {
 		first_run(prefs);
+	}
+
+	if (upgraded) {
+		if (rename(PREFS_FILE_PATH, PREFS_FILE_BACKUP)) {
+			fprintf("Failed to back up old prefs! Won't overwrite %s\n", PREFS_FILE_PATH);
+		} else {
+			save_preferences(prefs, PREFS_FILE_PATH);
+		}
 	}
 
 	return prefs;
@@ -354,7 +507,7 @@ void set_symmenu(config_setting_t *root, char const *key, symmenu_t const *sourc
 	config_setting_t *rows_s = config_setting_add(root, key, CONFIG_TYPE_LIST);
 	config_setting_t *col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_LIST);
 
-	int row = 0, col = 0;
+	int row = 0; int col = 0;
 	while (1) {
 		if (source->keys[row][col].map == NULL) {
 			++row;

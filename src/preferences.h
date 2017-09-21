@@ -24,10 +24,12 @@
 #include <errno.h>
 
 #include "types.h"
+#include "accent_menus.h"
 #include "symmenu.h"
 #include "SDL.h"
 
 #define PREFS_FILE_PATH ".term48rc"
+#define PREFS_FILE_BACKUP ".term48rc-old"
 #define README_FILE_PATH "../app/native/README"
 #define README45_FILE_PATH "../app/native/README45"
 
@@ -47,7 +49,7 @@ static int PREFS_VERSION = 9;
 #define DEFAULT_KEYHOLD_ACTIONS 1
 #define DEFAULT_METAMODE_HOLD_KEY KEYCODE_SPACE
 #define DEFAULT_ALLOW_RESIZE_COLUMNS 0
-#define DEFAULT_METAMODE_HITBOX (int[]){0, 0, 100, 100}
+#define DEFAULT_METAMODE_HITBOX (hitbox_t){0, 0, 100, 100}
 #define DEFAULT_TTY_ENCODING "UTF-8"
 #define DEFAULT_METAMODE_KEYS_LEN 2
 #define DEFAULT_METAMODE_KEYS (keymap_t[]){{'e', "\x1b"}, {'t', "\x09"}}

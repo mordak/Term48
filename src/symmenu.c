@@ -92,10 +92,10 @@ SDL_Surface *render_symmenu(SDL_Surface *screen, pref_t *prefs, symmenu_t *menu)
 			symkey_t *sk = &menu->keys[row][col];
 			
 			/* calculate the background positions */
-			sk->from_x = col * bg_w;
-			sk->from_y = row * bg_h;
-			sk->to_x = sk->from_x + bg_w;
-			sk->to_y = sk->from_y + bg_h;
+			sk->hitbox.x = col * bg_w;
+			sk->hitbox.y = (screen->h - num_rows * bg_h) + row * bg_h;
+			sk->hitbox.w = bg_w;
+			sk->hitbox.h = bg_h;
 			
 			/* init the UChar from prefs keymap */
 			int to_len = strlen(sk->map->to);
@@ -165,8 +165,8 @@ SDL_Surface *render_symmenu(SDL_Surface *screen, pref_t *prefs, symmenu_t *menu)
 			SDL_Rect destrect;
 
 			/* main symbol */
-			destrect.x = sk->from_x + SYMKEY_BORDER_SIZE;
-			destrect.y = sk->from_y + SYMKEY_BORDER_SIZE + SYMMENU_FRET_SIZE;
+			destrect.x = sk->hitbox.x + SYMKEY_BORDER_SIZE;
+			destrect.y = sk->hitbox.y - (screen->h - num_rows * bg_h) + SYMKEY_BORDER_SIZE + SYMMENU_FRET_SIZE;
 			SDL_Surface *destsurf = TTF_RenderUNICODE_Shaded(fg_font, sk->uc, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
 			destrect.w = destsurf->w;
 			destrect.h = destsurf->h;
@@ -177,8 +177,8 @@ SDL_Surface *render_symmenu(SDL_Surface *screen, pref_t *prefs, symmenu_t *menu)
 
 			/* from key */
 			cornerchar[0] = sk->map->from;
-			destrect.x = sk->from_x;
-			destrect.y = sk->from_y + SYMKEY_BORDER_SIZE + SYMMENU_FRET_SIZE;
+			destrect.x = sk->hitbox.x;
+			destrect.y = sk->hitbox.y - (screen->h - num_rows * bg_h) + SYMKEY_BORDER_SIZE + SYMMENU_FRET_SIZE;
 			destsurf = TTF_RenderUNICODE_Shaded(corner_font, cornerchar, (SDL_Color)SYMMENU_FONT, (SDL_Color)SYMMENU_BACKGROUND);
 			destrect.w = destsurf->w;
 			destrect.h = destsurf->h;
