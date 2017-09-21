@@ -8,10 +8,14 @@ typedef struct _keymap_t {
 	char *to;
 } keymap_t;
 
+typedef struct _hitbox_t {
+	int x, y, w, h;
+} hitbox_t;
+
 typedef struct _symkey_t {
 	char flash;
 	keymap_t *map; /* pointer to corresponding map */
-	int from_x, to_x, from_y, to_y; /* used for mousedown */
+	hitbox_t hitbox; /* used for mousedown */
 	UChar *uc;
 } symkey_t;
 
@@ -26,8 +30,8 @@ typedef struct _pref_t {
 	char *font_path;
 	int font_size, *text_color, *background_color, screen_idle_awake,
 		auto_show_vkb, metamode_doubletap_key, metamode_doubletap_delay,
-		keyhold_actions, metamode_hold_key, allow_resize_columns,
-		*metamode_hitbox;
+		keyhold_actions, metamode_hold_key, allow_resize_columns;
+	hitbox_t *metamode_hitbox;
 	char *tty_encoding;
 	
 	/* terminated by NULL pointer */

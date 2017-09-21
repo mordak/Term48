@@ -71,7 +71,33 @@ int preferences_guess_best_font_size(pref_t *prefs, int target_cols){
 }
 
 static void upgrade_config_v8(config_t *dst, config_t *src) {
-	/* stub code; update the keymap and symkey stuff */
+	config_setting_t *dst_root = config_root_setting(dst);
+
+	/* upgrade metamode hitbox */
+
+	config_setting_t *old_hitbox_s = config_lookup(src, "metamode_hitbox");
+	if (old_hitbox_s != NULL) {
+		config_setting_t *x_s = config_setting_get_member(old_hitbox_s, "x");
+		config_setting_t *y_s = config_setting_get_member(old_hitbox_s, "y");
+		config_setting_t *w_s = config_setting_get_member(old_hitbox_s, "w");
+		config_setting_t *h_s = config_setting_get_member(old_hitbox_s, "h");
+
+		if (x_s && y_s && w_s && h_s) {
+			int x = config_setting_get_int(x_s);
+			int y = config_setting_get_int(y_s);
+			int w = config_setting_get_int(w_s);
+			int h = config_setting_get_int(h_s);
+
+			config_setting_remove(dst_root, "metamode_hitbox");
+			config_setting_t *new_hitbox_s = config_setting_add(dst_root, "metamode_hitbox", CONFIG_TYPE_ARRAY);
+			config_setting_set_int_elem(new_hitbox_s, -1, x);
+			config_setting_set_int_elem(new_hitbox_s, -1, y);
+			config_setting_set_int_elem(new_hitbox_s, -1, w);
+			config_setting_set_int_elem(new_hitbox_s, -1, h);
+		}
+	}
+
+	/* upgrade various keymaps */
 	char const *keymap_keys[] = {
 		"metamode_keys",
 		"metamode_sticky_keys",
@@ -81,15 +107,60 @@ static void upgrade_config_v8(config_t *dst, config_t *src) {
 
 	for (char const **key_ptr = keymap_keys; *key_ptr != NULL; ++key_ptr) {
 		char const *key = *key_ptr;
-		config_setting_t *map_s = config_lookup(src, key);
+		config_setting_t *old_map_s = config_lookup(src, key);
+		if (old_map_s == NULL) {
+			continue;
+		}
 
+		config_setting_remove(dst_root, key);
+		config_setting_t *new_map_s = config_setting_add(dst_root, key, CONFIG_TYPE_LIST);
 		
+		for (size_t i = 0; i < config_setting_length(old_map_s); ++i) {
+			config_setting_t *old_key_s = config_setting_get_elem(old_map_s, i);
+			
+			char const *from = config_setting_name(old_key_s);
+			char const *to = config_setting_get_string(old_key_s);
+			
+			config_setting_t *new_key_s = config_setting_add(new_map_s, NULL, CONFIG_TYPE_LIST);
+			config_setting_set_string_elem(new_key_s, -1, from);
+			config_setting_set_string_elem(new_key_s, -1, to);
+		}
+	}
+
+	/* upgrade symmenu */
+	config_setting_t *old_map_s = config_lookup(src, "sym_keys");
+	if (old_map_s == NULL) {
+		return;
+	}
+	
+	config_setting_t *new_map_s = config_setting_add(dst_root, "main_symmenu", CONFIG_TYPE_LIST);
+
+	for (int row = config_setting_length(old_map_s) - 1; row >= 0; --row) {
+		config_setting_t *old_row_s = config_setting_get_elem(old_map_s, row);
+		config_setting_t *new_row_s = config_setting_add(new_map_s, NULL, CONFIG_TYPE_LIST);
+			
+		for (size_t col = 0; col < config_setting_length(old_row_s); ++col) {
+			config_setting_t *old_key_s = config_setting_get_elem(old_row_s, col);
+			
+			char const *from = config_setting_name(old_key_s);
+			char const *to = config_setting_get_string(old_key_s);
+			
+			config_setting_t *new_key_s = config_setting_add(new_row_s, NULL, CONFIG_TYPE_LIST);
+			config_setting_set_string_elem(new_key_s, -1, from);
+			config_setting_set_string_elem(new_key_s, -1, to);
+		}
 	}
 }
 
-static config_t *upgrade_config(config_t *src, int old_version) {
-	config_t *dst = (config_t*)calloc(1, sizeof(config_t));
-	memcpy(dst, src, sizeof(config_t));
+static config_t *upgrade_config(char const *path, int old_version) {
+	config_t src_data;
+	config_t *src = &src_data;
+	config_t *dst = (config_t*)malloc(sizeof(config_t));
+	
+	config_init(src);
+	config_init(dst);
+	config_read_file(src, path);
+	config_read_file(dst, path);
 	
 	switch (old_version) {
 	case 8:
@@ -201,10 +272,10 @@ static symmenu_t* create_symmenu(config_t const *config, char const *path, int d
 			for (int col = 0; col < def_row_lens[row]; ++col) {
 				menu->entries[entry_idx].from = def_entries[entry_idx].from;
 				menu->entries[entry_idx].to = strdup(def_entries[entry_idx].to);
-			
+				
 				menu->keys[row][col].flash = '\0';
 				menu->keys[row][col].map = &menu->entries[entry_idx];
-
+				
 				++entry_idx;
 			}
 		}
@@ -253,6 +324,32 @@ static symmenu_t* create_symmenu(config_t const *config, char const *path, int d
 	menu->surface = NULL;
 
 	return menu;
+}
+
+static hitbox_t* create_hitbox(config_t const *config, char const *path, hitbox_t def) {
+	config_setting_t *setting = config_lookup(config, path);
+	int use_default = 0;
+
+	if (!setting || (config_setting_type(setting) != CONFIG_TYPE_ARRAY)) {
+		fprintf(stderr, "invalid array %s, using default\n", path);
+		use_default = 1;
+	}
+	
+	hitbox_t *result = calloc(1, sizeof(hitbox_t));
+
+	if (use_default) {
+		result->x = def.x;
+		result->y = def.y;
+		result->w = def.w;
+		result->h = def.h;
+	} else {
+		result->x = config_setting_get_int_elem(setting, 0);
+		result->y = config_setting_get_int_elem(setting, 1);
+		result->w = config_setting_get_int_elem(setting, 2);
+		result->h = config_setting_get_int_elem(setting, 3);
+	}
+
+	return result;
 }
 
 void destroy_preferences(pref_t *pref) {
@@ -309,7 +406,7 @@ pref_t *read_preferences(const char* filename) {
 
 	DEFAULT_LOOKUP(int, config, "prefs_version", prefs->prefs_version, PREFS_VERSION);
 	if(prefs->prefs_version != PREFS_VERSION) {
-		config = upgrade_config(config, prefs->prefs_version);
+		config = upgrade_config(filename, prefs->prefs_version);
 		upgraded = 1;
 	}
 	
@@ -327,7 +424,7 @@ pref_t *read_preferences(const char* filename) {
 	DEFAULT_LOOKUP(bool, config, "keyhold_actions", prefs->keyhold_actions, DEFAULT_KEYHOLD_ACTIONS);
 	DEFAULT_LOOKUP(int, config, "metamode_hold_key", prefs->metamode_hold_key, DEFAULT_METAMODE_HOLD_KEY);
 	DEFAULT_LOOKUP(bool, config, "allow_resize_columns", prefs->allow_resize_columns, DEFAULT_ALLOW_RESIZE_COLUMNS);
-	prefs->metamode_hitbox = create_int_array(config, "metamode_hitbox", 4, DEFAULT_METAMODE_HITBOX, 0);
+	prefs->metamode_hitbox = create_hitbox(config, "metamode_hitbox", DEFAULT_METAMODE_HITBOX);
 	DEFAULT_LOOKUP(string, config, "tty_encoding", prefs->tty_encoding, DEFAULT_TTY_ENCODING);
 	prefs->tty_encoding = strdup(prefs->tty_encoding);
 	prefs->metamode_keys = create_keymap_array(config, "metamode_keys", DEFAULT_METAMODE_KEYS_LEN, DEFAULT_METAMODE_KEYS);
@@ -374,14 +471,11 @@ pref_t *read_preferences(const char* filename) {
 	}
 
 	if (upgraded) {
-		fprintf(stderr, "Debug: not overwriting %s\n", PREFS_FILE_PATH);
-		/*
 		if (rename(PREFS_FILE_PATH, PREFS_FILE_BACKUP)) {
 			fprintf("Failed to back up old prefs! Won't overwrite %s\n", PREFS_FILE_PATH);
 		} else {
 			save_preferences(prefs, PREFS_FILE_PATH);
 		}
-		*/
 	}
 
 	return prefs;

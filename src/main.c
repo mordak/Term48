@@ -227,9 +227,11 @@ static const char* symkey_for_mousedown(symmenu_t *menu, Uint16 x, Uint16 y) {
 	for (int row = 0; menu->keys[row] != NULL; ++row) {
 		for (int col = 0; menu->keys[row][col].map != NULL; ++col) {
 			symkey_t *key = &menu->keys[row][col];
-			
-			if ((x > key->from_x) && (y > key->from_y + (screen->h - menu->surface->h)) &&
-			    (x < key->to_x)   && (y < key->to_y + (screen->h - menu->surface->h))) {
+
+			if((x >= key->hitbox.x) &&
+			   (x <= key->hitbox.x + key->hitbox.w) &&
+			   (y >= key->hitbox.y) &&
+			   (y <= key->hitbox.y + key->hitbox.h)) {
 				if (!symmenu_lock) {
 					symmenu_toggle(NULL);
 				} else {
@@ -377,10 +379,10 @@ void handle_activeevent(int gain, int state){
 
 void handle_mousedown(Uint16 x, Uint16 y){
 	/* check for hits in the metamode_hitbox */
-	if((x >= prefs->metamode_hitbox[0]) &&
-	   (x <= prefs->metamode_hitbox[0] + prefs->metamode_hitbox[2]) &&
-	   (y >= prefs->metamode_hitbox[1]) &&
-	   (y <= prefs->metamode_hitbox[1] + prefs->metamode_hitbox[3])) {
+	if((x >= prefs->metamode_hitbox->x) &&
+	   (x <= prefs->metamode_hitbox->x + prefs->metamode_hitbox->w) &&
+	   (y >= prefs->metamode_hitbox->y) &&
+	   (y <= prefs->metamode_hitbox->y + prefs->metamode_hitbox->h)) {
 		/* hit in the box */
 		metamode_toggle();
 	}
@@ -677,6 +679,8 @@ void handleKeyboardEvent(screen_event_t screen_event)
 			//case KEYCODE_BACKSPACE  :
 			//case KEYCODE_TAB        :
 			//case KEYCODE_BACK_TAB   :
+		case KEYCODE_LEFT_ALT   :
+		case KEYCODE_RIGHT_ALT  :
 		case KEYCODE_LEFT_SHIFT :
 		case KEYCODE_RIGHT_SHIFT:
 		case KEYCODE_MENU       :
@@ -700,10 +704,6 @@ void handleKeyboardEvent(screen_event_t screen_event)
 			//case KEYCODE_F11        :
 			//case KEYCODE_F12        :
 			PRINT(stderr, "Modifier %d\n", screen_val);
-			break;
-		case KEYCODE_LEFT_ALT   :
-		case KEYCODE_RIGHT_ALT  :
-			toggle_vkeymod(KEYMOD_ALT);
 			break;
 		case KEYCODE_LEFT_CTRL  :
 		case KEYCODE_RIGHT_CTRL :
