@@ -38,17 +38,11 @@ typedef struct _pref_t {
 	keymap_t *metamode_keys, *metamode_sticky_keys, *metamode_func_keys;
 	
 	symmenu_t *main_symmenu;
-	symmenu_t *q_accent_menu, *w_accent_menu, *e_accent_menu, *r_accent_menu;
-	symmenu_t *t_accent_menu, *y_accent_menu, *u_accent_menu, *i_accent_menu;
-	symmenu_t *o_accent_menu, *p_accent_menu, *a_accent_menu, *s_accent_menu;
-	symmenu_t *d_accent_menu, *f_accent_menu, *g_accent_menu, *h_accent_menu;
-	symmenu_t *j_accent_menu, *k_accent_menu, *l_accent_menu, *z_accent_menu;
-	symmenu_t *x_accent_menu, *c_accent_menu, *v_accent_menu, *b_accent_menu;
-	symmenu_t *n_accent_menu, *m_accent_menu;
+	symmenu_t *accent_menus[26][2];
 	
 	int sticky_sym_key, sticky_shift_key, sticky_alt_key;
 	int *keyhold_actions_exempt; /* terminated by -1 */
-	int rescreen_for_symmenu, prefs_version;
+	int rescreen_for_symmenu, keyhold_accents, prefs_version;
 } pref_t;
 
 #endif

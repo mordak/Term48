@@ -462,58 +462,58 @@ static symmenu_t *get_keyhold_actions(int keycode) {
 	}
 
 	switch (keycode) {
-	case KEYCODE_Q:
-		return prefs->q_accent_menu;
-	case KEYCODE_W:
-		return prefs->w_accent_menu;
-	case KEYCODE_E:
-		return prefs->e_accent_menu;
-	case KEYCODE_R:
-		return prefs->r_accent_menu;
-	case KEYCODE_T:
-		return prefs->t_accent_menu;
-	case KEYCODE_Y:
-		return prefs->y_accent_menu;
-	case KEYCODE_U:
-		return prefs->u_accent_menu;
-	case KEYCODE_I:
-		return prefs->i_accent_menu;
-	case KEYCODE_O:
-		return prefs->o_accent_menu;
-	case KEYCODE_P:
-		return prefs->p_accent_menu;
 	case KEYCODE_A:
-		return prefs->a_accent_menu;
-	case KEYCODE_S:
-		return prefs->s_accent_menu;
-	case KEYCODE_D:
-		return prefs->d_accent_menu;
-	case KEYCODE_F:
-		return prefs->f_accent_menu;
-	case KEYCODE_G:
-		return prefs->g_accent_menu;
-	case KEYCODE_H:
-		return prefs->h_accent_menu;
-	case KEYCODE_J:
-		return prefs->j_accent_menu;
-	case KEYCODE_K:
-		return prefs->k_accent_menu;
-	case KEYCODE_L:
-		return prefs->l_accent_menu;
-	case KEYCODE_Z:
-		return prefs->z_accent_menu;
-	case KEYCODE_X:
-		return prefs->x_accent_menu;
-	case KEYCODE_C:
-		return prefs->c_accent_menu;
-	case KEYCODE_V:
-		return prefs->v_accent_menu;
+		return prefs->accent_menus[0][0];
 	case KEYCODE_B:
-		return prefs->b_accent_menu;
-	case KEYCODE_N:
-		return prefs->n_accent_menu;
+		return prefs->accent_menus[1][0];
+	case KEYCODE_C:
+		return prefs->accent_menus[2][0];
+	case KEYCODE_D:
+		return prefs->accent_menus[3][0];
+	case KEYCODE_E:
+		return prefs->accent_menus[4][0];
+	case KEYCODE_F:
+		return prefs->accent_menus[5][0];
+	case KEYCODE_G:
+		return prefs->accent_menus[6][0];
+	case KEYCODE_H:
+		return prefs->accent_menus[7][0];
+	case KEYCODE_I:
+		return prefs->accent_menus[8][0];
+	case KEYCODE_J:
+		return prefs->accent_menus[9][0];
+	case KEYCODE_K:
+		return prefs->accent_menus[10][0];
+	case KEYCODE_L:
+		return prefs->accent_menus[11][0];
 	case KEYCODE_M:
-		return prefs->m_accent_menu;
+		return prefs->accent_menus[12][0];
+	case KEYCODE_N:
+		return prefs->accent_menus[13][0];
+	case KEYCODE_O:
+		return prefs->accent_menus[14][0];
+	case KEYCODE_P:
+		return prefs->accent_menus[15][0];
+	case KEYCODE_Q:
+		return prefs->accent_menus[16][0];
+	case KEYCODE_R:
+		return prefs->accent_menus[17][0];
+	case KEYCODE_S:
+		return prefs->accent_menus[18][0];
+	case KEYCODE_T:
+		return prefs->accent_menus[19][0];
+	case KEYCODE_U:
+		return prefs->accent_menus[20][0];
+	case KEYCODE_V:
+		return prefs->accent_menus[21][0];
+	case KEYCODE_W:
+		return prefs->accent_menus[22][0];
+	case KEYCODE_X:
+		return prefs->accent_menus[23][0];
+	case KEYCODE_Y:
+		return prefs->accent_menus[24][0];
+	case KEYCODE_Z:
+		return prefs->accent_menus[25][0];
 	}
 
 	return NULL;
@@ -615,7 +615,9 @@ void handleKeyboardEvent(screen_event_t screen_event)
 				}
 
 				/* select the mapping */
-				if (menu->entries[1].to == NULL) {
+
+				// uppercase automatically if there's no accents or accents disabled
+				if ((menu->entries[1].to == NULL) || (!prefs->keyhold_accents)) {
 					/* We can upcase, send last_len backspaces and then the upcase char.
 					 * Note that this really only works if the program on the other
 					 * end of the line understands unicode, and can marry up backspaces
@@ -1358,32 +1360,13 @@ int main(int argc, char **argv) {
 
 	/* render the symmenus */
 	prefs->main_symmenu->surface = render_symmenu(screen, prefs, prefs->main_symmenu);
-	prefs->q_accent_menu->surface = render_symmenu(screen, prefs, prefs->q_accent_menu);
-	prefs->w_accent_menu->surface = render_symmenu(screen, prefs, prefs->w_accent_menu);
-	prefs->e_accent_menu->surface = render_symmenu(screen, prefs, prefs->e_accent_menu);
-	prefs->r_accent_menu->surface = render_symmenu(screen, prefs, prefs->r_accent_menu);
-	prefs->t_accent_menu->surface = render_symmenu(screen, prefs, prefs->t_accent_menu);
-	prefs->y_accent_menu->surface = render_symmenu(screen, prefs, prefs->y_accent_menu);
-	prefs->u_accent_menu->surface = render_symmenu(screen, prefs, prefs->u_accent_menu);
-	prefs->i_accent_menu->surface = render_symmenu(screen, prefs, prefs->i_accent_menu);
-	prefs->o_accent_menu->surface = render_symmenu(screen, prefs, prefs->o_accent_menu);
-	prefs->p_accent_menu->surface = render_symmenu(screen, prefs, prefs->p_accent_menu);
-	prefs->a_accent_menu->surface = render_symmenu(screen, prefs, prefs->a_accent_menu);
-	prefs->s_accent_menu->surface = render_symmenu(screen, prefs, prefs->s_accent_menu);
-	prefs->d_accent_menu->surface = render_symmenu(screen, prefs, prefs->d_accent_menu);
-	prefs->f_accent_menu->surface = render_symmenu(screen, prefs, prefs->f_accent_menu);
-	prefs->g_accent_menu->surface = render_symmenu(screen, prefs, prefs->g_accent_menu);
-	prefs->h_accent_menu->surface = render_symmenu(screen, prefs, prefs->h_accent_menu);
-	prefs->j_accent_menu->surface = render_symmenu(screen, prefs, prefs->j_accent_menu);
-	prefs->k_accent_menu->surface = render_symmenu(screen, prefs, prefs->k_accent_menu);
-	prefs->l_accent_menu->surface = render_symmenu(screen, prefs, prefs->l_accent_menu);
-	prefs->z_accent_menu->surface = render_symmenu(screen, prefs, prefs->z_accent_menu);
-	prefs->x_accent_menu->surface = render_symmenu(screen, prefs, prefs->x_accent_menu);
-	prefs->c_accent_menu->surface = render_symmenu(screen, prefs, prefs->c_accent_menu);
-	prefs->v_accent_menu->surface = render_symmenu(screen, prefs, prefs->v_accent_menu);
-	prefs->b_accent_menu->surface = render_symmenu(screen, prefs, prefs->b_accent_menu);
-	prefs->n_accent_menu->surface = render_symmenu(screen, prefs, prefs->n_accent_menu);
-	prefs->m_accent_menu->surface = render_symmenu(screen, prefs, prefs->m_accent_menu);
+	for (char c = 'a'; c <= 'z'; ++c) {
+		size_t idx = (size_t)(c - 'a');
+		symmenu_t *m = prefs->accent_menus[idx][0];
+		if (m->entries[1].to != NULL) {
+			m->surface = render_symmenu(screen, prefs, m);
+		}
+	}
 
 	if (prefs->auto_show_vkb) {
 		virtualkeyboard_show();

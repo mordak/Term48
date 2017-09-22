@@ -70,11 +70,12 @@ static int PREFS_VERSION = 9;
     {'a', "="}, {'s', "-"}, {'d', "*"}, {'f', "/"}, {'g', "\\"},{'h', "|"}, {'j', "&"}, {'k', "'"}, {'l', "\""} \
 }
 #define DEFAULT_STICKY_SYM_KEY 0
-#define DEFAULT_STICKY_SHIFT_KEY 0
-#define DEFAULT_STICKY_ALT_KEY 0
+#define DEFAULT_STICKY_SHIFT_KEY 1
+#define DEFAULT_STICKY_ALT_KEY 1
 #define DEFAULT_KEYHOLD_ACTIONS_EXEMPT_LEN 2
 #define DEFAULT_KEYHOLD_ACTIONS_EXEMPT (int[]){KEYCODE_BACKSPACE, KEYCODE_RETURN}
 #define DEFAULT_RESCREEN_FOR_SYMMENU 1
+#define DEFAULT_KEYHOLD_ACCENTS 1
 
 int preferences_guess_best_font_size(pref_t *prefs, int target_cols);
 
