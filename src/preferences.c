@@ -444,8 +444,8 @@ pref_t *read_preferences(const char* filename) {
 	for (char c = 'a'; c <= 'z'; ++c) {
 		size_t idx = (size_t)(c - 'a');
 		am_name[0] = c;
-		prefs->accent_menus[idx][0] = create_symmenu(config, am_name, 1, &lowercase_accent_row_lens[idx], lowercase_accent_entries[idx]);
-		//prefs->accent_menus[idx][1] = create_symmenu(config, am_name, 1, &uppercase_accent_row_lens[idx], &uppercase_accent_entries[idx]);
+		prefs->accent_menus[idx][0] = create_symmenu(config, am_name, 1, &accent_row_lens[idx], lowercase_accent_entries[idx]);
+		prefs->accent_menus[idx][1] = create_symmenu(config, am_name, 1, &accent_row_lens[idx], uppercase_accent_entries[idx]);
 	}
 
 	if (is_first_run) {

@@ -3,9 +3,9 @@
 
 #include "types.h"
 
-extern const int lowercase_accent_row_lens[];
-extern const int uppercase_accent_row_lens[];
+extern const int accent_row_lens[];
 
 extern const keymap_t* lowercase_accent_entries[];
+extern const keymap_t* uppercase_accent_entries[];
 
 #endif

@@ -49,12 +49,13 @@ SDL_Surface *render_symmenu(SDL_Surface *screen, pref_t *prefs, symmenu_t *menu)
 			longest_row_len = col_len;
 		}
 	}
-
-	if (longest_row_len == 0) {
+	
+	if (menu->keys[0] == NULL) {
 		return NULL;
 	}
-	
-	int bg_font_size = preferences_guess_best_font_size(prefs, longest_row_len * 1.25);
+
+	/* symmenus should all be the same size (and centered, ideally) */
+	int bg_font_size = preferences_guess_best_font_size(prefs, 10 * 1.25);
 	int corner_font_size = bg_font_size / 5;
 	int fg_font_size = (6 * bg_font_size) / 10;
 
