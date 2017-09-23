@@ -54,6 +54,7 @@ static pref_t *prefs = NULL;
 static symmenu_t *current_symmenu = NULL;
 
 static char symmenu_lock = 0;
+static char altsym_lock = 0;
 
 static char metamode = 0;
 static int metamode_doubletap_key = 0;
@@ -82,6 +83,7 @@ static SDL_Surface* screen;
 static SDL_Surface* ctrl_key_indicator;
 static SDL_Surface* alt_key_indicator;
 static SDL_Surface* shift_key_indicator;
+static SDL_Surface* altsym_indicator;
 SDL_Surface* blank_surface;
 
 static pid_t child_pid = -1;
@@ -196,6 +198,10 @@ int get_wm_info(SDL_SysWMinfo* info){
 
 void metamode_toggle(){
 	metamode = metamode ? 0 : 1;
+}
+
+void altsym_toggle() {
+	altsym_lock = altsym_lock ? 0 : 1;
 }
 
 void symmenu_stick(){
@@ -322,6 +328,13 @@ int font_init(int font_size){
 	shift_key_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
 	if (shift_key_indicator == NULL){
 		PRINT(stderr, "Couldn't render shift_key_indicator surface: %s\n", TTF_GetError());
+		return TERM_FAILURE;
+	}
+
+	str[0] = 'a';
+	altsym_indicator = TTF_RenderUNICODE_Shaded(font, str, metamode_cursor_fg, metamode_cursor_bg);
+	if (shift_key_indicator == NULL){
+		PRINT(stderr, "Couldn't render altsym_indicator surface: %s\n", TTF_GetError());
 		return TERM_FAILURE;
 	}
 
@@ -574,6 +587,18 @@ void handleKeyboardEvent(screen_event_t screen_event)
 			}
 			return;
 		}
+
+		if(screen_val == KEYCODE_BB_ALT_KEY){
+			if (prefs->sticky_alt_key) {
+				if(screen_flags & KEY_REPEAT){
+					return;
+				} else {
+					altsym_toggle();
+					return;
+				}
+			}
+		}
+		
 		if(!virtualkeyboard_visible
 		   && ((screen_val == KEYCODE_LEFT_SHIFT) || (screen_val == KEYCODE_RIGHT_SHIFT))){
 			if (prefs->sticky_shift_key) {
@@ -659,6 +684,16 @@ void handleKeyboardEvent(screen_event_t screen_event)
 			}
 			metamode_toggle();
 			return;
+		}
+
+		/* handle alt keys */
+		if (altsym_lock) {
+			keys = keystroke_lookup((char)screen_val, prefs->altsym_entries);
+			altsym_toggle();
+			if (keys != NULL){
+				send_metamode_keystrokes(keys);
+				return;
+			}
 		}
 
 		/* handle sym keys */
@@ -1112,6 +1147,15 @@ void render() {
 		destrect.w = shift_key_indicator->w;
 		destrect.h = shift_key_indicator->h;
 		SDL_BlitSurface(shift_key_indicator, NULL, screen, &destrect);
+	}
+
+	if (altsym_lock) {
+		SDL_Rect destrect;
+		destrect.x = (cols-1) * advance;
+		destrect.y = 3 * text_height;
+		destrect.w = shift_key_indicator->w;
+		destrect.h = shift_key_indicator->h;
+		SDL_BlitSurface(altsym_indicator, NULL, screen, &destrect);
 	}
 
 	if ((current_symmenu != NULL) && (current_symmenu->surface != NULL)) {

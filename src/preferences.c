@@ -438,6 +438,7 @@ pref_t *read_preferences(const char* filename) {
 	DEFAULT_LOOKUP(bool, config, "keyhold_accents", prefs->keyhold_accents, DEFAULT_KEYHOLD_ACCENTS);
 
 	prefs->main_symmenu = create_symmenu(config, "main_symmenu", DEFAULT_SYMMENU_NUM_ROWS, DEFAULT_SYMMENU_ROW_LENS, DEFAULT_SYMMENU_ENTRIES);
+	prefs->altsym_entries = create_keymap_array(config, "altsym_entries", DEFAULT_ALTSYM_ENTRIES_LEN, DEFAULT_ALTSYM_ENTRIES);
 
 	/* the accent menus are configurable, but we won't include them in the default config */
 	char am_name[] = {' ', '_', 'a', 'c', 'c', 'e', 'n', 't', 's', '\0'};

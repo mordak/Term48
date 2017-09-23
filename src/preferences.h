@@ -77,6 +77,14 @@ static int PREFS_VERSION = 9;
 #define DEFAULT_RESCREEN_FOR_SYMMENU 1
 #define DEFAULT_KEYHOLD_ACCENTS 1
 
+#define DEFAULT_ALTSYM_ENTRIES_LEN 27
+#define DEFAULT_ALTSYM_ENTRIES (keymap_t[]) {  \
+    {'q', "#"}, {'w', "1"}, {'e', "2"}, {'r', "3"}, {'t', "("}, {'y', ")"}, {'u', "_"}, {'i', "-"}, {'o', "+"}, {'p', "@"}, \
+                {'a', "*"}, {'s', "4"}, {'d', "5"}, {'f', "6"}, {'g', "/"}, {'h', ":"}, {'j', ";"}, {'k', "'"}, {'l', "\""}, \
+                {'z', "7"}, {'x', "8"}, {'c', "9"}, {'v', "?"}, {'b', "!"}, {'n', ","}, {'m', "."}, \
+                            {'0', "0"} \
+}
+
 int preferences_guess_best_font_size(pref_t *prefs, int target_cols);
 
 pref_t* read_preferences(const char* filename);

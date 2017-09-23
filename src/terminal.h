@@ -37,7 +37,8 @@
 #define MIN_FONT_SIZE 4
 
 // sym = f0d3 // z = 0x007a
-#define KEYCODE_BB_SYM_KEY 0xf0d3
+#define KEYCODE_BB_ALT_KEY 0xF0E9
+#define KEYCODE_BB_SYM_KEY 0xF0D3
 
 void rescreen();
 void setup_screen_size(int w, int h);
