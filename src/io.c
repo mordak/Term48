@@ -38,11 +38,11 @@ static char readbuf[READ_BUFFER_SIZE];
 static char writebuf[CHARACTER_BUFFER * U8_MAX_LENGTH];
 static char* writebufLimit;
 
-int io_init(){
+int io_init(pref_t *prefs){
 
 	// create converters
-  tty_conv  = ucnv_open(preferences_get_string(preference_keys.tty_encoding), &tty_conv_err);
-  utf8_conv  = ucnv_open("UTF-8", &utf8_conv_err);
+	tty_conv  = ucnv_open(prefs->tty_encoding, &tty_conv_err);
+	utf8_conv  = ucnv_open("UTF-8", &utf8_conv_err);
 	return TERM_SUCCESS;
 }
 

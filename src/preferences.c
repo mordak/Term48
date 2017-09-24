@@ -15,193 +15,50 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <unicode/utf.h>
 
 #include "terminal.h"
+#include "symmenu.h"
 #include "preferences.h"
 
-static char* preferences_filename = ".term48rc";
-static config_t* preferences;
+pref_t *prefs = NULL;
 
-config_t* preferences_get(){
-	return preferences;
-}
-
-/* unconditionally replace a string preference */
-config_setting_t* preferences_replace_string(config_setting_t* root, char* key, char* default_value){
-  int type = CONFIG_TYPE_STRING;
-  config_setting_remove(root, key);
-  config_setting_t* setting = config_setting_add(root, key, type);
-  config_setting_set_string(setting, default_value);
-  return setting;
-}
-
-config_setting_t* preferences_init_string(config_setting_t* root, char* key, char* default_value){
-  int type = CONFIG_TYPE_STRING;
-  config_setting_t* setting = config_setting_get_member(root, key);
-  if(!setting || config_setting_type(setting) != type){
-    config_setting_remove(root, key);
-    setting = config_setting_add(root, key, type);
-    config_setting_set_string(setting, default_value);
-  }
-  return setting;
-}
-
-config_setting_t* preferences_init_int(config_setting_t* root, char* key, int default_value){
-  int type = CONFIG_TYPE_INT;
-  config_setting_t* setting = config_setting_get_member(root, key);
-  if(!setting || config_setting_type(setting) != type){
-    config_setting_remove(root, key);
-    setting = config_setting_add(root, key, type);
-    config_setting_set_int(setting, default_value);
-  }
-  return setting;
-}
-
-config_setting_t* preferences_init_bool(config_setting_t* root, char* key, int default_value){
-  int type = CONFIG_TYPE_BOOL;
-  config_setting_t* setting = config_setting_get_member(root, key);
-  if(!setting || config_setting_type(setting) != type){
-    config_setting_remove(root, key);
-    setting = config_setting_add(root, key, type);
-    config_setting_set_bool(setting, default_value);
-  }
-  return setting;
-}
-
-config_setting_t* preferences_init_group(config_setting_t* root, char* key){
-  int type = CONFIG_TYPE_GROUP;
-  config_setting_t* setting = config_setting_get_member(root, key);
-  if(!setting || config_setting_type(setting) != type){
-    config_setting_remove(root, key);
-    setting = config_setting_add(root, key, type);
-  }
-  return setting;
-}
-
-char preferences_is_list_of_groups_of_strings(config_setting_t* setting){
-  config_setting_t* subsetting;
-
-	if(config_setting_is_list(setting) != CONFIG_TRUE){
-		return 0;
+static void first_run(pref_t *prefs) {
+	char* home = getenv("HOME");
+	if(home != NULL){ chdir(home); }
+	
+	char* readme_path = (atoi(getenv("WIDTH")) <= 720) ? README45_FILE_PATH : README_FILE_PATH;
+	fprintf(stderr, "Updating README\n");
+	if (access(readme_path, F_OK) != -1) {
+		// stat success!
+		if (symlink(readme_path, "./README") == -1){
+			if (errno != EEXIST){
+				fprintf(stderr, "Error linking README from app to PWD\n");
+			}
+		}
 	}
-  int num_elements = config_setting_length(setting); // num elements in list
-  int num_subelements; // num elements in each group in the list
-  unsigned int i, j;
-  for(i = 0; i < num_elements; ++i){
-  	subsetting = config_setting_get_elem(setting, i);
-  	if(config_setting_is_group(subsetting) != CONFIG_TRUE){
-  		return 0;
-  	}
-  	// now check for all string values
-  	num_subelements = config_setting_length(subsetting);
-  	for(j = 0; j < num_subelements; ++j){
-  		if(config_setting_type(config_setting_get_elem(subsetting, j)) != CONFIG_TYPE_STRING){
-  			return 0;
-  		}
-  	}
-  }
-  return 1;
+
+	save_preferences(prefs, PREFS_FILE_PATH);
 }
 
-config_setting_t* preferences_init_list_blank(config_setting_t* root, char* key){
-  int type = CONFIG_TYPE_LIST;
-  config_setting_t* setting = config_setting_get_member(root, key);
-  if(!setting || config_setting_type(setting) != type || config_setting_length(setting) > 0){
-    config_setting_remove(root, key);
-    setting = config_setting_add(root, key, type);
-  }
-  return setting;
-}
-
-config_setting_t* preferences_init_array(config_setting_t* root, char* key){
-  int type = CONFIG_TYPE_ARRAY;
-  config_setting_t* setting = config_setting_get_member(root, key);
-  if(!setting || config_setting_type(setting) != type){
-    config_setting_remove(root, key);
-    setting = config_setting_add(root, key, type);
-  }
-  return setting;
-}
-
-void preferences_pad_array_int(config_setting_t* setting, int size, int padding){
-	/* we assume that setting is actually a CONFIG_TYPE_ARRAY */
-	int num = config_setting_length(setting);
-	for(; num < size; ++num){
-		config_setting_set_int_elem(setting, -1, padding);
-	}
-}
-
-int preferences_check_version(config_setting_t* root, char* key){
-  int type = CONFIG_TYPE_INT;
-  const char* ms_key;
-  config_setting_t* setting = config_setting_get_member(root, key);
-  if(!setting /* not found */
-  		|| (config_setting_type(setting) != type) /* has been messed with */
-  		|| (config_setting_get_int(setting) != PREFS_VERSION)){ /* old */
-  	/* we need to update */
-  	config_setting_remove(root, key);
-		setting = config_setting_add(root, key, type);
-		config_setting_set_int(setting, PREFS_VERSION);
-
-		/* from prefs v6 to v7, the default value of hjkl changed */
-		setting = config_setting_get_member(root, preference_keys.metamode_sticky_keys);
-		ms_key = preferences_get_metamode_sticky_keys('h');
-		if((ms_key != NULL) && 0 == strncmp(ms_key, PREFS_V6_KDEF_H, 3)) { preferences_replace_string(setting, "h", PREFS_V7_KDEF_H);}
-		ms_key = preferences_get_metamode_sticky_keys('j');
-		if((ms_key != NULL) && 0 == strncmp(ms_key, PREFS_V6_KDEF_J, 3)) { preferences_replace_string(setting, "j", PREFS_V7_KDEF_J);}
-		ms_key = preferences_get_metamode_sticky_keys('k');
-		if((ms_key != NULL) && 0 == strncmp(ms_key, PREFS_V6_KDEF_K, 3)) { preferences_replace_string(setting, "k", PREFS_V7_KDEF_K);}
-		ms_key = preferences_get_metamode_sticky_keys('l');
-		if((ms_key != NULL) && 0 == strncmp(ms_key, PREFS_V6_KDEF_L, 3)) { preferences_replace_string(setting, "l", PREFS_V7_KDEF_L);}
-		return 1;
-  }
-  return 0;
-}
-
-int preferences_guess_best_font_size(int target_cols){
+int preferences_guess_best_font_size(pref_t *prefs, int target_cols){
 	/* font widths in pixels for sizes 0-250, indexed by font size */
-	int num_sizes = 251;
-	int font_widths[251] = {0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6,
-												 7, 7, 8, 8, 9, 10, 10, 11, 11, 12,
-												 13, 13, 14, 14, 15, 16, 16, 17, 17,
-												 18, 19, 19, 20, 20, 21, 22, 22, 23,
-												 23, 24, 25, 25, 26, 26, 27, 28, 28,
-												 29, 29, 30, 31, 31, 32, 32, 33, 34,
-												 34, 35, 35, 36, 37, 37, 38, 38, 39,
-												 40, 40, 41, 41, 42, 43, 43, 44, 44,
-												 45, 46, 46, 47, 47, 48, 49, 49, 50,
-												 50, 51, 52, 52, 53, 53, 54, 55, 55,
-												 56, 56, 57, 58, 58, 59, 59, 60, 61,
-												 61, 62, 62, 63, 64, 64, 65, 65, 66,
-												 67, 67, 68, 68, 69, 70, 70, 71, 71,
-												 72, 73, 73, 74, 74, 75, 76, 76, 77,
-												 77, 78, 79, 79, 80, 80, 81, 82, 82,
-												 83, 83, 84, 85, 85, 86, 86, 87, 88,
-												 88, 89, 89, 90, 91, 91, 92, 92, 93,
-												 94, 94, 95, 95, 96, 97, 97, 98, 98,
-												 99, 100, 100, 101, 101, 102, 103, 103,
-												 104, 104, 105, 106, 106, 107, 107, 108,
-												 109, 109, 110, 110, 111, 112, 112, 113,
-												 113, 114, 115, 115, 116, 116, 117, 118,
-												 118, 119, 119, 120, 121, 121, 122, 122,
-												 123, 124, 124, 125, 125, 126, 127, 127,
-												 128, 128, 129, 130, 130, 131, 131, 132,
-												 133, 133, 134, 134, 135, 136, 136, 137,
-												 137, 138, 139, 139, 140, 140, 141, 142,
-												 142, 143, 143, 144, 145, 145, 146, 146,
-												 147, 148, 148, 149, 149};
 	int screen_width, screen_height, target_width;
 	if((getenv("WIDTH") == NULL) || (getenv("HEIGHT") == NULL)){
 		/* no width or height in env, just return the default */
-		return preference_defaults.font_size;
+		if (prefs == NULL) {
+			PRINT(stderr, "Preferences not initalized!\n");
+			return 10;
+		}
+		return prefs->font_size;
 	}
 	screen_width = atoi(getenv("WIDTH"));
 	screen_height = atoi(getenv("HEIGHT"));
 	target_width = screen_width < screen_height ? screen_width : screen_height;
-	int i = 0;
 	int num_px = 0;
-	for(i = 0; i < num_sizes; ++i){
+	for (int i = 0; i < NUM_SIZES; ++i){
 		num_px = target_cols * font_widths[i];
 		if(num_px > target_width){
 			/* if we are too big, return the last one. */
@@ -210,319 +67,509 @@ int preferences_guess_best_font_size(int target_cols){
 		}
 	}
 	/* if we get here, then just return the largest font */
-	return (num_sizes - 1);
+	return font_widths[NUM_SIZES-1];
 }
 
-void preferences_init(){
+static void upgrade_config_v8(config_t *dst, config_t *src) {
+	config_setting_t *dst_root = config_root_setting(dst);
 
-  preferences = calloc(1, sizeof(config_t));
-  char prefs_found = 0;
+	/* upgrade metamode hitbox */
 
-  config_init(preferences);
-  FILE *f;
-  f = fopen(preferences_filename, "r");
-  if(f){
-    fclose(f);
-    prefs_found = 1;
-    if(config_read_file(preferences, preferences_filename) != CONFIG_TRUE){
-       fprintf(stderr, "%s:%d - %s\n", config_error_file(preferences),
-                       config_error_line(preferences), config_error_text(preferences));
-     }
-  } else {
-    PRINT(stderr, "Preferences file not found\n");
-  }
+	config_setting_t *old_hitbox_s = config_lookup(src, "metamode_hitbox");
+	if (old_hitbox_s != NULL) {
+		config_setting_t *x_s = config_setting_get_member(old_hitbox_s, "x");
+		config_setting_t *y_s = config_setting_get_member(old_hitbox_s, "y");
+		config_setting_t *w_s = config_setting_get_member(old_hitbox_s, "w");
+		config_setting_t *h_s = config_setting_get_member(old_hitbox_s, "h");
 
-  config_setting_t *root, *setting;
-  root = config_root_setting(preferences);
-  int default_font_columns = (atoi(getenv("WIDTH")) <= 720) ? 45 : 60;
+		if (x_s && y_s && w_s && h_s) {
+			int x = config_setting_get_int(x_s);
+			int y = config_setting_get_int(y_s);
+			int w = config_setting_get_int(w_s);
+			int h = config_setting_get_int(h_s);
 
-  /* check for values from the conf file, and set them if not found or wrong type */
-  preferences_init_string(root, preference_keys.font_path, preference_defaults.font_path);
-  preferences_init_int(root, preference_keys.font_size, preferences_guess_best_font_size(default_font_columns));
-  preferences_init_bool(root, preference_keys.screen_idle_awake, preference_defaults.screen_idle_awake);
-  preferences_init_bool(root, preference_keys.auto_show_vkb, preference_defaults.auto_show_vkb);
-  preferences_init_bool(root, preference_keys.allow_resize_columns, preference_defaults.allow_resize_columns);
-  preferences_init_bool(root, preference_keys.keyhold_actions, preference_defaults.keyhold_actions);
-  preferences_init_bool(root, preference_keys.sticky_sym_key, preference_defaults.sticky_sym_key);
-  preferences_init_bool(root, preference_keys.sticky_shift_key, preference_defaults.sticky_shift_key);
-  //preferences_init_bool(root, preference_keys.sticky_alt_key, preference_defaults.sticky_alt_key);
-  preferences_init_int(root, preference_keys.metamode_hold_key, preference_defaults.metamode_hold_key);
-  preferences_init_int(root, preference_keys.metamode_doubletap_key, preference_defaults.metamode_doubletap_key);
-  preferences_init_int(root, preference_keys.metamode_doubletap_delay, preference_defaults.metamode_doubletap_delay);
-  preferences_init_string(root, preference_keys.tty_encoding, preference_defaults.tty_encoding);
-
-  setting = preferences_init_group(root, preference_keys.metamode_hitbox_s);
-  preferences_init_int(setting, "x", preference_defaults.hitbox.x);
-  preferences_init_int(setting, "y", preference_defaults.hitbox.y);
-  preferences_init_int(setting, "w", preference_defaults.hitbox.w);
-  preferences_init_int(setting, "h", preference_defaults.hitbox.h);
-
-  /* init the keyhold_exempt keys */
-  setting = config_setting_get_member(root, preference_keys.keyhold_actions_exempt);
-  if(!setting || config_setting_type(setting) != CONFIG_TYPE_ARRAY){
-  	setting = preferences_init_array(root, preference_keys.keyhold_actions_exempt);
-  	int num_key_defaults = sizeof(preference_defaults.keyhold_actions_exempt) / sizeof(int);
-  	int i = 0;
-  	for(i = 0; i < num_key_defaults; ++i){
-  		config_setting_set_int_elem(setting, -1, preference_defaults.keyhold_actions_exempt[i]);
-  	}
-  }
-
-  /* initialize the text and background colours */
-  setting = config_setting_get_member(root, preference_keys.text_color);
-  if(!setting || config_setting_type(setting) != CONFIG_TYPE_ARRAY){
-  	setting = preferences_init_array(root, preference_keys.text_color);
-  	int i = 0;
-  	for(i = 0; i < PREFS_COLOR_NUM_ELEMENTS; ++i){
-  		config_setting_set_int_elem(setting, -1, preference_defaults.text_color[i]);
-  	}
-  }
-  /* ensure array length is long enough */
-  preferences_pad_array_int(setting, PREFS_COLOR_NUM_ELEMENTS, 0);
-
-  setting = config_setting_get_member(root, preference_keys.background_color);
-  if(!setting || config_setting_type(setting) != CONFIG_TYPE_ARRAY){
-  	setting = preferences_init_array(root, preference_keys.background_color);
-  	int i = 0;
-  	for(i = 0; i < PREFS_COLOR_NUM_ELEMENTS; ++i){
-  		config_setting_set_int_elem(setting, -1, preference_defaults.background_color[i]);
-  	}
-  }
-  preferences_pad_array_int(setting, PREFS_COLOR_NUM_ELEMENTS, 0);
-
-  /* initialize the metamode keys */
-  setting = config_setting_get_member(root, preference_keys.metamode_keys);
-  if(!setting || config_setting_type(setting) != CONFIG_TYPE_GROUP){
-  	/* initialize the keystrokes if there are none defined */
-  	setting = preferences_init_group(root, preference_keys.metamode_keys);
-  	int num_key_defaults = sizeof(preference_defaults.metamode_keys) / sizeof(char*) / 2;
-  	int i = 0;
-  	for(i = 0; i < num_key_defaults; ++i){
-  		preferences_init_string(setting,
-  				preference_defaults.metamode_keys[i*2],
-  				preference_defaults.metamode_keys[(i*2)+1]);
-  	}
-  }
-
-  /* initialize the metamode sticky keys */
-  setting = config_setting_get_member(root, preference_keys.metamode_sticky_keys);
-	if(!setting || config_setting_type(setting) != CONFIG_TYPE_GROUP){
-		/* initialize the keystrokes if there are none defined */
-		setting = preferences_init_group(root, preference_keys.metamode_sticky_keys);
-		int num_key_defaults = sizeof(preference_defaults.metamode_sticky_keys) / sizeof(char*) / 2;
-		int i = 0;
-		for(i = 0; i < num_key_defaults; ++i){
-			preferences_init_string(setting,
-				                      preference_defaults.metamode_sticky_keys[i*2],
-				                      preference_defaults.metamode_sticky_keys[(i*2)+1]);
+			config_setting_remove(dst_root, "metamode_hitbox");
+			config_setting_t *new_hitbox_s = config_setting_add(dst_root, "metamode_hitbox", CONFIG_TYPE_ARRAY);
+			config_setting_set_int_elem(new_hitbox_s, -1, x);
+			config_setting_set_int_elem(new_hitbox_s, -1, y);
+			config_setting_set_int_elem(new_hitbox_s, -1, w);
+			config_setting_set_int_elem(new_hitbox_s, -1, h);
 		}
 	}
 
-  /* initialize the metamode function keys */
-  setting = config_setting_get_member(root, preference_keys.metamode_func_keys);
-	if(!setting || config_setting_type(setting) != CONFIG_TYPE_GROUP){
-		/* initialize the keystrokes if there are none defined */
-		setting = preferences_init_group(root, preference_keys.metamode_func_keys);
-		int num_key_defaults = sizeof(preference_defaults.metamode_func_keys) / sizeof(char*) / 2;
-		int i = 0;
-		for(i = 0; i < num_key_defaults; ++i){
-			preferences_init_string(setting,
-					preference_defaults.metamode_func_keys[i*2],
-					preference_defaults.metamode_func_keys[(i*2)+1]);
+	/* upgrade various keymaps */
+	char const *keymap_keys[] = {
+		"metamode_keys",
+		"metamode_sticky_keys",
+		"metamode_func_keys",
+		NULL
+	};
+
+	for (char const **key_ptr = keymap_keys; *key_ptr != NULL; ++key_ptr) {
+		char const *key = *key_ptr;
+		config_setting_t *old_map_s = config_lookup(src, key);
+		if (old_map_s == NULL) {
+			continue;
+		}
+
+		config_setting_remove(dst_root, key);
+		config_setting_t *new_map_s = config_setting_add(dst_root, key, CONFIG_TYPE_LIST);
+		
+		for (size_t i = 0; i < config_setting_length(old_map_s); ++i) {
+			config_setting_t *old_key_s = config_setting_get_elem(old_map_s, i);
+			
+			char const *from = config_setting_name(old_key_s);
+			char const *to = config_setting_get_string(old_key_s);
+			
+			config_setting_t *new_key_s = config_setting_add(new_map_s, NULL, CONFIG_TYPE_LIST);
+			config_setting_set_string_elem(new_key_s, -1, from);
+			config_setting_set_string_elem(new_key_s, -1, to);
 		}
 	}
 
-	/* initialize the sym keys */
-	config_setting_t *subsetting;
-	setting = config_setting_get_member(root, preference_keys.sym_keys);
-	if(!setting || config_setting_type(setting) != CONFIG_TYPE_LIST || !preferences_is_list_of_groups_of_strings(setting)){
-		/* initialize if not defined or invalid */
-		setting = preferences_init_list_blank(root, preference_keys.sym_keys);
-		int i, j, num_entries;
-		for(j = 0; j < PREFS_SYMKEYS_DEFAULT_NUM_ROWS; ++j){
-			subsetting = config_setting_add(setting, NULL, CONFIG_TYPE_GROUP);
-			num_entries = sizeof(preference_defaults.sym_keys[j]) / sizeof(char*) / 2;
-			for(i = 0; i < num_entries; ++i){
-				if(preference_defaults.sym_keys[j][i*2] != NULL){
-					preferences_init_string(subsetting,
-							preference_defaults.sym_keys[j][i*2],
-							preference_defaults.sym_keys[j][(i*2)+1]);
-				}
+	/* upgrade symmenu */
+	config_setting_t *old_map_s = config_lookup(src, "sym_keys");
+	if (old_map_s == NULL) {
+		return;
+	}
+	
+	config_setting_t *new_map_s = config_setting_add(dst_root, "main_symmenu", CONFIG_TYPE_LIST);
+
+	for (int row = config_setting_length(old_map_s) - 1; row >= 0; --row) {
+		config_setting_t *old_row_s = config_setting_get_elem(old_map_s, row);
+		config_setting_t *new_row_s = config_setting_add(new_map_s, NULL, CONFIG_TYPE_LIST);
+			
+		for (size_t col = 0; col < config_setting_length(old_row_s); ++col) {
+			config_setting_t *old_key_s = config_setting_get_elem(old_row_s, col);
+			
+			char const *from = config_setting_name(old_key_s);
+			char const *to = config_setting_get_string(old_key_s);
+			
+			config_setting_t *new_key_s = config_setting_add(new_row_s, NULL, CONFIG_TYPE_LIST);
+			config_setting_set_string_elem(new_key_s, -1, from);
+			config_setting_set_string_elem(new_key_s, -1, to);
+		}
+	}
+}
+
+static config_t *upgrade_config(char const *path, int old_version) {
+	config_t src_data;
+	config_t *src = &src_data;
+	config_t *dst = (config_t*)malloc(sizeof(config_t));
+	
+	config_init(src);
+	config_init(dst);
+	config_read_file(src, path);
+	config_read_file(dst, path);
+	
+	switch (old_version) {
+	case 8:
+		fprintf(stderr, "Upgrading from prefs. v8. Old prefs in %s\n", PREFS_FILE_BACKUP);
+		upgrade_config_v8(dst, src);
+		break;
+	default:
+		fprintf(stderr, "Preferences version not supported!\n");
+		break;
+	}
+
+	config_destroy(src);
+	return dst;
+}
+
+static int* create_int_array(config_t const *config, char const *path, size_t def_len, int const *def, int dynamic) {
+	config_setting_t *setting = config_lookup(config, path);
+	int use_default = 0;
+	size_t source_len = 0;
+
+	if (!setting || (config_setting_type(setting) != CONFIG_TYPE_ARRAY)) {
+		fprintf(stderr, "invalid array %s, using default\n", path);
+		source_len = def_len;
+		use_default = 1;
+	} else {
+		source_len = config_setting_length(setting);
+	}
+	
+	int *result = calloc(source_len + 1, sizeof(int));
+	result[source_len] = -1;  // sentinel for end of array, only useful for positive arrays
+
+	if (use_default) {
+		for (int i = 0; i < source_len; i++) {
+			result[i] = def[i];
+		}
+	} else {
+		for (int i = 0; i < source_len; i++) {
+			result[i] = config_setting_get_int_elem(setting, i);
+		}
+	}
+
+	return result;
+}
+
+static keymap_t* create_keymap_array(config_t const *config, char const *path, size_t def_len, keymap_t const *def) {
+	config_setting_t *setting = config_lookup(config, path);
+	int use_default = 0;
+	size_t source_len = 0;
+
+	if (!setting || (config_setting_type(setting) != CONFIG_TYPE_LIST)) {
+		fprintf(stderr, "invalid keymap list %s, using default\n", path);
+		source_len = def_len;
+		use_default = 1;
+	} else {
+		source_len = config_setting_length(setting);
+	}
+	
+	keymap_t *result = calloc(source_len + 1, sizeof(keymap_t));
+	result[source_len] = (keymap_t){0, NULL}; // sentinel for end of array
+	
+	if (use_default) {
+		for (int i = 0; i < source_len; i++) {
+			result[i].from = def[i].from;
+			result[i].to = strdup(def[i].to);
+		}
+	} else {
+		for (int i = 0; i < source_len; i++) {
+			config_setting_t *m = config_setting_get_elem(setting, i);
+			char const *from_str = config_setting_get_string_elem(m, 0);
+			result[i].from = from_str[0];
+			result[i].to = strdup(config_setting_get_string_elem(m, 1));
+		}
+	}
+
+	return result;
+}
+
+static symmenu_t* create_symmenu(config_t const *config, char const *path, int def_num_rows, int const *def_row_lens, keymap_t const *def_entries) {
+	config_setting_t *rows_s = config_lookup(config, path);
+	int use_default = 0;
+
+	symmenu_t *menu = calloc(1, sizeof(symmenu_t));
+	
+	/* TODO: more robust checking on config syntax */
+	if (!rows_s || (config_setting_type(rows_s) != CONFIG_TYPE_LIST)) {
+		fprintf(stderr, "invalid symmenu %s, using default\n", path);
+
+		/* calculate the length of the keymap entry array */
+		int def_num_keys = 0;
+		for (int i = 0; i < def_num_rows; ++i) {
+			def_num_keys += def_row_lens[i];
+		}
+		
+		/* allocate the keymap entry and symkey arrays */
+		menu->entries = calloc(def_num_keys + 1, sizeof(keymap_t));
+		menu->entries[def_num_keys] = (keymap_t){0, NULL}; // sentinel for end of array
+		
+		menu->keys = calloc(def_num_rows + 1, sizeof(symkey_t*));
+		menu->keys[def_num_rows] = NULL;
+		
+		/* fill in the keymap entry array */
+		int entry_idx = 0;
+		for (int row = 0; row < def_num_rows; ++row) {
+			/* allocate the symkey row */
+			menu->keys[row] = calloc(def_row_lens[row] + 1, sizeof(symkey_t));
+			menu->keys[row][def_row_lens[row]].map = NULL;
+			
+			/* fill in the symkey row (rest done during render) */
+			for (int col = 0; col < def_row_lens[row]; ++col) {
+				menu->entries[entry_idx].from = def_entries[entry_idx].from;
+				menu->entries[entry_idx].to = strdup(def_entries[entry_idx].to);
+				
+				menu->keys[row][col].flash = '\0';
+				menu->keys[row][col].map = &menu->entries[entry_idx];
+				
+				++entry_idx;
+			}
+		}
+
+	} else {
+		/* calculate the length of the keymap entry array */
+		int num_keys = 0;
+		for (int row = 0; row < config_setting_length(rows_s); ++row) {
+			config_setting_t *col_s = config_setting_get_elem(rows_s, row);
+			num_keys += config_setting_length(col_s);
+		}
+	
+		/* allocate the keymap entry and symkey arrays */
+		menu->entries = calloc(num_keys + 1, sizeof(keymap_t));
+		menu->entries[num_keys] = (keymap_t){0, NULL}; // sentinel for end of array
+		
+		menu->keys = calloc(config_setting_length(rows_s) + 1, sizeof(symkey_t*));
+		menu->keys[config_setting_length(rows_s)] = NULL;
+
+		/* fill in the keymap entry array */
+		int entry_idx = 0;
+		for (int row = 0; row < config_setting_length(rows_s); ++row) {
+			config_setting_t *col_s = config_setting_get_elem(rows_s, row);
+			int col_len = config_setting_length(col_s);
+			
+			/* allocate the symkey row */
+			menu->keys[row] = calloc(col_len + 1, sizeof(symkey_t));
+			menu->keys[row][col_len].map = NULL;
+			
+			/* fill in the symkey row (rest done during render) */
+			for (int col = 0; col < col_len; ++col) {
+				config_setting_t *m = config_setting_get_elem(col_s, col);
+				char const *from_str = config_setting_get_string_elem(m, 0);
+				menu->entries[entry_idx].from = from_str[0];
+				menu->entries[entry_idx].to = strdup(config_setting_get_string_elem(m, 1));
+			
+				menu->keys[row][col].flash = '\0';
+				menu->keys[row][col].map = &menu->entries[entry_idx];
+
+				++entry_idx;
 			}
 		}
 	}
 
-  /* write the prefs file if there was no local one found or we have updated */
-  if(preferences_check_version(root, preference_keys.prefs_version) || !prefs_found){
-  	fprintf(stderr, "Writing prefs file\n");
-    config_write_file(preferences, preferences_filename);
-    /* This is probably a first run */
-    first_run();
-  }
+	/* call the rendering function later after SDL init*/
+	menu->surface = NULL;
+
+	return menu;
 }
 
-int preferences_save(config_t* prefs){
+static hitbox_t* create_hitbox(config_t const *config, char const *path, hitbox_t def) {
+	config_setting_t *setting = config_lookup(config, path);
+	int use_default = 0;
 
-  return 0;
-}
-
-int preferences_free(config_t* prefs){
-
-  if(prefs != NULL){
-    config_destroy(prefs);
-    free(prefs);
-  }
-  return 0;
-}
-
-void preferences_uninit(){
-	preferences_free(preferences);
-}
-
-const char* preferences_get_string(char* pref){
-	if(!preferences){
-		preferences_init();
+	if (!setting || (config_setting_type(setting) != CONFIG_TYPE_ARRAY)) {
+		fprintf(stderr, "invalid array %s, using default\n", path);
+		use_default = 1;
 	}
-	const char* value;
-  config_lookup_string(preferences, pref, &value);
-  return value;
-}
+	
+	hitbox_t *result = calloc(1, sizeof(hitbox_t));
 
-int preferences_get_int(char* pref){
-	if(!preferences){
-		preferences_init();
+	if (use_default) {
+		result->x = def.x;
+		result->y = def.y;
+		result->w = def.w;
+		result->h = def.h;
+	} else {
+		result->x = config_setting_get_int_elem(setting, 0);
+		result->y = config_setting_get_int_elem(setting, 1);
+		result->w = config_setting_get_int_elem(setting, 2);
+		result->h = config_setting_get_int_elem(setting, 3);
 	}
-	int value;
-  config_lookup_int(preferences, pref, &value);
-  return value;
+
+	return result;
 }
 
-int preferences_get_bool(char* pref){
-	if(!preferences){
-		preferences_init();
+void destroy_preferences(pref_t *pref) {
+	free(pref->font_path);
+	free(pref->tty_encoding);
+
+	free(pref->text_color);
+	free(pref->background_color);
+	free(pref->metamode_hitbox);
+	
+	keymap_t *m = pref->metamode_keys;
+	while (m->to != NULL) { free(m->to); ++m; }
+	free(pref->metamode_keys);
+	
+	m = pref->metamode_sticky_keys;
+	while (m->to != NULL) { free(m->to); ++m; }
+	free(pref->metamode_sticky_keys);
+	
+	m = pref->metamode_func_keys;
+	while (m->to != NULL) { free(m->to); ++m; }
+	free(pref->metamode_func_keys);
+
+	destroy_symmenu(pref->main_symmenu);
+	
+	free(pref->keyhold_actions_exempt);
+
+	free(pref);
+}
+
+#define DEFAULT_LOOKUP(type, conf, path, target, defval)	  \
+	do { if (CONFIG_TRUE != config_lookup_##type(conf, path, &(target))) { target = defval; } } while(0)
+pref_t *read_preferences(const char* filename) {
+	pref_t *prefs = calloc(1, sizeof(pref_t)); // our internal data structure
+	if (prefs == NULL) {
+		fprintf(stderr, "fatal error: failed to calloc prefs structure\n");
+		exit(1);
 	}
-	int value;
-	config_lookup_bool(preferences, pref, &value);
-	return value;
-}
 
-int preferences_get_int_array(char* pref, int* fillme, int length){
-	config_setting_t *root, *setting;
-	if(!preferences){
-		preferences_init();
-	}
-	int num_copied = 0;
-	root = config_root_setting(preferences);
-  setting = config_setting_get_member(root, pref);
-  if(setting && config_setting_is_array(setting)){
-  	int i = 0;
-  	int num_eles = config_setting_length(setting);
-  	num_copied = length;
-  	if(num_eles < length){
-  		num_copied = num_eles;
-  	}
-  	for(i = 0; i < num_copied; ++i){
-  		fillme[i] = config_setting_get_int_elem(setting, i);
-  	}
-  }
-  return num_copied;
-}
-
-const char* preferences_get_metamode_keystrokes(char keystroke, char* pref_key){
-	config_setting_t *keystrokes_group, *root;
-	char setting_str[2] = {keystroke, 0};
-	const char* setting_value;
-	root = config_root_setting(preferences);
-	keystrokes_group = config_setting_get_member(root, pref_key);
-	if(keystrokes_group){
-		if(CONFIG_TRUE == config_setting_lookup_string(keystrokes_group, setting_str, &setting_value)){
-			return setting_value;
+	int is_first_run = 0; int upgraded = 0;
+	
+	config_t config_data; // what libconfig parses out of the file
+	config_t *config = &config_data;
+	config_init(config);
+	
+	if (access(filename, F_OK) == -1) {
+		PRINT(stderr, "Preferences file not found, assuming first run\n");
+		is_first_run = 1;
+	} else {
+		if(config_read_file(config, filename) != CONFIG_TRUE){
+			fprintf(stderr, "%s:%d - %s\n", config_error_file(config),
+			        config_error_line(config), config_error_text(config));
 		}
 	}
-	// else
+
+	DEFAULT_LOOKUP(int, config, "prefs_version", prefs->prefs_version, PREFS_VERSION);
+	if(prefs->prefs_version != PREFS_VERSION) {
+		config = upgrade_config(filename, prefs->prefs_version);
+		upgraded = 1;
+	}
+	
+	int default_font_columns = (atoi(getenv("WIDTH")) <= 720) ? 45 : 60;
+
+	DEFAULT_LOOKUP(string, config, "font_path", prefs->font_path, DEFAULT_FONT_PATH);
+	prefs->font_path = strdup(prefs->font_path);
+	DEFAULT_LOOKUP(int, config, "font_size", prefs->font_size, DEFAULT_FONT_SIZE);
+	prefs->text_color = create_int_array(config, "text_color", PREFS_COLOR_NUM_ELEMENTS, DEFAULT_TEXT_COLOR, 0);
+	prefs->background_color = create_int_array(config, "background_color", PREFS_COLOR_NUM_ELEMENTS, DEFAULT_BACKGROUND_COLOR, 0);
+	DEFAULT_LOOKUP(bool, config, "screen_idle_awake", prefs->screen_idle_awake, DEFAULT_SCREEN_IDLE_AWAKE);
+	DEFAULT_LOOKUP(bool, config, "auto_show_vkb", prefs->auto_show_vkb, DEFAULT_AUTO_SHOW_VKB);
+	DEFAULT_LOOKUP(int, config, "metamode_doubletap_key", prefs->metamode_doubletap_key, DEFAULT_METAMODE_DOUBLETAP_KEY);
+	DEFAULT_LOOKUP(int, config, "metamode_doubletap_delay", prefs->metamode_doubletap_delay, DEFAULT_METAMODE_DOUBLETAP_DELAY);
+	DEFAULT_LOOKUP(bool, config, "keyhold_actions", prefs->keyhold_actions, DEFAULT_KEYHOLD_ACTIONS);
+	DEFAULT_LOOKUP(int, config, "metamode_hold_key", prefs->metamode_hold_key, DEFAULT_METAMODE_HOLD_KEY);
+	DEFAULT_LOOKUP(bool, config, "allow_resize_columns", prefs->allow_resize_columns, DEFAULT_ALLOW_RESIZE_COLUMNS);
+	prefs->metamode_hitbox = create_hitbox(config, "metamode_hitbox", DEFAULT_METAMODE_HITBOX);
+	DEFAULT_LOOKUP(string, config, "tty_encoding", prefs->tty_encoding, DEFAULT_TTY_ENCODING);
+	prefs->tty_encoding = strdup(prefs->tty_encoding);
+	prefs->metamode_keys = create_keymap_array(config, "metamode_keys", DEFAULT_METAMODE_KEYS_LEN, DEFAULT_METAMODE_KEYS);
+	prefs->metamode_sticky_keys = create_keymap_array(config, "metamode_sticky_keys", DEFAULT_METAMODE_STICKY_KEYS_LEN, DEFAULT_METAMODE_STICKY_KEYS);
+	prefs->metamode_func_keys = create_keymap_array(config, "metamode_func_keys", DEFAULT_METAMODE_FUNC_KEYS_LEN, DEFAULT_METAMODE_FUNC_KEYS);
+	DEFAULT_LOOKUP(bool, config, "sticky_sym_key", prefs->sticky_sym_key, DEFAULT_STICKY_SYM_KEY);
+	DEFAULT_LOOKUP(bool, config, "sticky_shift_key", prefs->sticky_shift_key, DEFAULT_STICKY_SHIFT_KEY);
+	DEFAULT_LOOKUP(bool, config, "sticky_alt_key", prefs->sticky_alt_key, DEFAULT_STICKY_ALT_KEY);
+	prefs->keyhold_actions_exempt = create_int_array(config, "keyhold_actions_exempt", DEFAULT_KEYHOLD_ACTIONS_EXEMPT_LEN, DEFAULT_KEYHOLD_ACTIONS_EXEMPT, 1);
+	DEFAULT_LOOKUP(bool, config, "rescreen_for_symmenu", prefs->rescreen_for_symmenu, DEFAULT_RESCREEN_FOR_SYMMENU);
+	DEFAULT_LOOKUP(bool, config, "keyhold_accents", prefs->keyhold_accents, DEFAULT_KEYHOLD_ACCENTS);
+
+	prefs->main_symmenu = create_symmenu(config, "main_symmenu", DEFAULT_SYMMENU_NUM_ROWS, DEFAULT_SYMMENU_ROW_LENS, DEFAULT_SYMMENU_ENTRIES);
+	prefs->altsym_entries = create_keymap_array(config, "altsym_entries", DEFAULT_ALTSYM_ENTRIES_LEN, DEFAULT_ALTSYM_ENTRIES);
+
+	/* the accent menus are configurable, but we won't include them in the default config */
+	char am_name[] = {' ', '_', 'a', 'c', 'c', 'e', 'n', 't', 's', '\0'};
+	for (char c = 'a'; c <= 'z'; ++c) {
+		size_t idx = (size_t)(c - 'a');
+		am_name[0] = c;
+		prefs->accent_menus[idx][0] = create_symmenu(config, am_name, 1, &accent_row_lens[idx], lowercase_accent_entries[idx]);
+		prefs->accent_menus[idx][1] = create_symmenu(config, am_name, 1, &accent_row_lens[idx], uppercase_accent_entries[idx]);
+	}
+
+	if (is_first_run) {
+		first_run(prefs);
+	}
+
+	if (upgraded) {
+		if (rename(PREFS_FILE_PATH, PREFS_FILE_BACKUP)) {
+			fprintf(stderr, "Failed to back up old prefs! Won't overwrite %s\n", PREFS_FILE_PATH);
+		} else {
+			save_preferences(prefs, PREFS_FILE_PATH);
+		}
+	}
+
+	return prefs;
+}
+
+void set_int_array(config_setting_t *root, char const *key, size_t num_elems, int const *source) {
+	config_setting_t *setting = config_setting_add(root, key, CONFIG_TYPE_ARRAY);
+	for (size_t i = 0; i < num_elems; ++i) {
+		config_setting_t *elem = config_setting_add(setting, NULL, CONFIG_TYPE_INT);
+		config_setting_set_int(elem, source[i]);
+	}
+}
+
+void set_keymap_array(config_setting_t *root, char const *key, keymap_t const *source) {
+	config_setting_t *setting = config_setting_add(root, key, CONFIG_TYPE_LIST);
+	for (; source->to != NULL; ++source) {
+		config_setting_t *group = config_setting_add(setting, NULL, CONFIG_TYPE_LIST);
+		
+		config_setting_t *from_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		char from_str[2] = {source->from, '\0'};
+		config_setting_set_string(from_s, from_str);
+
+		config_setting_t *to_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		config_setting_set_string(to_s, source->to);
+	}
+}
+
+void set_symmenu(config_setting_t *root, char const *key, symmenu_t const *source) {
+	config_setting_t *rows_s = config_setting_add(root, key, CONFIG_TYPE_LIST);
+	config_setting_t *col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_LIST);
+
+	int row = 0; int col = 0;
+	while (1) {
+		if (source->keys[row][col].map == NULL) {
+			++row;
+			if (source->keys[row] == NULL) {
+				return;
+			}
+			col = 0;
+			col_s = config_setting_add(rows_s, NULL, CONFIG_TYPE_LIST);
+			continue;
+		}
+		
+		config_setting_t *group = config_setting_add(col_s, NULL, CONFIG_TYPE_LIST);
+		
+		config_setting_t *from_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		char from_str[2] = {source->keys[row][col].map->from, '\0'};
+		config_setting_set_string(from_s, from_str);
+
+		config_setting_t *to_s = config_setting_add(group, NULL, CONFIG_TYPE_STRING);
+		config_setting_set_string(to_s, source->keys[row][col].map->to);
+
+		++col;
+	}
+}
+
+#define PREF_SET(root, setptr, key, type, configtype, source)	  \
+	do { setptr = config_setting_add(root, key, CONFIG_TYPE_##configtype); \
+		config_setting_set_##type(setptr, source); } while(0)
+void save_preferences(pref_t const* prefs, char const* filename) {
+	config_t config;
+	config_init(&config);
+	config_setting_t *root = config_root_setting(&config);
+	config_setting_t *setting = NULL;
+
+	PREF_SET(root, setting, "font_path", string, STRING, prefs->font_path);
+	PREF_SET(root, setting, "font_size", int, INT, prefs->font_size);
+	set_int_array(root, "text_color", PREFS_COLOR_NUM_ELEMENTS, prefs->text_color);
+	set_int_array(root, "background_color", PREFS_COLOR_NUM_ELEMENTS, prefs->background_color);
+	PREF_SET(root, setting, "screen_idle_awake", bool, BOOL, prefs->screen_idle_awake);
+	PREF_SET(root, setting, "auto_show_vkb", bool, BOOL, prefs->auto_show_vkb);
+	PREF_SET(root, setting, "metamode_doubletap_key", int, INT, prefs->metamode_doubletap_key);
+	PREF_SET(root, setting, "metamode_doubletap_delay", int, INT, prefs->metamode_doubletap_delay);
+	PREF_SET(root, setting, "keyhold_actions", bool, BOOL, prefs->keyhold_actions);
+	PREF_SET(root, setting, "metamode_hold_key", bool, BOOL, prefs->metamode_hold_key);
+	PREF_SET(root, setting, "allow_resize_columns", bool, BOOL, prefs->allow_resize_columns);
+	set_int_array(root, "metamode_hitbox", 4, prefs->metamode_hitbox);
+	PREF_SET(root, setting, "tty_encoding", string, STRING, prefs->tty_encoding);
+	set_keymap_array(root, "metamode_keys", prefs->metamode_keys);
+	set_keymap_array(root, "metamode_sticky_keys", prefs->metamode_sticky_keys);
+	set_keymap_array(root, "metamode_func_keys", prefs->metamode_func_keys);
+	set_symmenu(root, "main_symmenu", prefs->main_symmenu);
+	PREF_SET(root, setting, "sticky_sym_key", bool, BOOL, prefs->sticky_sym_key);
+	PREF_SET(root, setting, "sticky_shift_key", bool, BOOL, prefs->sticky_shift_key);
+	PREF_SET(root, setting, "sticky_alt_key", bool, BOOL, prefs->sticky_alt_key);
+	PREF_SET(root, setting, "rescreen_for_symmenu", bool, BOOL, prefs->rescreen_for_symmenu);
+	
+	int num_exempt = 0;
+	for (; prefs->keyhold_actions_exempt[num_exempt] > 0; ++num_exempt) { }
+	set_int_array(root, "keyhold_actions_exempt", num_exempt, prefs->keyhold_actions_exempt);
+	
+	config_write_file(&config, filename);
+	return;
+}
+
+int is_int_member(int const* list, int target) {
+	for (int i = 0; list[i] != -1; ++i) {
+		if (list[i] == target) {
+			return 1;
+		}
+	}
+	
+	return 0;
+}
+
+const char* keystroke_lookup(char keystroke, keymap_t *keymap_head) {
+	while (keymap_head->to != NULL) {
+		if (keymap_head->from == keystroke) {
+			return keymap_head->to;
+		}
+		++keymap_head;
+	}
 	return NULL;
-}
-
-const char* preferences_get_metamode_keys(char keystroke){
-	return preferences_get_metamode_keystrokes(keystroke, preference_keys.metamode_keys);
-}
-
-const char* preferences_get_metamode_sticky_keys(char keystroke){
-	return preferences_get_metamode_keystrokes(keystroke, preference_keys.metamode_sticky_keys);
-}
-
-const char* preferences_get_metamode_func_keys(char keystroke){
-	return preferences_get_metamode_keystrokes(keystroke, preference_keys.metamode_func_keys);
-}
-
-int preferences_is_keyhold_exempt(int keystroke){
-	config_setting_t *exempt, *root;
-	root = config_root_setting(preferences);
-	exempt = config_setting_get_member(root, preference_keys.keyhold_actions_exempt);
-	if(exempt){
-		int num_elements = config_setting_length(exempt);
-		int i = 0;
-		for(i = 0; i < num_elements; ++i){
-			if(keystroke == config_setting_get_int_elem(exempt, i)){
-				return 1;
-			}
-		}
-	}
-	// else
-	return NULL;
-}
-
-int preferences_get_sym_num_rows(){
-	struct config_setting_t* keys, *root;
-	root = config_root_setting(preferences);
-	keys = config_setting_get_member(root, preference_keys.sym_keys);
-	if(keys){
-		return config_setting_length(keys);
-	}
-	// else
-	return 0;
-}
-/* must free the returned array */
-int* preferences_get_sym_num_entries(){
-	struct config_setting_t* keys, *root, *sub;
-	int* ret;
-	int i, num_entries;
-	root = config_root_setting(preferences);
-	keys = config_setting_get_member(root, preference_keys.sym_keys);
-	if(keys){
-		num_entries = config_setting_length(keys);
-		ret = calloc(num_entries, sizeof(int));
-		for(i = 0; i < num_entries; ++i){
-			sub = config_setting_get_elem(keys, i);
-			ret[i] = config_setting_length(sub);
-		}
-		return ret;
-	}
-	// else
-	return 0;
-}
-
-struct symkey_entry** preferences_get_sym_entries(){
-	struct config_setting_t* keys, *root, *sub, *entry;
-	struct symkey_entry** ret;
-	int i, j, num_entries, num_subentries;
-	root = config_root_setting(preferences);
-	keys = config_setting_get_member(root, preference_keys.sym_keys);
-	if(keys){
-		num_entries = config_setting_length(keys);
-		ret = (struct symkey_entry**)calloc(num_entries, sizeof(struct symkey_entry*));
-		for(i = 0; i < num_entries; ++i){
-			sub = config_setting_get_elem(keys, i);
-			num_subentries = config_setting_length(sub);
-			ret[i] = (struct symkey_entry*)calloc(num_subentries, sizeof(struct symkey_entry));
-			for(j = 0; j < num_subentries; ++j){
-				entry = config_setting_get_elem(sub, j);
-				ret[i][j].name = config_setting_name(entry);
-				ret[i][j].c = config_setting_get_string(entry);
-			}
-		}
-		return ret;
-	}
-	// else
-	return 0;
 }

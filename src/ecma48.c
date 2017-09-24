@@ -3043,28 +3043,28 @@ void ecma48_SGR(){
           buf->current_style.style ^= TTF_STYLE_STRIKETHROUGH;
           break;
         case 30: // 30 black display [0,0,0] b [127,127,127]
-          buf->current_style.fg_color = (SDL_Color)BLACK;
+          buf->current_style.fg_color = (SDL_Color)SDL_BLACK;
           break;
         case 31: // 31 red display [205,0,0] b [255,0,0]
-          buf->current_style.fg_color = (SDL_Color)RED;
+          buf->current_style.fg_color = (SDL_Color)SDL_RED;
           break;
         case 32: // 32 green display [0,205,0] b [0,255,0]
-          buf->current_style.fg_color = (SDL_Color)GREEN;
+          buf->current_style.fg_color = (SDL_Color)SDL_GREEN;
           break;
         case 33: // 33 yellow display [205,205,0] b [255,255,0]
-          buf->current_style.fg_color = (SDL_Color)YELLOW;
+          buf->current_style.fg_color = (SDL_Color)SDL_YELLOW;
           break;
         case 34: // 34 blue display [0,0,238] b [92,92,255]
-          buf->current_style.fg_color = (SDL_Color)BLUE;
+          buf->current_style.fg_color = (SDL_Color)SDL_BLUE;
           break;
         case 35: // 35 magenta display [205,0,205] b [255,0,255]
-          buf->current_style.fg_color = (SDL_Color)MAGENTA;
+          buf->current_style.fg_color = (SDL_Color)SDL_MAGENTA;
           break;
         case 36: // 36 cyan display [0,205,205] b [0,255,255]
-          buf->current_style.fg_color = (SDL_Color)CYAN;
+          buf->current_style.fg_color = (SDL_Color)SDL_CYAN;
           break;
         case 37: // 37 white display [229,229,229] b [255,255,255]
-          buf->current_style.fg_color = (SDL_Color)WHITE;
+          buf->current_style.fg_color = (SDL_Color)SDL_WHITE;
           break;
         case 38: // extended colour support
           if (i+1 < NUM_ESCAPE_ARGS) { //don't overflow
@@ -3093,28 +3093,28 @@ void ecma48_SGR(){
           buf->current_style.fg_color = default_text_style.fg_color;
           break;
         case 40: // 40 black background [0,0,0]
-          buf->current_style.bg_color = (SDL_Color)BLACK;
+          buf->current_style.bg_color = (SDL_Color)SDL_BLACK;
           break;
         case 41: // 41 red background [205,0,0]
-          buf->current_style.bg_color = (SDL_Color)RED;
+          buf->current_style.bg_color = (SDL_Color)SDL_RED;
           break;
         case 42: // 42 green background [0,205,0]
-          buf->current_style.bg_color = (SDL_Color)GREEN;
+          buf->current_style.bg_color = (SDL_Color)SDL_GREEN;
           break;
         case 43: // 43 yellow background [205,205,0]
-          buf->current_style.bg_color = (SDL_Color)YELLOW;
+          buf->current_style.bg_color = (SDL_Color)SDL_YELLOW;
           break;
         case 44: // 44 blue background [0,0,238]
-          buf->current_style.bg_color = (SDL_Color)BLUE;
+          buf->current_style.bg_color = (SDL_Color)SDL_BLUE;
           break;
         case 45: // 45 magenta background [205,0,205]
-          buf->current_style.bg_color = (SDL_Color)MAGENTA;
+          buf->current_style.bg_color = (SDL_Color)SDL_MAGENTA;
           break;
         case 46: // 46 cyan background [0,205,205]
-          buf->current_style.bg_color = (SDL_Color)CYAN;
+          buf->current_style.bg_color = (SDL_Color)SDL_CYAN;
           break;
         case 47: // 47 white background [255,225,255]
-          buf->current_style.bg_color = (SDL_Color)WHITE;
+          buf->current_style.bg_color = (SDL_Color)SDL_WHITE;
           break;
         case 48: // extended colour support
           if (i+1 < NUM_ESCAPE_ARGS) { //don't overflow
@@ -3158,22 +3158,22 @@ void ecma48_SGR(){
         case 63: break; // 63 ideogram double overline or double line on the left side
         case 64: break; // 64 ideogram stress marking
         case 65: break; // 65 cancels the effect parameter values 60 to 64
-        case 90: buf->current_style.fg_color = (SDL_Color)BLACK; break;
-        case 91: buf->current_style.fg_color = (SDL_Color)RED; break;
-        case 92: buf->current_style.fg_color = (SDL_Color)GREEN; break;
-        case 93: buf->current_style.fg_color = (SDL_Color)YELLOW; break;
-        case 94: buf->current_style.fg_color = (SDL_Color)BLUE; break;
-        case 95: buf->current_style.fg_color = (SDL_Color)MAGENTA; break;
-        case 96: buf->current_style.fg_color = (SDL_Color)CYAN; break;
-        case 97: buf->current_style.fg_color = (SDL_Color)WHITE; break;
-        case 100: buf->current_style.bg_color = (SDL_Color)BLACK; break;
-        case 101: buf->current_style.bg_color = (SDL_Color)RED; break;
-        case 102: buf->current_style.bg_color = (SDL_Color)GREEN; break;
-        case 103: buf->current_style.bg_color = (SDL_Color)YELLOW; break;
-        case 104: buf->current_style.bg_color = (SDL_Color)BLUE; break;
-        case 105: buf->current_style.bg_color = (SDL_Color)MAGENTA; break;
-        case 106: buf->current_style.bg_color = (SDL_Color)CYAN; break;
-        case 107: buf->current_style.bg_color = (SDL_Color)WHITE; break;
+        case 90: buf->current_style.fg_color = (SDL_Color)SDL_BLACK; break;
+        case 91: buf->current_style.fg_color = (SDL_Color)SDL_RED; break;
+        case 92: buf->current_style.fg_color = (SDL_Color)SDL_GREEN; break;
+        case 93: buf->current_style.fg_color = (SDL_Color)SDL_YELLOW; break;
+        case 94: buf->current_style.fg_color = (SDL_Color)SDL_BLUE; break;
+        case 95: buf->current_style.fg_color = (SDL_Color)SDL_MAGENTA; break;
+        case 96: buf->current_style.fg_color = (SDL_Color)SDL_CYAN; break;
+        case 97: buf->current_style.fg_color = (SDL_Color)SDL_WHITE; break;
+        case 100: buf->current_style.bg_color = (SDL_Color)SDL_BLACK; break;
+        case 101: buf->current_style.bg_color = (SDL_Color)SDL_RED; break;
+        case 102: buf->current_style.bg_color = (SDL_Color)SDL_GREEN; break;
+        case 103: buf->current_style.bg_color = (SDL_Color)SDL_YELLOW; break;
+        case 104: buf->current_style.bg_color = (SDL_Color)SDL_BLUE; break;
+        case 105: buf->current_style.bg_color = (SDL_Color)SDL_MAGENTA; break;
+        case 106: buf->current_style.bg_color = (SDL_Color)SDL_CYAN; break;
+        case 107: buf->current_style.bg_color = (SDL_Color)SDL_WHITE; break;
         default: NIPRINT(stderr, " -- Unhandled SGR param: %d\n", Pn[i]);
       };
     }

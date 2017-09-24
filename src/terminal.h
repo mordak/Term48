@@ -19,9 +19,9 @@
 
 /* #define DEBUGMSGS 0 */
 #ifdef DEBUGMSGS
-#define PRINT(args...) fprintf(args)
+#define PRINT(args...) do { fprintf(args); } while (0)
 #else
-#define PRINT(args...)
+#define PRINT(args...) do { } while (0)
 #endif
 
 #define NIPRINT(args...)
@@ -37,36 +37,39 @@
 #define MIN_FONT_SIZE 4
 
 // sym = f0d3 // z = 0x007a
-#define KEYCODE_BB_SYM_KEY 0xf0d3
+#define KEYCODE_BB_ALT_KEY 0xF0E9
+#define KEYCODE_BB_SYM_KEY 0xF0D3
 
 void rescreen();
 void setup_screen_size(int w, int h);
 void set_screen_cols(int cols);
-void first_run();
 
 int init();
 void uninit();
 
-#define BLACK       {0,   0,    0,    0}
-#define RED         {205, 0,    0,    0}
-#define GREEN       {0,   205,  0,    0}
-#define YELLOW      {205, 205,  0,    0}
-#define BLUE        {0,   0,    238,  0}
-#define MAGENTA     {205, 0,    205,  0}
-#define CYAN        {0,   205,  205,  0}
-#define GRAY        {229, 229,  229,  0}
-#define BT_GRAY     {127, 127,  127,  0}
-#define BT_RED      {255, 0,    0,    0}
-#define BT_GREEN    {0,   255,  0,    0}
-#define BT_YELLOW   {255, 255,  0,    0}
-#define BT_BLUE     {92,  92,   255,  0}
-#define BT_MAGENTA  {255, 0,    255,  0}
-#define BT_CYAN     {0,   255,  255,  0}
-#define WHITE       {255, 255,  255,  0}
+#define SDL_BLACK       {.r = 0,   .g = 0,   .b = 0}
+#define SDL_RED         {.r = 205, .g = 0,   .b = 0}
+#define SDL_GREEN       {.r = 0,   .g = 205, .b = 0}
+#define SDL_YELLOW      {.r = 205, .g = 205, .b = 0}
+#define SDL_BLUE        {.r = 0,   .g = 0,   .b = 238}
+#define SDL_MAGENTA     {.r = 205, .g = 0,   .b = 205}
+#define SDL_CYAN        {.r = 0,   .g = 205, .b = 205}
+#define SDL_GRAY        {.r = 229, .g = 229, .b = 229}
+#define SDL_BT_GRAY     {.r = 127, .g = 127, .b = 127}
+#define SDL_BT_RED      {.r = 255, .g = 0,   .b = 0}
+#define SDL_BT_GREEN    {.r = 0,   .g = 255, .b = 0}
+#define SDL_BT_YELLOW   {.r = 255, .g = 255, .b = 0}
+#define SDL_BT_BLUE     {.r = 92,  .g = 92,  .b = 255}
+#define SDL_BT_MAGENTA  {.r = 255, .g = 0,   .b = 255}
+#define SDL_BT_CYAN     {.r = 0,   .g = 255, .b = 255}
+#define SDL_WHITE       {.r = 255, .g = 255, .b = 255}
 
-#define SYMMENU_BORDER     {50,  50,  50,  0}
-#define SYMMENU_BACKGROUND {38,  38,  38,  0}
-#define SYMMENU_CORNER     {153, 153, 153, 0}
-#define SYMMENU_FONT       {255, 255, 255, 0}
+#define SYMKEY_BORDER_SIZE 4
+#define SYMMENU_FRET_SIZE 8
+#define SYMMENU_FRET       {.r = 130, .g = 130, .b = 130}
+#define SYMMENU_BORDER     {.r = 90,  .g = 90,  .b = 90}
+#define SYMMENU_BACKGROUND {.r = 38,  .g = 38,  .b = 38}
+#define SYMMENU_CORNER     {.r = 153, .g = 153, .b = 153}
+#define SYMMENU_FONT       {.r = 255, .g = 255, .b = 255}
 
 #endif /* TERMINAL_H_ */
